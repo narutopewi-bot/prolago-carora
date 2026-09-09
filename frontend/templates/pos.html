@@ -69,20 +69,21 @@
             </div>
         </div>
 
-        <!-- TABLA DE ARTÍCULOS EN LA FACTURA -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-[420px]">
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <!-- DETALLE DE ARTÍCULOS EN LA FACTURA (RESPONSIVE: TABLA EN DESKTOP, TARJETAS EN MÓVIL) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-[320px] sm:min-h-[420px]">
+            <div class="px-4 py-3 sm:px-5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div class="flex items-center space-x-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    <h2 class="font-bold text-slate-800 text-sm tracking-wide uppercase">Detalle de la Venta</h2>
+                    <h2 class="font-bold text-slate-800 text-xs sm:text-sm tracking-wide uppercase">Detalle de la Venta</h2>
                 </div>
-                <button onclick="vaciarCarrito()" class="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center space-x-1">
+                <button onclick="vaciarCarrito()" class="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center space-x-1 active:scale-95 transition">
                     <i class="fa-solid fa-trash-can shrink-0"></i>
                     <span>Vaciar lista</span>
                 </button>
             </div>
 
-            <div class="overflow-x-auto flex-1">
+            <!-- VISTA EN TABLA (Tablets y Desktop) -->
+            <div class="hidden md:block overflow-x-auto flex-1">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
                         <tr>
@@ -96,16 +97,21 @@
                         </tr>
                     </thead>
                     <tbody id="tablaItems" class="divide-y divide-slate-100">
-                        <!-- Fila vacía inicial -->
-                        <tr id="filaVacia">
-                            <td colspan="7" class="px-4 py-16 text-center text-slate-400">
-                                <i class="fa-solid fa-cart-shopping text-4xl mb-3 text-slate-300 block"></i>
-                                <p class="font-medium text-sm">No hay productos agregados</p>
-                                <p class="text-xs text-slate-400 mt-1">Busque un producto arriba o escriba su código para comenzar</p>
-                            </td>
-                        </tr>
+                        <!-- Filas dinámicas en desktop -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- VISTA EN TARJETAS TÁCTILES (Smartphones) -->
+            <div id="listaCardsMovil" class="md:hidden p-3 space-y-2.5 flex-1 overflow-y-auto">
+                <!-- Tarjetas dinámicas en móvil -->
+            </div>
+
+            <!-- Estado Vacío General (Compartido) -->
+            <div id="filaVacia" class="p-8 sm:p-16 text-center text-slate-400">
+                <i class="fa-solid fa-cart-shopping text-4xl mb-3 text-slate-300 block"></i>
+                <p class="font-medium text-sm">No hay productos agregados</p>
+                <p class="text-xs text-slate-400 mt-1">Busque un producto arriba o escriba su código para comenzar</p>
             </div>
         </div>
     </div>
@@ -195,8 +201,8 @@
 <!-- ======================================================== -->
 <!-- MODAL DE PAGO / COBRO MULTIMONEDA INTELIGENTE           -->
 <!-- ======================================================== -->
-<div id="modalCobrar" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-5 sm:p-7 overflow-y-auto max-h-[95vh]">
+<div id="modalCobrar" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-xl w-full p-4 sm:p-7 overflow-y-auto max-h-[92vh]">
         
         <!-- Header con Identificación Clara de Condición -->
         <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
@@ -524,6 +530,27 @@
         </div>
     </div>
 </div>
+
+<!-- BARRA FLOTANTE DE COBRO EN MÓVILES (Fijada abajo sobre la barra de navegación) -->
+<div id="barraFlotanteMovil" class="fixed bottom-14 inset-x-0 bg-slate-950/95 text-white p-3.5 z-30 lg:hidden shadow-2xl backdrop-blur-md border-t border-slate-800 flex items-center justify-between no-print">
+    <div>
+        <div class="flex items-center space-x-1.5 text-[11px] text-slate-300">
+            <span>Items: <strong id="mobItemsCount" class="text-white">0</strong></span>
+            <span class="text-slate-600">&bull;</span>
+            <span id="mobCondicionBadge" class="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Contado</span>
+        </div>
+        <div class="flex items-baseline space-x-1.5">
+            <span class="text-xl font-black text-emerald-400 font-mono tracking-tight" id="mobTotalUSD">$0.00</span>
+            <span class="text-[11px] text-slate-400 font-mono" id="mobTotalBS">Bs. 0,00</span>
+        </div>
+    </div>
+
+    <button onclick="abrirModalCobrar()" id="mobBtnCobrar" disabled
+        class="px-5 py-2.5 bg-emerald-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5 active:scale-95 transition">
+        <i class="fa-solid fa-money-bill-wave text-base" id="mobIconoBtnCobrar"></i>
+        <span id="mobTextoBtnCobrar">COBRAR</span>
+    </button>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -580,6 +607,28 @@
             const cliInp = document.getElementById('clienteNombre');
             if (!cliInp.value) {
                 cliInp.value = 'CLIENTE DE CONTADO';
+            }
+        }
+
+        // Sincronizar barra flotante inferior en móvil
+        const mobCondicionBadge = document.getElementById('mobCondicionBadge');
+        const mobBtnCobrar = document.getElementById('mobBtnCobrar');
+        const mobTextoBtnCobrar = document.getElementById('mobTextoBtnCobrar');
+        const mobIconoBtnCobrar = document.getElementById('mobIconoBtnCobrar');
+
+        if (mobCondicionBadge) {
+            if (tipo === 'credito') {
+                mobCondicionBadge.textContent = 'A CRÉDITO';
+                mobCondicionBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30';
+                mobTextoBtnCobrar.textContent = 'A CRÉDITO';
+                mobIconoBtnCobrar.className = 'fa-solid fa-hand-holding-dollar text-base';
+                mobBtnCobrar.className = 'px-5 py-2.5 bg-rose-600 text-white font-black text-sm rounded-xl shadow-lg shadow-rose-600/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5 active:scale-95 transition';
+            } else {
+                mobCondicionBadge.textContent = 'CONTADO';
+                mobCondicionBadge.className = 'text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                mobTextoBtnCobrar.textContent = 'COBRAR';
+                mobIconoBtnCobrar.className = 'fa-solid fa-money-bill-wave text-base';
+                mobBtnCobrar.className = 'px-5 py-2.5 bg-emerald-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5 active:scale-95 transition';
             }
         }
     }
@@ -714,20 +763,31 @@
 
     function renderizarCarrito() {
         const tbody = document.getElementById('tablaItems');
+        const cardsMovil = document.getElementById('listaCardsMovil');
         const filaVacia = document.getElementById('filaVacia');
 
         if (carrito.length === 0) {
-            tbody.innerHTML = '';
-            tbody.appendChild(filaVacia);
-            filaVacia.classList.remove('hidden');
+            if (tbody) tbody.innerHTML = '';
+            if (cardsMovil) cardsMovil.innerHTML = '';
+            if (filaVacia) filaVacia.classList.remove('hidden');
             document.getElementById('totalUSDDisplay').textContent = '$0.00';
             document.getElementById('totalBSDisplay').textContent = 'Bs. 0,00';
             document.getElementById('totalItemsCount').textContent = '0';
             document.getElementById('btnCobrar').disabled = true;
+
+            const mobTotalUSD = document.getElementById('mobTotalUSD');
+            if (mobTotalUSD) {
+                mobTotalUSD.textContent = '$0.00';
+                document.getElementById('mobTotalBS').textContent = 'Bs. 0,00';
+                document.getElementById('mobItemsCount').textContent = '0';
+                document.getElementById('mobBtnCobrar').disabled = true;
+            }
             return;
         }
 
-        tbody.innerHTML = '';
+        if (filaVacia) filaVacia.classList.add('hidden');
+        if (tbody) tbody.innerHTML = '';
+        if (cardsMovil) cardsMovil.innerHTML = '';
         let totalUSD = 0;
         let totalItems = 0;
 
@@ -738,35 +798,84 @@
             totalUSD += subtotal;
             totalItems += item.cantidad;
 
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50/80 transition';
-            tr.innerHTML = `
-                <td class="px-4 py-3 font-mono text-xs font-bold text-slate-500">${item.codigo}</td>
-                <td class="px-4 py-3 font-medium text-slate-800 text-xs">
-                    ${item.nombre}
-                    ${item.stock <= 5 ? `<span class="ml-1 text-[10px] text-amber-600 font-bold">(Stock: ${item.stock})</span>` : ''}
-                </td>
-                <td class="px-3 py-3 text-center">
-                    <div class="inline-flex items-center space-x-1 border border-slate-300 rounded-lg bg-white p-0.5">
-                        <button onclick="cambiarCantidad(${idx}, -1)" class="w-6 h-6 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded text-xs font-bold">-</button>
-                        <input type="number" step="0.5" min="0.1" value="${item.cantidad}" onchange="ajustarCantidad(${idx}, this.value)"
-                            class="w-12 text-center text-xs font-bold border-0 focus:ring-0 p-0 text-slate-800">
-                        <button onclick="cambiarCantidad(${idx}, 1)" class="w-6 h-6 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded text-xs font-bold">+</button>
+            // 1. RENDERIZAR FILA PARA DESKTOP
+            if (tbody) {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-slate-500">${item.codigo}</td>
+                    <td class="px-4 py-3 font-medium text-slate-800 text-xs">
+                        ${item.nombre}
+                        ${item.stock <= 5 ? `<span class="ml-1 text-[10px] text-amber-600 font-bold">(Stock: ${item.stock})</span>` : ''}
+                    </td>
+                    <td class="px-3 py-3 text-center">
+                        <div class="inline-flex items-center space-x-1 border border-slate-300 rounded-lg bg-white p-0.5">
+                            <button onclick="cambiarCantidad(${idx}, -1)" class="w-6 h-6 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded text-xs font-bold">-</button>
+                            <input type="number" step="0.5" min="0.1" value="${item.cantidad}" onchange="ajustarCantidad(${idx}, this.value)"
+                                class="w-12 text-center text-xs font-bold border-0 focus:ring-0 p-0 text-slate-800">
+                            <button onclick="cambiarCantidad(${idx}, 1)" class="w-6 h-6 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded text-xs font-bold">+</button>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 text-right font-mono font-bold text-xs">$${item.precio.toFixed(2)}</td>
+                    <td class="px-3 py-3 text-center">
+                        <input type="number" min="0" max="100" value="${item.descuento}" onchange="ajustarDescuento(${idx}, this.value)"
+                            class="w-12 text-center text-xs border border-slate-300 rounded-md py-1 font-semibold focus:ring-1 focus:ring-emerald-500">
+                    </td>
+                    <td class="px-4 py-3 text-right font-mono font-black text-xs text-emerald-700">$${subtotal.toFixed(2)}</td>
+                    <td class="px-3 py-3 text-center">
+                        <button onclick="eliminarDelCarrito(${idx})" class="text-slate-300 hover:text-red-500 transition">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            // 2. RENDERIZAR TARJETA TÁCTIL PARA SMARTPHONES
+            if (cardsMovil) {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 border border-slate-200/90 rounded-2xl p-3 shadow-xs space-y-2.5';
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex-1">
+                            <div class="font-bold text-slate-800 text-xs leading-snug line-clamp-2">${item.nombre}</div>
+                            <div class="flex items-center space-x-2 text-[10px] text-slate-400 mt-1">
+                                <span>Cód: <strong class="font-mono text-slate-600">${item.codigo}</strong></span>
+                                <span>&bull;</span>
+                                <span>P.U: <strong class="text-slate-700 font-mono">$${item.precio.toFixed(2)}</strong></span>
+                                ${item.stock <= 5 ? `<span class="text-amber-600 font-bold bg-amber-50 px-1 rounded">Stock: ${item.stock}</span>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="eliminarDelCarrito(${idx})" class="text-slate-400 hover:text-red-500 p-1.5 active:scale-90 transition" title="Eliminar">
+                            <i class="fa-solid fa-trash-can text-sm text-red-400"></i>
+                        </button>
                     </div>
-                </td>
-                <td class="px-3 py-3 text-right font-mono font-bold text-xs">$${item.precio.toFixed(2)}</td>
-                <td class="px-3 py-3 text-center">
-                    <input type="number" min="0" max="100" value="${item.descuento}" onchange="ajustarDescuento(${idx}, this.value)"
-                        class="w-12 text-center text-xs border border-slate-300 rounded-md py-1 font-semibold focus:ring-1 focus:ring-emerald-500">
-                </td>
-                <td class="px-4 py-3 text-right font-mono font-black text-xs text-emerald-700">$${subtotal.toFixed(2)}</td>
-                <td class="px-3 py-3 text-center">
-                    <button onclick="eliminarDelCarrito(${idx})" class="text-slate-300 hover:text-red-500 transition">
-                        <i class="fa-solid fa-xmark text-sm"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                        <!-- Control táctil de cantidad -->
+                        <div class="inline-flex items-center space-x-1.5 bg-white border border-slate-300 rounded-xl p-1 shadow-xs">
+                            <button onclick="cambiarCantidad(${idx}, -1)" class="w-8 h-8 flex items-center justify-center bg-slate-100 text-slate-700 rounded-lg text-sm font-bold active:bg-slate-300">-</button>
+                            <input type="number" step="0.5" min="0.1" value="${item.cantidad}" onchange="ajustarCantidad(${idx}, this.value)"
+                                class="w-10 text-center text-xs font-bold border-0 focus:ring-0 p-0 text-slate-800">
+                            <button onclick="cambiarCantidad(${idx}, 1)" class="w-8 h-8 flex items-center justify-center bg-emerald-100 text-emerald-800 rounded-lg text-sm font-bold active:bg-emerald-300">+</button>
+                        </div>
+
+                        <!-- Descuento y Subtotal -->
+                        <div class="flex items-center space-x-3 text-right">
+                            <div>
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">Dcto %</span>
+                                <input type="number" min="0" max="100" value="${item.descuento}" onchange="ajustarDescuento(${idx}, this.value)"
+                                    class="w-10 text-center text-xs border border-slate-300 rounded-md py-0.5 font-bold focus:ring-1 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400 block uppercase font-bold">Subtotal</span>
+                                <span class="text-sm font-black text-emerald-700 font-mono tracking-tight">$${subtotal.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                cardsMovil.appendChild(card);
+            }
         });
 
         const totalBS = (totalUSD * TASA_BCV).toFixed(2);
@@ -774,6 +883,15 @@
         document.getElementById('totalBSDisplay').textContent = `Bs. ${Number(totalBS).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
         document.getElementById('totalItemsCount').textContent = totalItems;
         document.getElementById('btnCobrar').disabled = false;
+
+        // Sincronizar barra flotante móvil
+        const mobTotalUSD = document.getElementById('mobTotalUSD');
+        if (mobTotalUSD) {
+            mobTotalUSD.textContent = `$${totalUSD.toFixed(2)}`;
+            document.getElementById('mobTotalBS').textContent = `Bs. ${Number(totalBS).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            document.getElementById('mobItemsCount').textContent = totalItems;
+            document.getElementById('mobBtnCobrar').disabled = false;
+        }
     }
 
     function cambiarCantidad(idx, delta) {

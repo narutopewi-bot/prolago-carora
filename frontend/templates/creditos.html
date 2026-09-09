@@ -22,66 +22,66 @@
         </button>
     </div>
 
-    <!-- TARJETAS DE RESUMEN KPI -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- TARJETAS DE RESUMEN KPI (2 cols en móvil, 4 cols en desktop) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         
         <!-- Total por Cobrar en USD -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Total por Cobrar ($)</span>
-                <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm">
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Por Cobrar ($)</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-xs sm:text-sm">
                     <i class="fa-solid fa-dollar-sign"></i>
                 </div>
             </div>
-            <div class="text-2xl font-black text-rose-600" id="kpiTotalUSD">$0.00</div>
-            <p class="text-[11px] text-slate-400 mt-1">Suma de saldos pendientes en USD</p>
+            <div class="text-lg sm:text-2xl font-black text-rose-600 font-mono" id="kpiTotalUSD">$0.00</div>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Saldos pendientes</p>
         </div>
 
         <!-- Total por Cobrar en Bolívares -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Equivalente en Bolívares</span>
-                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm">
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Equiv. Bolívares</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xs sm:text-sm">
                     <i class="fa-solid fa-coins"></i>
                 </div>
             </div>
-            <div class="text-xl sm:text-2xl font-black text-slate-900" id="kpiTotalBS">Bs. 0,00</div>
-            <p class="text-[11px] text-slate-400 mt-1">A tasa oficial BCV actual</p>
+            <div class="text-base sm:text-2xl font-black text-slate-900 font-mono" id="kpiTotalBS">Bs. 0,00</div>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Tasa oficial BCV</p>
         </div>
 
         <!-- Clientes Deudores -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Clientes con Deuda</span>
-                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm">
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Deudores</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xs sm:text-sm">
                     <i class="fa-solid fa-users"></i>
                 </div>
             </div>
-            <div class="text-2xl font-black text-slate-800" id="kpiClientesCount">0</div>
-            <p class="text-[11px] text-slate-400 mt-1">Personas con saldo activo</p>
+            <div class="text-lg sm:text-2xl font-black text-slate-800" id="kpiClientesCount">0</div>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Clientes activos</p>
         </div>
 
         <!-- Facturas Pendientes -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Facturas a Crédito</span>
-                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-file-invoice"></i>
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Facturas Pend.</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs sm:text-sm">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
                 </div>
             </div>
-            <div class="text-2xl font-black text-slate-800" id="kpiFacturasCount">0</div>
-            <p class="text-[11px] text-slate-400 mt-1">Cuentas pendientes por saldar</p>
+            <div class="text-lg sm:text-2xl font-black text-slate-800" id="kpiFacturasCount">0</div>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Sin saldar</p>
         </div>
     </div>
 
-    <!-- FILTROS Y CONTROLES DE BÚSQUEDA -->
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="w-full sm:w-80 relative">
+    <!-- CONTROLES DE BÚSQUEDA Y FILTRADO -->
+    <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+        <div class="flex-1 relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
             </span>
             <input type="text" id="filtroTextoCredito" oninput="filtrarCreditos()" placeholder="Buscar cliente o N° de factura..."
-                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500 focus:outline-none">
         </div>
 
         <div class="flex items-center space-x-3 text-xs">
@@ -92,10 +92,10 @@
         </div>
     </div>
 
-    <!-- TABLA DE CUENTAS POR COBRAR -->
+    <!-- TABLA DE CUENTAS POR COBRAR (Scroll suave en móviles) -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[700px]">
                 <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
                     <tr>
                         <th class="px-4 py-3.5">Factura N°</th>
@@ -120,8 +120,8 @@
 <!-- ======================================================== -->
 <!-- MODAL REGISTRAR ABONO / PAGO DE DEUDA                   -->
 <!-- ======================================================== -->
-<div id="modalAbono" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-800">
+<div id="modalAbono" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-6 text-slate-800 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between border-b pb-3 mb-4">
             <div>
                 <h3 class="text-base font-bold text-slate-900 flex items-center space-x-1.5">

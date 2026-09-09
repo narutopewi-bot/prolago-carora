@@ -18,50 +18,50 @@
         </button>
     </div>
 
-    <!-- TARJETAS DE RESUMEN DEL DÍA -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- TARJETAS DE RESUMEN DEL DÍA (2 cols en móvil, 4 cols en desktop) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         
         <!-- Total Ventas Hoy -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Ventas de Hoy</span>
-                <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Ventas Hoy</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs sm:text-sm">
                     <i class="fa-solid fa-dollar-sign"></i>
                 </div>
             </div>
-            <div class="text-2xl font-black text-slate-900" id="repTotalHoyUSD">$0.00</div>
-            <div class="text-xs text-emerald-600 font-semibold mt-1" id="repTotalHoyBS">Bs. 0,00</div>
-            <div class="text-[11px] text-slate-400 mt-2 pt-2 border-t" id="repCantFacturas">0 facturas emitidas</div>
+            <div class="text-lg sm:text-2xl font-black text-slate-900 font-mono" id="repTotalHoyUSD">$0.00</div>
+            <div class="text-[11px] sm:text-xs text-emerald-600 font-bold mt-0.5" id="repTotalHoyBS">Bs. 0,00</div>
+            <div class="text-[10px] text-slate-400 mt-2 pt-1.5 border-t" id="repCantFacturas">0 facturas</div>
         </div>
 
         <!-- Patrimonio / Valor de Inventario -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Valor Inventario (Costo)</span>
-                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Inventario (Costo)</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs sm:text-sm">
                     <i class="fa-solid fa-boxes-stacked"></i>
                 </div>
             </div>
-            <div class="text-2xl font-black text-slate-900" id="repPatrimonioUSD">$0.00</div>
-            <div class="text-xs text-blue-600 font-semibold mt-1" id="repPatrimonioBS">Bs. 0,00</div>
-            <div class="text-[11px] text-slate-400 mt-2 pt-2 border-t" id="repTotalProductos">0 productos registrados</div>
+            <div class="text-base sm:text-2xl font-black text-slate-900 font-mono" id="repPatrimonioUSD">$0.00</div>
+            <div class="text-[11px] sm:text-xs text-blue-600 font-bold mt-0.5" id="repPatrimonioBS">Bs. 0,00</div>
+            <div class="text-[10px] text-slate-400 mt-2 pt-1.5 border-t" id="repTotalProductos">982 prods</div>
         </div>
 
         <!-- Alertas de Stock -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Alerta de Stock</span>
-                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm">
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Alerta Stock</span>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xs sm:text-sm">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
             </div>
-            <div class="text-2xl font-black text-amber-600" id="repBajoStock">0</div>
-            <p class="text-xs text-slate-500 mt-1">Productos con 5 o menos unidades</p>
-            <div class="text-[11px] text-slate-400 mt-2 pt-2 border-t">Requieren reposición</div>
+            <div class="text-lg sm:text-2xl font-black text-amber-600 font-mono" id="repBajoStock">0</div>
+            <p class="text-[10px] text-slate-500 mt-0.5">&le; 5 unidades</p>
+            <div class="text-[10px] text-slate-400 mt-2 pt-1.5 border-t">Reposición</div>
         </div>
 
         <!-- Tasa BCV Actual -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-bold text-slate-400 uppercase">Tasa Oficial BCV</span>
                 <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm">

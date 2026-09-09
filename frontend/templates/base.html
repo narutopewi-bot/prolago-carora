@@ -105,13 +105,13 @@
                 </nav>
 
                 <!-- Tasa BCV y Usuario -->
-                <div class="flex items-center space-x-2 xl:space-x-2.5 shrink-0 ml-auto lg:ml-4">
-                    <!-- Widget Tasa BCV -->
-                    <button onclick="abrirModalTasa()" title="Click para actualizar tasa" class="flex items-center space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shrink-0">
+                <div class="flex items-center space-x-1.5 sm:space-x-2 xl:space-x-2.5 shrink-0 ml-auto lg:ml-4">
+                    <!-- Widget Tasa BCV (Compacto en móviles) -->
+                    <button onclick="abrirModalTasa()" title="Click para actualizar tasa" class="flex items-center space-x-1 sm:space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-sm transition shrink-0">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                        <span class="text-red-200">BCV:</span>
-                        <span id="tasaBCVDisplay" class="text-white font-bold">Cargando...</span>
-                        <i class="fa-solid fa-pen text-[10px] text-red-200 ml-1 shrink-0"></i>
+                        <span class="hidden sm:inline text-red-200">BCV:</span>
+                        <span id="tasaBCVDisplay" class="text-white font-bold text-[11px] sm:text-xs">Cargando...</span>
+                        <i class="fa-solid fa-pen text-[9px] text-red-200 ml-0.5 shrink-0"></i>
                     </button>
 
                     <!-- Widget Formato Impresora -->
@@ -122,7 +122,7 @@
                     </button>
 
                     <!-- Usuario -->
-                    <div class="relative flex items-center space-x-2 shrink-0">
+                    <div class="relative hidden sm:flex items-center space-x-2 shrink-0">
                         <span class="text-xs bg-black/25 border border-white/20 px-2.5 py-1 rounded-md text-white font-medium shrink-0">
                             <i class="fa-solid fa-user-circle mr-1 text-red-200 shrink-0"></i>{{ user.nombre if user else 'Usuario' }}
                         </span>
@@ -132,7 +132,7 @@
                     </div>
 
                     <!-- Botón Menú Móvil -->
-                    <button onclick="toggleMenuMovil()" class="lg:hidden p-2 text-white/80 hover:text-white shrink-0">
+                    <button onclick="toggleMenuMovil()" class="lg:hidden p-2 text-white/90 hover:text-white shrink-0 active:scale-90 transition">
                         <i class="fa-solid fa-bars text-lg shrink-0"></i>
                     </button>
                 </div>
@@ -140,38 +140,79 @@
         </div>
 
         <!-- Menú Móvil Desplegable -->
-        <div id="mobileMenu" class="hidden md:hidden bg-[#3b0405] border-t border-red-900/60 px-4 pt-2 pb-4 space-y-1">
-            <a href="/" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-cash-register mr-2 text-emerald-300"></i>Punto de Venta
+        <div id="mobileMenu" class="hidden lg:hidden bg-[#3b0405] border-t border-red-900/60 px-4 pt-3 pb-5 space-y-1.5 shadow-2xl">
+            <!-- Info de usuario en móvil -->
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-xs text-red-200">
+                <span class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-circle text-sm"></i>
+                    <strong class="text-white">{{ user.nombre if user else 'Usuario' }}</strong>
+                </span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="alternarImpresoraGlobal()" class="px-2 py-0.5 bg-black/30 rounded border border-white/15 text-[11px] text-white">
+                        Ticket: <strong id="impresoraGlobalDisplayMob">58mm</strong>
+                    </button>
+                    <button onclick="cerrarSesion()" class="text-red-300 hover:text-red-100 font-bold text-xs flex items-center space-x-1">
+                        <i class="fa-solid fa-power-off"></i>
+                        <span>Salir</span>
+                    </button>
+                </div>
+            </div>
+
+            <a href="/" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-cash-register mr-2.5 text-emerald-300 w-5 text-center"></i><span>Punto de Venta</span>
             </a>
-            <a href="/inventario" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-boxes-stacked mr-2 text-blue-300"></i>Inventario
+            <a href="/inventario" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-boxes-stacked mr-2.5 text-blue-300 w-5 text-center"></i><span>Inventario y Precios</span>
             </a>
-            <a href="/compras" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-truck-ramp-box mr-2 text-amber-300"></i>Compras
+            <a href="/creditos" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-hand-holding-dollar mr-2.5 text-rose-300 w-5 text-center"></i><span>Cuentas por Cobrar / Créditos</span>
             </a>
-            <a href="/despachos" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-truck-fast mr-2 text-purple-300"></i>Despachos
+            <a href="/historial" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-clock-rotate-left mr-2.5 text-cyan-300 w-5 text-center"></i><span>Historial de Ventas</span>
             </a>
-            <a href="/historial" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-clock-rotate-left mr-2 text-cyan-300"></i>Historial de Ventas
+            <a href="/compras" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Recepción de Compras</span>
             </a>
-            <a href="/clientes" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-users mr-2 text-pink-300"></i>Clientes
+            <a href="/despachos" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-truck-fast mr-2.5 text-purple-300 w-5 text-center"></i><span>Despachos y Salidas</span>
             </a>
-            <a href="/reportes" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-chart-pie mr-2 text-yellow-300"></i>Caja y Reportes
+            <a href="/clientes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-users mr-2.5 text-pink-300 w-5 text-center"></i><span>Directorio de Clientes</span>
             </a>
-            <a href="/creditos" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
-                <i class="fa-solid fa-hand-holding-dollar mr-2 text-rose-300"></i>Cuentas por Cobrar / Créditos
+            <a href="/reportes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-chart-pie mr-2.5 text-yellow-300 w-5 text-center"></i><span>Cierre de Caja y Reportes</span>
             </a>
         </div>
     </header>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- CONTENIDO PRINCIPAL (Con margen inferior para barra móvil) -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8 pb-32 lg:pb-8">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- BARRA DE NAVEGACIÓN INFERIOR PARA MÓVILES (Estilo App Nativa) -->
+    <nav class="lg:hidden fixed bottom-0 inset-x-0 bg-gradient-to-r from-[#470506] via-[#791F21] to-[#8B1E24] text-white border-t border-white/15 z-40 flex items-center justify-around py-1.5 px-2 shadow-2xl backdrop-blur-md no-print">
+        <a href="/" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_pos %}text-red-200 hover:text-white{% endblock %}">
+            <i class="fa-solid fa-cash-register text-lg mb-0.5 text-emerald-300"></i>
+            <span class="text-[10px] font-bold">Ventas</span>
+        </a>
+        <a href="/inventario" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_inventario %}text-red-200 hover:text-white{% endblock %}">
+            <i class="fa-solid fa-boxes-stacked text-lg mb-0.5 text-blue-300"></i>
+            <span class="text-[10px] font-bold">Stock</span>
+        </a>
+        <a href="/creditos" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_creditos %}text-red-200 hover:text-white{% endblock %}">
+            <i class="fa-solid fa-hand-holding-dollar text-lg mb-0.5 text-rose-300"></i>
+            <span class="text-[10px] font-bold">Créditos</span>
+        </a>
+        <a href="/historial" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_historial %}text-red-200 hover:text-white{% endblock %}">
+            <i class="fa-solid fa-clock-rotate-left text-lg mb-0.5 text-cyan-300"></i>
+            <span class="text-[10px] font-bold">Historial</span>
+        </a>
+        <button onclick="toggleMenuMovil()" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition text-red-200 hover:text-white">
+            <i class="fa-solid fa-bars text-lg mb-0.5 text-amber-300"></i>
+            <span class="text-[10px] font-bold">Más</span>
+        </button>
+    </nav>
 
     <!-- MODAL ACTUALIZAR TASA BCV -->
     <div id="modalTasa" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -299,6 +340,8 @@
         function actualizarDisplayImpresora(fmt) {
             const el = document.getElementById('impresoraGlobalDisplay');
             if (el) el.textContent = `${fmt}mm`;
+            const elMob = document.getElementById('impresoraGlobalDisplayMob');
+            if (elMob) elMob.textContent = `${fmt}mm`;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
