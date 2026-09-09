@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Despachos y Notas de Entrega - Prolago Carora 2026{% endblock %}
+{% block nav_despachos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <div class="lg:col-span-8 flex flex-col space-y-4">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-truck text-purple-600"></i>
+                </span>
+                <input type="text" id="buscadorDespacho" autocomplete="off"
+                    placeholder="Buscar producto para despachar al costo..."
+                    class="w-full pl-11 pr-24 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:bg-white focus:outline-none">
+            </div>
+
+            <div id="dropdownDespachoResultados" class="hidden mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 z-30"></div>
+        </div>
+
+        <!-- Tabla Despacho -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-[400px]">
+            <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h2 class="font-bold text-slate-800 text-sm tracking-wide uppercase flex items-center">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2"></span>
+                    Ítems de Despacho (Valorados al Costo)
+                </h2>
+                <button onclick="vaciarDespacho()" class="text-xs text-red-500 hover:text-red-700 font-semibold">Vaciar</button>
+            </div>
+
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3">Cód.</th>
+                            <th class="px-4 py-3">Descripción</th>
+                            <th class="px-3 py-3 text-center">Cant.</th>
+                            <th class="px-3 py-3 text-right">Costo Final ($)</th>
+                            <th class="px-4 py-3 text-right">Subtotal ($)</th>
+                            <th class="px-3 py-3 text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaDespachoItems" class="divide-y divide-slate-100">
+                        <tr id="despachoFilaVacia">
+                            <td colspan="6" class="p-12 text-center text-slate-400 font-medium">No hay productos en la orden de despacho</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna Derecha -->
+    <div class="lg:col-span-4 flex flex-col space-y-4">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span class="text-xs font-bold text-slate-400 uppercase">Nota de Entrega N°</span>
+                <span id="numDespachoDisplay" class="font-mono font-black text-purple-700 text-base bg-purple-50 px-2.5 py-0.5 rounded-lg border border-purple-200">
+                    #...
+                </span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Destino / Cliente Despacho</label>
+                <input type="text" id="despachoDestino" list="destinosSugeridos" placeholder="Ej: Alejandra López, Prolago Goajiro..."
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-purple-500">
+                <datalist id="destinosSugeridos">
+                    <option value="Alejandra López - Av. Bolívar, Dabajuro.">
+                    <option value="Prolago Goajiro - Calle Principal, Goajiro.">
+                    <option value="Prolago - Av. Rotaria, Carora.">
+                </datalist>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Dirección de Entrega</label>
+                <input type="text" id="despachoDireccion" placeholder="Dirección del destino..."
+                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-purple-500">
+            </div>
+        </div>
+
+        <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex-1 flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+                <div class="flex justify-between text-sm text-slate-400 border-b border-slate-800 pb-2">
+                    <span>Total Ítems:</span>
+                    <span id="despachoCantItems" class="font-bold text-white">0</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 font-semibold block">TOTAL VALORADO AL COSTO ($):</span>
+                    <span class="text-3xl font-black text-purple-400" id="despachoTotalUSD">$0.00</span>
+                </div>
+                <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700 flex justify-between">
+                    <span class="text-xs text-slate-400">Total en Bolívares (BCV):</span>
+                    <span class="text-base font-bold text-slate-200" id="despachoTotalBS">Bs. 0,00</span>
+                </div>
+            </div>
+
+            <button onclick="guardarDespacho()" id="btnGuardarDespacho" disabled
+                class="w-full py-4 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-check"></i>
+                <span>Emitir Nota de Entrega</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let despachoItems = [];
+    let siguienteDespachoNum = "1";
+
+    async function initDespachos() {
+        try {
+            const res = await fetch('/api/despachos/siguiente_numero');
+            if (res.ok) {
+                const d = await res.json();
+                siguienteDespachoNum = d.siguiente;
+                document.getElementById('numDespachoDisplay').textContent = `#${siguienteDespachoNum}`;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        configurarBuscadorDespacho();
+    }
+
+    function configurarBuscadorDespacho() {
+        const inp = document.getElementById('buscadorDespacho');
+        const dropdown = document.getElementById('dropdownDespachoResultados');
+        let timer = null;
+
+        inp.addEventListener('input', (e) => {
+            clearTimeout(timer);
+            const val = e.target.value.trim();
+            if (val.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            timer = setTimeout(async () => {
+                const res = await fetch(`/api/articulos?search=${encodeURIComponent(val)}&limit=10`);
+                if (res.ok) {
+                    const data = await res.json();
+                    dropdown.innerHTML = '';
+                    data.items.forEach(it => {
+                        const div = document.createElement('div');
+                        div.className = 'p-3 hover:bg-purple-50 cursor-pointer flex justify-between items-center text-xs';
+                        div.innerHTML = `
+                            <div>
+                                <strong class="text-slate-800">${it.nombre}</strong>
+                                <span class="block text-[10px] text-slate-400">Cód: ${it.codigo}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-bold text-purple-700">Costo: $${(it.costo_final || 0).toFixed(2)}</span>
+                                <span class="block text-[10px] text-slate-400">Stock: ${it.stock}</span>
+                            </div>
+                        `;
+                        div.onclick = () => {
+                            agregarItemDespacho(it);
+                            inp.value = '';
+                            dropdown.classList.add('hidden');
+                        };
+                        dropdown.appendChild(div);
+                    });
+                    dropdown.classList.remove('hidden');
+                }
+            }, 200);
+        });
+    }
+
+    function agregarItemDespacho(prod) {
+        const existe = despachoItems.find(x => x.codigo === prod.codigo);
+        if (existe) {
+            existe.cantidad += 1;
+        } else {
+            despachoItems.push({
+                codigo: prod.codigo,
+                nombre: prod.nombre,
+                costo: prod.costo_final || 0,
+                cantidad: 1
+            });
+        }
+        renderizarDespacho();
+    }
+
+    function renderizarDespacho() {
+        const tbody = document.getElementById('tablaDespachoItems');
+        const filaVacia = document.getElementById('despachoFilaVacia');
+
+        if (despachoItems.length === 0) {
+            tbody.innerHTML = '';
+            tbody.appendChild(filaVacia);
+            filaVacia.classList.remove('hidden');
+            document.getElementById('despachoTotalUSD').textContent = '$0.00';
+            document.getElementById('despachoTotalBS').textContent = 'Bs. 0,00';
+            document.getElementById('despachoCantItems').textContent = '0';
+            document.getElementById('btnGuardarDespacho').disabled = true;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        let total = 0;
+        let cantTotal = 0;
+
+        despachoItems.forEach((it, idx) => {
+            const subt = it.cantidad * it.costo;
+            total += subt;
+            cantTotal += it.cantidad;
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono font-bold text-slate-500 text-xs">${it.codigo}</td>
+                <td class="px-4 py-3 font-semibold text-slate-800 text-xs">${it.nombre}</td>
+                <td class="px-3 py-3 text-center">
+                    <input type="number" step="0.5" min="0.1" value="${it.cantidad}" onchange="cambiarCantDesp(${idx}, this.value)"
+                        class="w-16 px-2 py-1 text-center font-bold text-xs border border-slate-300 rounded-lg">
+                </td>
+                <td class="px-3 py-3 text-right font-mono font-bold text-xs text-slate-700">$${it.costo.toFixed(2)}</td>
+                <td class="px-4 py-3 text-right font-mono font-black text-purple-700 text-xs">$${subt.toFixed(2)}</td>
+                <td class="px-3 py-3 text-center">
+                    <button onclick="eliminarItemDesp(${idx})" class="text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('despachoTotalUSD').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('despachoTotalBS').textContent = `Bs. ${(total * TASA_BCV).toFixed(2)}`;
+        document.getElementById('despachoCantItems').textContent = cantTotal;
+        document.getElementById('btnGuardarDespacho').disabled = false;
+    }
+
+    function cambiarCantDesp(idx, val) {
+        const n = parseFloat(val);
+        despachoItems[idx].cantidad = (!isNaN(n) && n > 0) ? n : 1;
+        renderizarDespacho();
+    }
+
+    function eliminarItemDesp(idx) {
+        despachoItems.splice(idx, 1);
+        renderizarDespacho();
+    }
+
+    function vaciarDespacho() {
+        despachoItems = [];
+        renderizarDespacho();
+    }
+
+    async function guardarDespacho() {
+        const destino = document.getElementById('despachoDestino').value.trim();
+        if (!destino) {
+            Swal.fire('Atención', 'Ingrese el destino o cliente del despacho', 'warning');
+            return;
+        }
+
+        const payload = {
+            destino_cliente: destino,
+            direccion: document.getElementById('despachoDireccion').value.trim(),
+            items: despachoItems.map(it => ({
+                codigo_articulo: it.codigo,
+                cantidad: it.cantidad,
+                costo_unitario: it.costo
+            }))
+        };
+
+        try {
+            const res = await fetch('/api/despachos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                Swal.fire({
+                    icon: 'success',
+                    title: `Despacho #${data.numero} Registrado`,
+                    text: `Total valorado al costo: $${data.total.toFixed(2)}`,
+                    confirmButtonColor: '#9333ea'
+                });
+                vaciarDespacho();
+                initDespachos();
+            } else {
+                Swal.fire('Error', 'No se pudo guardar el despacho', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Fallo de conexión', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initDespachos);
+</script>
+{% endblock %}

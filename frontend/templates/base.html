@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Prolago Carora 2026{% endblock %}</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="apple-touch-icon" href="/static/img/logo.jpg">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        prolago: {
+                            50: '#fdf2f2',
+                            100: '#fbe4e4',
+                            200: '#f7cece',
+                            300: '#f0a8a9',
+                            400: '#e57577',
+                            500: '#d7484b',
+                            600: '#b53335',
+                            700: '#8b1e24',
+                            800: '#791f21',
+                            900: '#470506',
+                            950: '#2b0203'
+                        },
+                        brand: { 500: '#8b1e24', 600: '#791f21', 700: '#470506' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        i.fa-solid, i.fa-brands, i.fa-regular {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            line-height: 1 !important;
+            vertical-align: middle;
+            flex-shrink: 0 !important;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+        .print-only { display: none; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- BARRA SUPERIOR DE NAVEGACIÓN PROLAGO C.A. -->
+    <header class="bg-gradient-to-r from-[#470506] via-[#791F21] to-[#8B1E24] text-white shadow-xl sticky top-0 z-40 no-print border-b border-white/10">
+        <div class="w-full px-3 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo Oficial y Nombre -->
+                <div class="flex items-center shrink-0 mr-3 lg:mr-6">
+                    <a href="/" class="flex items-center space-x-2.5 group">
+                        <img src="/static/img/logo.jpg" alt="Logo Prolago C.A." class="w-10 h-10 rounded-xl object-cover border-2 border-white/30 shadow-md group-hover:scale-105 transition shrink-0">
+                        <div class="leading-tight shrink-0">
+                            <div class="flex items-baseline space-x-1">
+                                <span class="font-black text-lg tracking-wider text-white">PROLAGO</span>
+                                <span class="font-bold text-xs text-red-200">C.A.</span>
+                            </div>
+                            <span class="text-[9px] block text-red-200/90 font-semibold tracking-wider uppercase">Carora, Lara</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Links Centrales (Desktop) -->
+                <nav class="hidden lg:flex items-center space-x-0.5 xl:space-x-1 text-xs xl:text-sm font-medium shrink-0">
+                    <a href="/" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_pos %}{% endblock %}">
+                        <i class="fa-solid fa-cash-register mr-1.5 text-emerald-300 shrink-0 w-4 text-center"></i><span>Ventas</span>
+                    </a>
+                    <a href="/inventario" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_inventario %}{% endblock %}">
+                        <i class="fa-solid fa-boxes-stacked mr-1.5 text-blue-300 shrink-0 w-4 text-center"></i><span>Inventario</span>
+                    </a>
+                    <a href="/compras" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_compras %}{% endblock %}">
+                        <i class="fa-solid fa-truck-ramp-box mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Compras</span>
+                    </a>
+                    <a href="/despachos" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_despachos %}{% endblock %}">
+                        <i class="fa-solid fa-truck-fast mr-1.5 text-purple-300 shrink-0 w-4 text-center"></i><span>Despachos</span>
+                    </a>
+                    <a href="/creditos" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_creditos %}{% endblock %}">
+                        <i class="fa-solid fa-hand-holding-dollar mr-1.5 text-rose-300 shrink-0 w-4 text-center"></i><span>Créditos</span>
+                    </a>
+                    <a href="/historial" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_historial %}{% endblock %}">
+                        <i class="fa-solid fa-clock-rotate-left mr-1.5 text-cyan-300 shrink-0 w-4 text-center"></i><span>Historial</span>
+                    </a>
+                    <a href="/clientes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_clientes %}{% endblock %}">
+                        <i class="fa-solid fa-users mr-1.5 text-pink-300 shrink-0 w-4 text-center"></i><span>Clientes</span>
+                    </a>
+                    <a href="/reportes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_reportes %}{% endblock %}">
+                        <i class="fa-solid fa-chart-pie mr-1.5 text-yellow-300 shrink-0 w-4 text-center"></i><span>Caja</span>
+                    </a>
+                </nav>
+
+                <!-- Tasa BCV y Usuario -->
+                <div class="flex items-center space-x-2 xl:space-x-2.5 shrink-0 ml-auto lg:ml-4">
+                    <!-- Widget Tasa BCV -->
+                    <button onclick="abrirModalTasa()" title="Click para actualizar tasa" class="flex items-center space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shrink-0">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                        <span class="text-red-200">BCV:</span>
+                        <span id="tasaBCVDisplay" class="text-white font-bold">Cargando...</span>
+                        <i class="fa-solid fa-pen text-[10px] text-red-200 ml-1 shrink-0"></i>
+                    </button>
+
+                    <!-- Widget Formato Impresora -->
+                    <button onclick="alternarImpresoraGlobal()" title="Formato de Ticket Térmico (58mm / 80mm)" class="hidden sm:flex items-center space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shrink-0">
+                        <i class="fa-solid fa-print text-emerald-300 text-xs shrink-0"></i>
+                        <span class="text-red-200">Ticket:</span>
+                        <span id="impresoraGlobalDisplay" class="text-white font-bold">58mm</span>
+                    </button>
+
+                    <!-- Usuario -->
+                    <div class="relative flex items-center space-x-2 shrink-0">
+                        <span class="text-xs bg-black/25 border border-white/20 px-2.5 py-1 rounded-md text-white font-medium shrink-0">
+                            <i class="fa-solid fa-user-circle mr-1 text-red-200 shrink-0"></i>{{ user.nombre if user else 'Usuario' }}
+                        </span>
+                        <button onclick="cerrarSesion()" title="Cerrar sesión" class="p-2 text-red-200 hover:text-white transition shrink-0">
+                            <i class="fa-solid fa-power-off shrink-0"></i>
+                        </button>
+                    </div>
+
+                    <!-- Botón Menú Móvil -->
+                    <button onclick="toggleMenuMovil()" class="lg:hidden p-2 text-white/80 hover:text-white shrink-0">
+                        <i class="fa-solid fa-bars text-lg shrink-0"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menú Móvil Desplegable -->
+        <div id="mobileMenu" class="hidden md:hidden bg-[#3b0405] border-t border-red-900/60 px-4 pt-2 pb-4 space-y-1">
+            <a href="/" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-cash-register mr-2 text-emerald-300"></i>Punto de Venta
+            </a>
+            <a href="/inventario" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-boxes-stacked mr-2 text-blue-300"></i>Inventario
+            </a>
+            <a href="/compras" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-truck-ramp-box mr-2 text-amber-300"></i>Compras
+            </a>
+            <a href="/despachos" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-truck-fast mr-2 text-purple-300"></i>Despachos
+            </a>
+            <a href="/historial" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-clock-rotate-left mr-2 text-cyan-300"></i>Historial de Ventas
+            </a>
+            <a href="/clientes" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-users mr-2 text-pink-300"></i>Clientes
+            </a>
+            <a href="/reportes" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-chart-pie mr-2 text-yellow-300"></i>Caja y Reportes
+            </a>
+            <a href="/creditos" class="block px-3 py-2 rounded-lg text-sm text-white hover:bg-white/10">
+                <i class="fa-solid fa-hand-holding-dollar mr-2 text-rose-300"></i>Cuentas por Cobrar / Créditos
+            </a>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- MODAL ACTUALIZAR TASA BCV -->
+    <div id="modalTasa" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="w-12 h-12 rounded-full bg-red-100 text-[#8B1E24] flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-coins"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 mb-1">Actualizar Tasa BCV</h3>
+            <p class="text-xs text-slate-500 mb-4">Ingrese la tasa oficial de cambio en Bolívares por Dólar (Bs./$)</p>
+            <div class="relative mb-5">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-sm">Bs.</span>
+                <input type="number" step="0.01" id="inputTasaBCV" class="w-full pl-12 pr-4 py-2.5 text-xl font-extrabold text-slate-800 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#8B1E24] focus:border-[#8B1E24] focus:outline-none text-center">
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="cerrarModalTasa()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition">Cancelar</button>
+                <button onclick="guardarTasaBCV()" class="flex-1 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl font-bold text-sm shadow transition">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS GLOBALES -->
+    <script>
+        let TASA_BCV = 473.92;
+
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch('/api/configuracion');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.tasa_bcv) {
+                        TASA_BCV = parseFloat(data.tasa_bcv);
+                        const el = document.getElementById('tasaBCVDisplay');
+                        if (el) el.textContent = `${TASA_BCV.toFixed(2)} Bs.`;
+                        const inp = document.getElementById('inputTasaBCV');
+                        if (inp) inp.value = TASA_BCV;
+                    }
+                }
+            } catch (err) {
+                console.error("Error al cargar tasa BCV:", err);
+            }
+        }
+
+        function abrirModalTasa() {
+            document.getElementById('inputTasaBCV').value = TASA_BCV;
+            document.getElementById('modalTasa').classList.remove('hidden');
+        }
+
+        function cerrarModalTasa() {
+            document.getElementById('modalTasa').classList.add('hidden');
+        }
+
+        async function guardarTasaBCV() {
+            const val = parseFloat(document.getElementById('inputTasaBCV').value);
+            if (!val || val <= 0) {
+                Swal.fire('Error', 'Ingrese una tasa válida mayor a cero', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/configuracion/tasa_bcv', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tasa: val })
+                });
+                if (res.ok) {
+                    TASA_BCV = val;
+                    document.getElementById('tasaBCVDisplay').textContent = `${TASA_BCV.toFixed(2)} Bs.`;
+                    cerrarModalTasa();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Tasa Actualizada',
+                        text: `Nueva tasa: ${val.toFixed(2)} Bs./$`,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    if (typeof alCambiarTasa === 'function') {
+                        alCambiarTasa();
+                    }
+                } else {
+                    Swal.fire('Error', 'No se pudo guardar la tasa', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Error de conexión', 'error');
+            }
+        }
+
+        function toggleMenuMovil() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        async function cerrarSesion() {
+            const confirm = await Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: 'Volverás a la pantalla de inicio de sesión',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sí, salir',
+                cancelButtonText: 'Cancelar'
+            });
+            if (confirm.isConfirmed) {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            }
+        }
+
+        function alternarImpresoraGlobal() {
+            let actual = localStorage.getItem('prolago_impresora_tamano') || '58';
+            let nuevo = actual === '58' ? '80' : '58';
+            localStorage.setItem('prolago_impresora_tamano', nuevo);
+            actualizarDisplayImpresora(nuevo);
+            if (typeof seleccionarFormatoImpresion === 'function') {
+                seleccionarFormatoImpresion(nuevo);
+            }
+            Swal.fire({
+                icon: 'info',
+                title: `Formato de Ticket: ${nuevo} mm`,
+                text: nuevo === '58' ? 'Optimizado para impresoras térmicas de 58mm' : 'Optimizado para impresoras térmicas de 80mm',
+                timer: 1200,
+                showConfirmButton: false
+            });
+        }
+
+        function actualizarDisplayImpresora(fmt) {
+            const el = document.getElementById('impresoraGlobalDisplay');
+            if (el) el.textContent = `${fmt}mm`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarConfiguracion();
+            const fmt = localStorage.getItem('prolago_impresora_tamano') || '58';
+            actualizarDisplayImpresora(fmt);
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

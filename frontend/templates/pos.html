@@ -1,0 +1,1214 @@
+{% extends "base.html" %}
+
+{% block title %}Punto de Venta - Prolago Carora 2026{% endblock %}
+{% block nav_pos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ESTILOS PARA IMPRESIÓN TÉRMICA */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #seccionTicketImprimir, #seccionTicketImprimir * {
+            visibility: visible;
+        }
+        #seccionTicketImprimir {
+            position: absolute;
+            left: 0;
+            top: 0;
+            margin: 0 !important;
+            padding: 2mm !important;
+            background: white !important;
+            color: black !important;
+        }
+        .formato-58mm {
+            width: 54mm !important;
+            max-width: 54mm !important;
+            font-size: 10px !important;
+            line-height: 1.25 !important;
+        }
+        .formato-80mm {
+            width: 76mm !important;
+            max-width: 76mm !important;
+            font-size: 12px !important;
+            line-height: 1.35 !important;
+        }
+        @page {
+            margin: 0;
+            size: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- COLUMNA IZQUIERDA: BÚSQUEDA Y CARRITO DE PRODUCTOS (8 cols) -->
+    <div class="lg:col-span-8 flex flex-col space-y-4">
+        
+        <!-- BARRA DE BÚSQUEDA DE PRODUCTOS -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-barcode text-lg text-emerald-600 shrink-0"></i>
+                </span>
+                <input type="text" id="buscadorArticulo" autocomplete="off"
+                    placeholder="Escriba código o nombre del producto (ej: 499, COLACA, HARINA)..."
+                    class="w-full pl-11 pr-24 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition">
+                <button onclick="buscarArticulos()" class="absolute inset-y-1.5 right-1.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1">
+                    <i class="fa-solid fa-magnifying-glass shrink-0"></i>
+                    <span>Buscar</span>
+                </button>
+            </div>
+
+            <!-- RESULTADOS DE BÚSQUEDA FLOTANTES / DESPLEGABLES -->
+            <div id="dropdownResultados" class="hidden mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-72 overflow-y-auto divide-y divide-slate-100 z-30">
+                <!-- Se llena dinámicamente con JS -->
+            </div>
+        </div>
+
+        <!-- TABLA DE ARTÍCULOS EN LA FACTURA -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-[420px]">
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <h2 class="font-bold text-slate-800 text-sm tracking-wide uppercase">Detalle de la Venta</h2>
+                </div>
+                <button onclick="vaciarCarrito()" class="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center space-x-1">
+                    <i class="fa-solid fa-trash-can shrink-0"></i>
+                    <span>Vaciar lista</span>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3">Cód.</th>
+                            <th class="px-4 py-3">Descripción</th>
+                            <th class="px-3 py-3 text-center">Cant.</th>
+                            <th class="px-3 py-3 text-right">Precio ($)</th>
+                            <th class="px-3 py-3 text-center">% Dcto</th>
+                            <th class="px-4 py-3 text-right">Subtotal ($)</th>
+                            <th class="px-3 py-3 text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaItems" class="divide-y divide-slate-100">
+                        <!-- Fila vacía inicial -->
+                        <tr id="filaVacia">
+                            <td colspan="7" class="px-4 py-16 text-center text-slate-400">
+                                <i class="fa-solid fa-cart-shopping text-4xl mb-3 text-slate-300 block"></i>
+                                <p class="font-medium text-sm">No hay productos agregados</p>
+                                <p class="text-xs text-slate-400 mt-1">Busque un producto arriba o escriba su código para comenzar</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: CLIENTE, CONDICIÓN Y RESUMEN DE COBRO (4 cols) -->
+    <div class="lg:col-span-4 flex flex-col space-y-4">
+        
+        <!-- DATOS DEL CLIENTE, CONDICIÓN Y FACTURA -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Factura N°</span>
+                <span id="numeroFacturaDisplay" class="font-mono font-black text-emerald-700 text-base bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                    Cargando...
+                </span>
+            </div>
+
+            <!-- SELECCIÓN VISUAL: CONTADO VS A CRÉDITO -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Condición de Venta</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="btnCondicionContado" onclick="setCondicionVenta('contado')"
+                        class="py-2.5 px-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center space-x-1.5 transition border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm">
+                        <i class="fa-solid fa-money-bill-wave text-emerald-600 shrink-0"></i>
+                        <span>CONTADO</span>
+                    </button>
+                    <button type="button" id="btnCondicionCredito" onclick="setCondicionVenta('credito')"
+                        class="py-2.5 px-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center space-x-1.5 transition border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
+                        <i class="fa-solid fa-hand-holding-dollar text-rose-500 shrink-0"></i>
+                        <span>A CRÉDITO</span>
+                    </button>
+                </div>
+                <div id="avisoCredito" class="hidden mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] text-rose-800 font-semibold flex items-center space-x-1.5">
+                    <i class="fa-solid fa-circle-info text-rose-600 text-xs shrink-0"></i>
+                    <span>Esta venta se registrará como deuda en <strong>Cuentas por Cobrar</strong>.</span>
+                </div>
+            </div>
+
+            <!-- Selección de Cliente -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Cliente</span>
+                    <button type="button" onclick="abrirModalNuevoCliente()" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold">
+                        + Nuevo
+                    </button>
+                </label>
+                <div class="relative">
+                    <input type="text" id="clienteNombre" list="listaClientes" value="CLIENTE DE CONTADO"
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                    <datalist id="listaClientes">
+                        <!-- Clientes dinámicos -->
+                    </datalist>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESUMEN DE TOTALES Y BOTÓN DE COBRO -->
+        <div class="bg-gradient-to-br from-[#470506] via-[#791F21] to-[#8B1E24] text-white p-6 rounded-2xl shadow-xl flex-1 flex flex-col justify-between space-y-6 border border-white/10">
+            <div class="space-y-4">
+                <div class="flex justify-between items-center text-sm text-red-200 border-b border-white/10 pb-3">
+                    <span>Items en factura:</span>
+                    <span id="totalItemsCount" class="font-bold text-white">0</span>
+                </div>
+
+                <div class="flex justify-between items-baseline">
+                    <span class="text-red-200 text-sm font-semibold">TOTAL DÓLARES:</span>
+                    <div class="text-right">
+                        <span class="text-3xl sm:text-4xl font-black text-emerald-300 tracking-tight" id="totalUSDDisplay">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="bg-black/30 rounded-xl p-3 border border-white/15 flex justify-between items-baseline backdrop-blur-sm">
+                    <span class="text-xs font-medium text-red-200">Total en Bolívares (BCV):</span>
+                    <span class="text-lg font-bold text-white" id="totalBSDisplay">Bs. 0,00</span>
+                </div>
+            </div>
+
+            <!-- Botón Principal de Cobro -->
+            <button onclick="abrirModalCobrar()" id="btnCobrar" disabled
+                class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-black text-base rounded-xl shadow-lg shadow-emerald-500/20 transition transform active:scale-98 flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-money-bill-wave text-lg shrink-0" id="iconoBtnCobrar"></i>
+                <span id="textoBtnCobrar">COBRAR CONTADO</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL DE PAGO / COBRO MULTIMONEDA INTELIGENTE           -->
+<!-- ======================================================== -->
+<div id="modalCobrar" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-5 sm:p-7 overflow-y-auto max-h-[95vh]">
+        
+        <!-- Header con Identificación Clara de Condición -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h3 class="text-lg font-bold text-slate-900" id="modalTituloCobro">Cobro de Factura</h3>
+                    <span id="modalBadgeCondicion" class="px-2.5 py-0.5 rounded-full font-bold text-[11px] uppercase bg-emerald-100 text-emerald-800">
+                        Contado
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Factura N° <span id="modalNumFactura" class="font-bold text-emerald-700"></span> &bull; Tasa BCV: <strong id="modalTasaPill" class="text-slate-800">473.92 Bs./$</strong></p>
+            </div>
+            <button onclick="cerrarModalCobrar()" class="text-slate-400 hover:text-slate-600 p-2 text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Banner de Total a Pagar -->
+        <div class="grid grid-cols-2 gap-3 mb-4 bg-slate-900 text-white p-4 rounded-2xl shadow-inner">
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Total Factura ($)</span>
+                <span id="modalTotalUSD" class="text-2xl sm:text-3xl font-black text-emerald-400">$0.00</span>
+            </div>
+            <div class="text-right">
+                <span class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Total en Bolívares</span>
+                <span id="modalTotalBS" class="text-xl sm:text-2xl font-black text-white">Bs. 0,00</span>
+            </div>
+        </div>
+
+        <!-- SECCIÓN ESPECIAL CUANDO ES VENTA A CRÉDITO -->
+        <div id="seccionOpcionesCredito" class="hidden p-3.5 bg-rose-50 border border-rose-200 rounded-2xl mb-4 space-y-2.5">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-900 text-xs flex items-center">
+                    <i class="fa-solid fa-calendar-days text-rose-600 mr-1.5 shrink-0"></i>
+                    Plazo de Vencimiento:
+                </span>
+                <select id="modalDiasCredito" class="px-3 py-1 bg-white border border-rose-300 rounded-lg text-xs font-bold text-rose-900 focus:outline-none">
+                    <option value="7">7 días</option>
+                    <option value="15" selected>15 días</option>
+                    <option value="30">30 días</option>
+                    <option value="45">45 días</option>
+                </select>
+            </div>
+            <div class="flex space-x-2">
+                <button type="button" onclick="asignarTodoACredito()" class="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-hand-holding-dollar shrink-0"></i>
+                    <span>Dejar Totalidad a Crédito (100%)</span>
+                </button>
+            </div>
+            <p class="text-[10px] text-rose-700 font-semibold text-center">Si el cliente abona una inicial, ingrésela en Efectivo o Pago Móvil y el restante quedará a crédito.</p>
+        </div>
+
+        <!-- INDICADOR EN VIVO DE SALDO PENDIENTE O VUELTO -->
+        <div id="cajaEstadoPago" class="p-4 rounded-2xl mb-4 border transition-all">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span id="lblEstadoPago" class="text-xs font-bold uppercase tracking-wider block">Resta por Pagar:</span>
+                    <div class="flex items-baseline space-x-2 mt-0.5">
+                        <span id="valRestanteUSD" class="text-2xl font-black text-rose-600">$0.00</span>
+                        <span class="text-xs font-bold text-slate-400">o</span>
+                        <span id="valRestanteBS" class="text-lg font-black text-rose-700">Bs. 0,00</span>
+                    </div>
+                </div>
+                <div id="iconoEstadoPago" class="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-rose-100 text-rose-600 shrink-0">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+            </div>
+            <p id="msgAuxiliarPago" class="text-[11px] font-semibold text-slate-500 mt-1">
+                Si el cliente cancela el resto en Bolívares, debe pagar el monto en Bs. arriba indicado.
+            </p>
+        </div>
+
+        <!-- LISTA DE FORMAS DE PAGO CON CONVERSIÓN BIDIRECCIONAL -->
+        <div class="space-y-3 mb-6 text-xs">
+
+            <!-- 1. EFECTIVO DÓLARES ($) -->
+            <div class="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-200 transition">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-money-bill text-emerald-600 mr-2 text-sm shrink-0"></i>
+                        Efectivo Dólares Físicos ($ USD)
+                    </span>
+                    <button type="button" onclick="asignarRestanteMetodo('efectivoUSD')" class="text-[10px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded font-bold transition">
+                        Pagar restante con este método
+                    </button>
+                </div>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400">$</span>
+                    <input type="number" step="0.01" id="pagoEfectivoUSD" oninput="calcularRestantePago()" placeholder="0.00"
+                        class="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-lg font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- 2. PAGO MÓVIL (BOLÍVARES) -->
+            <div class="p-3 bg-blue-50/50 hover:bg-blue-50 rounded-xl border border-blue-200 transition">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="font-bold text-blue-900 flex items-center">
+                        <i class="fa-solid fa-mobile-screen text-blue-600 mr-2 text-sm shrink-0"></i>
+                        Pago Móvil (en Bolívares Bs.)
+                    </span>
+                    <button type="button" onclick="asignarRestanteMetodo('pagomovilBS')" class="text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-bold transition">
+                        Pagar restante en Bs.
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                    <div class="sm:col-span-8 relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400">Bs.</span>
+                        <input type="number" step="0.01" id="pagoMovilBS" oninput="calcularDesdeBolivares('pagoMovilBS', 'eqMovilUSD')" placeholder="0.00"
+                            class="w-full pl-10 pr-3 py-2 bg-white border border-blue-300 rounded-lg font-mono font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-4 text-right">
+                        <span class="text-[10px] text-slate-500 block">Equivale a:</span>
+                        <span id="eqMovilUSD" class="font-mono font-black text-blue-700 text-xs">$0.00 USD</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. PUNTO DE VENTA (BOLÍVARES) -->
+            <div class="p-3 bg-amber-50/50 hover:bg-amber-50 rounded-xl border border-amber-200 transition">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="font-bold text-amber-900 flex items-center">
+                        <i class="fa-solid fa-credit-card text-amber-600 mr-2 text-sm shrink-0"></i>
+                        Punto de Venta / Tarjeta (en Bolívares Bs.)
+                    </span>
+                    <button type="button" onclick="asignarRestanteMetodo('puntoBS')" class="text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-0.5 rounded font-bold transition">
+                        Pagar restante en Bs.
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                    <div class="sm:col-span-8 relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400">Bs.</span>
+                        <input type="number" step="0.01" id="pagoPuntoBS" oninput="calcularDesdeBolivares('pagoPuntoBS', 'eqPuntoUSD')" placeholder="0.00"
+                            class="w-full pl-10 pr-3 py-2 bg-white border border-amber-300 rounded-lg font-mono font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-4 text-right">
+                        <span class="text-[10px] text-slate-500 block">Equivale a:</span>
+                        <span id="eqPuntoUSD" class="font-mono font-black text-amber-700 text-xs">$0.00 USD</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. ZELLE ($ USD) -->
+            <div class="p-3 bg-purple-50/50 hover:bg-purple-50 rounded-xl border border-purple-200 transition">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="font-bold text-purple-900 flex items-center">
+                        <i class="fa-solid fa-paper-plane text-purple-600 mr-2 text-sm shrink-0"></i>
+                        Zelle ($ USD)
+                    </span>
+                    <button type="button" onclick="asignarRestanteMetodo('zelleUSD')" class="text-[10px] bg-purple-100 hover:bg-purple-200 text-purple-800 px-2 py-0.5 rounded font-bold transition">
+                        Pagar restante con este método
+                    </button>
+                </div>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400">$</span>
+                    <input type="number" step="0.01" id="pagoZelleUSD" oninput="calcularRestantePago()" placeholder="0.00"
+                        class="w-full pl-8 pr-3 py-2 bg-white border border-purple-300 rounded-lg font-mono font-bold text-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- 5. CRÉDITO ($ USD) -->
+            <div class="p-3 bg-rose-50/50 hover:bg-rose-50 rounded-xl border border-rose-200 transition">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="font-bold text-rose-900 flex items-center">
+                        <i class="fa-solid fa-hand-holding-dollar text-rose-600 mr-2 text-sm shrink-0"></i>
+                        Monto que queda a Crédito ($ USD)
+                    </span>
+                    <button type="button" onclick="asignarRestanteMetodo('creditoUSD')" class="text-[10px] bg-rose-100 hover:bg-rose-200 text-rose-800 px-2 py-0.5 rounded font-bold transition">
+                        Dejar restante a crédito
+                    </button>
+                </div>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400">$</span>
+                    <input type="number" step="0.01" id="pagoCreditoUSD" oninput="calcularRestantePago()" placeholder="0.00"
+                        class="w-full pl-8 pr-3 py-2 bg-white border border-rose-300 rounded-lg font-mono font-bold text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex space-x-3">
+            <button onclick="cerrarModalCobrar()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition">
+                Cancelar
+            </button>
+            <button onclick="procesarFactura()" id="btnConfirmarVenta"
+                class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-check shrink-0"></i>
+                <span id="textoBtnConfirmarVenta">Completar e Imprimir</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL DE COMPROBANTE TÉRMICO (SELECTOR 58mm / 80mm)      -->
+<!-- ======================================================== -->
+<div id="modalTicket" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-5 sm:p-6 text-slate-800 overflow-y-auto max-h-[95vh]">
+        
+        <!-- Controles Superiores: Selector de Impresora -->
+        <div class="flex items-center justify-between border-b pb-3 mb-3 no-print">
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-slate-500 uppercase">Formato Ticket:</span>
+                <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-100 text-xs">
+                    <button type="button" id="btnFmt58" onclick="seleccionarFormatoImpresion('58')"
+                        class="px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm">
+                        58 mm
+                    </button>
+                    <button type="button" id="btnFmt80" onclick="seleccionarFormatoImpresion('80')"
+                        class="px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900">
+                        80 mm
+                    </button>
+                </div>
+            </div>
+            <button onclick="cerrarModalTicket()" class="text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- CONTENEDOR DE IMPRESIÓN DEL RECIBO -->
+        <div id="seccionTicketImprimir" class="mx-auto border border-slate-200 bg-white p-3 rounded-xl shadow-inner font-mono formato-58mm transition-all">
+            
+            <!-- ENCABEZADO FISCAL CON LOGO OFICIAL -->
+            <div class="text-center border-b border-dashed border-slate-400 pb-2 mb-2">
+                <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-12 h-12 mx-auto rounded-lg mb-1 object-cover border border-slate-200">
+                <h2 class="font-black text-sm uppercase tracking-wider">PROLAGO C.A.</h2>
+                <p class="text-[9px] font-bold text-slate-800 leading-tight">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
+                <p class="text-[10px] text-slate-600">Carora, Lara</p>
+                <div class="mt-1.5 font-bold text-xs">
+                    FACTURA N°: <span id="tickNumero"></span>
+                </div>
+                <div class="text-[10px] text-slate-500" id="tickFecha"></div>
+            </div>
+
+            <!-- CLIENTE Y CONDICIÓN DE PAGO -->
+            <div class="border-b border-dashed border-slate-400 pb-2 mb-2 text-[11px] space-y-1">
+                <p><strong>CLIENTE:</strong> <span id="tickCliente"></span></p>
+                
+                <!-- Identificación visual de Contado vs Crédito en el Ticket -->
+                <div id="tickCondicionBox" class="p-1 rounded text-center font-bold text-[10px] uppercase">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+
+            <!-- TABLA DE ARTÍCULOS -->
+            <table class="w-full text-left mb-2">
+                <thead>
+                    <tr class="border-b border-slate-300 text-[10px] uppercase font-bold">
+                        <th class="py-1">Cant</th>
+                        <th class="py-1">Prod</th>
+                        <th class="py-1 text-right">P.U.</th>
+                        <th class="py-1 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tickItems" class="divide-y divide-slate-100 text-[10px]"></tbody>
+            </table>
+
+            <!-- TOTALES MULTIMONEDA -->
+            <div class="border-t border-dashed border-slate-400 pt-2 space-y-1 text-right font-bold text-xs">
+                <div class="flex justify-between items-center text-sm font-black">
+                    <span>TOTAL ($):</span>
+                    <span id="tickTotalUSD" class="text-emerald-700"></span>
+                </div>
+                <div class="flex justify-between items-center text-slate-800">
+                    <span>TOTAL (BS.):</span>
+                    <span id="tickTotalBS"></span>
+                </div>
+                <div class="flex justify-between items-center text-[10px] text-slate-500 font-normal">
+                    <span>Tasa BCV:</span>
+                    <span id="tickTasa"></span>
+                </div>
+            </div>
+
+            <!-- DESGLOSE DE PAGO RECIBIDO -->
+            <div class="border-t border-dashed border-slate-400 pt-2 mt-2 text-[10px] space-y-0.5">
+                <span class="font-bold block text-slate-700 uppercase">Detalle de Pago:</span>
+                <div id="tickDesglosePagos" class="text-slate-600"></div>
+            </div>
+
+            <!-- PIE DE TICKET -->
+            <div class="mt-3 pt-2 border-t border-dashed border-slate-400 text-center text-[10px] text-slate-500">
+                <p class="font-bold uppercase">¡Gracias por su compra!</p>
+                <p class="text-[9px]">Conserve este recibo para cualquier reclamo</p>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="mt-5 flex space-x-2 no-print">
+            <button onclick="cerrarModalTicket()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                Nueva Venta
+            </button>
+            <button onclick="imprimirTicketTermico()" class="flex-1 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center space-x-1.5">
+                <i class="fa-solid fa-print shrink-0"></i>
+                <span>Imprimir Ticket</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL NUEVO CLIENTE RÁPIDO -->
+<div id="modalNuevoCliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-slate-800">
+        <h3 class="text-base font-bold mb-3">Registrar Nuevo Cliente</h3>
+        <div class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold mb-1">Nombre o Razón Social</label>
+                <input type="text" id="nuevoCliNombre" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block font-semibold mb-1">C.I. / RIF</label>
+                <input type="text" id="nuevoCliCI" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block font-semibold mb-1">Teléfono (para WhatsApp)</label>
+                <input type="text" id="nuevoCliTelf" placeholder="Ej: 04121234567" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div>
+                <label class="block font-semibold mb-1">Dirección</label>
+                <input type="text" id="nuevoCliDir" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+        </div>
+        <div class="mt-4 flex space-x-2">
+            <button onclick="cerrarModalNuevoCliente()" class="flex-1 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg text-xs">Cancelar</button>
+            <button onclick="guardarNuevoCliente()" class="flex-1 py-2 bg-emerald-600 text-white font-bold rounded-lg text-xs">Guardar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let carrito = [];
+    let siguienteFacturaNum = "1";
+    let clientesCache = [];
+    let formatoImpresion = localStorage.getItem('prolago_impresora_tamano') || '58';
+    let condicionVenta = 'contado'; // 'contado' o 'credito'
+
+    async function initPOS() {
+        await cargarSiguienteFactura();
+        await cargarClientes();
+        configurarBuscador();
+        aplicarFormatoImpresion(formatoImpresion);
+        setCondicionVenta('contado');
+    }
+
+    // ========================================================
+    // SELECCIÓN ENTRE VENTA AL CONTADO Y VENTA A CRÉDITO
+    // ========================================================
+    function setCondicionVenta(tipo) {
+        condicionVenta = tipo;
+        const btnContado = document.getElementById('btnCondicionContado');
+        const btnCredito = document.getElementById('btnCondicionCredito');
+        const avisoCredito = document.getElementById('avisoCredito');
+        const btnCobrar = document.getElementById('btnCobrar');
+        const textoBtnCobrar = document.getElementById('textoBtnCobrar');
+        const iconoBtnCobrar = document.getElementById('iconoBtnCobrar');
+
+        if (tipo === 'credito') {
+            btnCredito.className = 'py-2.5 px-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center space-x-1.5 transition border-rose-500 bg-rose-50 text-rose-800 shadow-sm';
+            btnContado.className = 'py-2.5 px-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center space-x-1.5 transition border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
+            avisoCredito.classList.remove('hidden');
+            textoBtnCobrar.textContent = 'REGISTRAR VENTA A CRÉDITO';
+            iconoBtnCobrar.className = 'fa-solid fa-hand-holding-dollar text-lg shrink-0';
+            btnCobrar.className = 'w-full py-4 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-base rounded-xl shadow-lg shadow-rose-600/30 transition transform active:scale-98 flex items-center justify-center space-x-2';
+            
+            // Si el cliente es aún "CLIENTE DE CONTADO", sugerir cambiarlo
+            const cliInp = document.getElementById('clienteNombre');
+            if (cliInp.value === 'CLIENTE DE CONTADO') {
+                cliInp.value = '';
+                cliInp.placeholder = 'Nombre del deudor (requerido)...';
+                cliInp.focus();
+            }
+        } else {
+            btnContado.className = 'py-2.5 px-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center space-x-1.5 transition border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm';
+            btnCredito.className = 'py-2.5 px-3 rounded-xl border-2 font-bold text-xs flex items-center justify-center space-x-1.5 transition border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
+            avisoCredito.classList.add('hidden');
+            textoBtnCobrar.textContent = 'COBRAR CONTADO';
+            iconoBtnCobrar.className = 'fa-solid fa-money-bill-wave text-lg shrink-0';
+            btnCobrar.className = 'w-full py-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-black text-base rounded-xl shadow-lg shadow-emerald-500/20 transition transform active:scale-98 flex items-center justify-center space-x-2';
+            
+            const cliInp = document.getElementById('clienteNombre');
+            if (!cliInp.value) {
+                cliInp.value = 'CLIENTE DE CONTADO';
+            }
+        }
+    }
+
+    async function cargarSiguienteFactura() {
+        try {
+            const res = await fetch('/api/facturas/siguiente_numero');
+            if (res.ok) {
+                const d = await res.json();
+                siguienteFacturaNum = d.siguiente;
+                document.getElementById('numeroFacturaDisplay').textContent = `#${siguienteFacturaNum}`;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function cargarClientes() {
+        try {
+            const res = await fetch('/api/clientes');
+            if (res.ok) {
+                clientesCache = await res.json();
+                const datalist = document.getElementById('listaClientes');
+                datalist.innerHTML = '';
+                clientesCache.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.nombre;
+                    datalist.appendChild(opt);
+                });
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function configurarBuscador() {
+        const input = document.getElementById('buscadorArticulo');
+        let timer = null;
+
+        input.addEventListener('input', (e) => {
+            clearTimeout(timer);
+            const val = e.target.value.trim();
+            if (val.length < 2) {
+                document.getElementById('dropdownResultados').classList.add('hidden');
+                return;
+            }
+            timer = setTimeout(() => buscarArticulos(val), 200);
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarArticulos(input.value.trim(), true);
+            }
+        });
+    }
+
+    async function buscarArticulos(query, autoSelectFirst = false) {
+        if (!query) query = document.getElementById('buscadorArticulo').value.trim();
+        if (!query) return;
+
+        try {
+            const res = await fetch(`/api/articulos?search=${encodeURIComponent(query)}&limit=15`);
+            if (res.ok) {
+                const data = await res.json();
+                const dropdown = document.getElementById('dropdownResultados');
+                dropdown.innerHTML = '';
+
+                if (data.items.length === 0) {
+                    dropdown.innerHTML = '<div class="p-4 text-xs text-slate-400 text-center">No se encontraron productos con ese término</div>';
+                    dropdown.classList.remove('hidden');
+                    return;
+                }
+
+                if (autoSelectFirst && data.items.length === 1) {
+                    agregarAlCarrito(data.items[0]);
+                    document.getElementById('buscadorArticulo').value = '';
+                    dropdown.classList.add('hidden');
+                    return;
+                }
+
+                data.items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3 hover:bg-emerald-50/70 cursor-pointer flex items-center justify-between transition';
+                    const stockClass = item.stock > 10 ? 'bg-emerald-100 text-emerald-800' : (item.stock > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800');
+                    const precioBs = (item.precio * TASA_BCV).toFixed(2);
+
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-slate-800 text-xs">${item.nombre}</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">
+                                Cód: <span class="font-mono font-bold text-slate-600">${item.codigo}</span> | Cat: ${item.categoria || 'GENERAL'}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-black text-emerald-600">$${item.precio.toFixed(2)}</div>
+                            <div class="text-[10px] text-slate-400 font-medium">Bs. ${precioBs}</div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${stockClass}">Stock: ${item.stock}</span>
+                        </div>
+                    `;
+                    div.onclick = () => {
+                        agregarAlCarrito(item);
+                        document.getElementById('buscadorArticulo').value = '';
+                        dropdown.classList.add('hidden');
+                    };
+                    dropdown.appendChild(div);
+                });
+
+                dropdown.classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function agregarAlCarrito(prod) {
+        const existe = carrito.find(x => x.codigo === prod.codigo);
+        if (existe) {
+            existe.cantidad += 1;
+        } else {
+            carrito.push({
+                codigo: prod.codigo,
+                nombre: prod.nombre,
+                precio: prod.precio,
+                descuento: 0,
+                cantidad: 1,
+                stock: prod.stock
+            });
+        }
+        renderizarCarrito();
+    }
+
+    function renderizarCarrito() {
+        const tbody = document.getElementById('tablaItems');
+        const filaVacia = document.getElementById('filaVacia');
+
+        if (carrito.length === 0) {
+            tbody.innerHTML = '';
+            tbody.appendChild(filaVacia);
+            filaVacia.classList.remove('hidden');
+            document.getElementById('totalUSDDisplay').textContent = '$0.00';
+            document.getElementById('totalBSDisplay').textContent = 'Bs. 0,00';
+            document.getElementById('totalItemsCount').textContent = '0';
+            document.getElementById('btnCobrar').disabled = true;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        let totalUSD = 0;
+        let totalItems = 0;
+
+        carrito.forEach((item, idx) => {
+            const dcto = item.descuento || 0;
+            const precioConDcto = item.precio * (1 - dcto / 100);
+            const subtotal = item.cantidad * precioConDcto;
+            totalUSD += subtotal;
+            totalItems += item.cantidad;
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/80 transition';
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono text-xs font-bold text-slate-500">${item.codigo}</td>
+                <td class="px-4 py-3 font-medium text-slate-800 text-xs">
+                    ${item.nombre}
+                    ${item.stock <= 5 ? `<span class="ml-1 text-[10px] text-amber-600 font-bold">(Stock: ${item.stock})</span>` : ''}
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <div class="inline-flex items-center space-x-1 border border-slate-300 rounded-lg bg-white p-0.5">
+                        <button onclick="cambiarCantidad(${idx}, -1)" class="w-6 h-6 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded text-xs font-bold">-</button>
+                        <input type="number" step="0.5" min="0.1" value="${item.cantidad}" onchange="ajustarCantidad(${idx}, this.value)"
+                            class="w-12 text-center text-xs font-bold border-0 focus:ring-0 p-0 text-slate-800">
+                        <button onclick="cambiarCantidad(${idx}, 1)" class="w-6 h-6 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded text-xs font-bold">+</button>
+                    </div>
+                </td>
+                <td class="px-3 py-3 text-right font-mono font-bold text-xs">$${item.precio.toFixed(2)}</td>
+                <td class="px-3 py-3 text-center">
+                    <input type="number" min="0" max="100" value="${item.descuento}" onchange="ajustarDescuento(${idx}, this.value)"
+                        class="w-12 text-center text-xs border border-slate-300 rounded-md py-1 font-semibold focus:ring-1 focus:ring-emerald-500">
+                </td>
+                <td class="px-4 py-3 text-right font-mono font-black text-xs text-emerald-700">$${subtotal.toFixed(2)}</td>
+                <td class="px-3 py-3 text-center">
+                    <button onclick="eliminarDelCarrito(${idx})" class="text-slate-300 hover:text-red-500 transition">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const totalBS = (totalUSD * TASA_BCV).toFixed(2);
+        document.getElementById('totalUSDDisplay').textContent = `$${totalUSD.toFixed(2)}`;
+        document.getElementById('totalBSDisplay').textContent = `Bs. ${Number(totalBS).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        document.getElementById('totalItemsCount').textContent = totalItems;
+        document.getElementById('btnCobrar').disabled = false;
+    }
+
+    function cambiarCantidad(idx, delta) {
+        carrito[idx].cantidad += delta;
+        if (carrito[idx].cantidad <= 0) carrito[idx].cantidad = 1;
+        renderizarCarrito();
+    }
+
+    function ajustarCantidad(idx, val) {
+        const n = parseFloat(val);
+        carrito[idx].cantidad = (!isNaN(n) && n > 0) ? n : 1;
+        renderizarCarrito();
+    }
+
+    function ajustarDescuento(idx, val) {
+        const n = parseFloat(val);
+        carrito[idx].descuento = (!isNaN(n) && n >= 0 && n <= 100) ? n : 0;
+        renderizarCarrito();
+    }
+
+    function eliminarDelCarrito(idx) {
+        carrito.splice(idx, 1);
+        renderizarCarrito();
+    }
+
+    function vaciarCarrito() {
+        if (carrito.length === 0) return;
+        carrito = [];
+        renderizarCarrito();
+    }
+
+    function alCambiarTasa() {
+        renderizarCarrito();
+    }
+
+    // ========================================================
+    // COBRO MULTIMONEDA BIDIRECCIONAL EN TIEMPO REAL
+    // ========================================================
+    function abrirModalCobrar() {
+        if (carrito.length === 0) return;
+
+        // Validar si es a crédito y no tiene cliente
+        const clienteVal = document.getElementById('clienteNombre').value.trim();
+        if (condicionVenta === 'credito' && (!clienteVal || clienteVal === 'CLIENTE DE CONTADO')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nombre del Cliente Requerido',
+                text: 'Para emitir una factura a crédito, ingrese el nombre del cliente deudor.'
+            });
+            document.getElementById('clienteNombre').focus();
+            return;
+        }
+
+        const totalUSD = carrito.reduce((acc, it) => acc + (it.cantidad * it.precio * (1 - it.descuento / 100)), 0);
+        const totalBS = totalUSD * TASA_BCV;
+
+        document.getElementById('modalNumFactura').textContent = `#${siguienteFacturaNum}`;
+        document.getElementById('modalTasaPill').textContent = `${TASA_BCV.toFixed(2)} Bs./$`;
+        document.getElementById('modalTotalUSD').textContent = `$${totalUSD.toFixed(2)}`;
+        document.getElementById('modalTotalBS').textContent = `Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+
+        // Configurar según condición (Contado vs Crédito)
+        const badge = document.getElementById('modalBadgeCondicion');
+        const seccionCredito = document.getElementById('seccionOpcionesCredito');
+        const txtConfirmar = document.getElementById('textoBtnConfirmarVenta');
+
+        if (condicionVenta === 'credito') {
+            badge.className = 'px-2.5 py-0.5 rounded-full font-bold text-[11px] uppercase bg-rose-100 text-rose-800';
+            badge.textContent = 'A Crédito (Por Cobrar)';
+            seccionCredito.classList.remove('hidden');
+            txtConfirmar.textContent = 'Registrar Venta a Crédito';
+            
+            // Por defecto en crédito, el monto va a crédito
+            document.getElementById('pagoEfectivoUSD').value = '';
+            document.getElementById('pagoZelleUSD').value = '';
+            document.getElementById('pagoMovilBS').value = '';
+            document.getElementById('eqMovilUSD').textContent = '$0.00 USD';
+            document.getElementById('pagoPuntoBS').value = '';
+            document.getElementById('eqPuntoUSD').textContent = '$0.00 USD';
+            document.getElementById('pagoCreditoUSD').value = totalUSD.toFixed(2);
+        } else {
+            badge.className = 'px-2.5 py-0.5 rounded-full font-bold text-[11px] uppercase bg-emerald-100 text-emerald-800';
+            badge.textContent = 'Contado (Pagado de una vez)';
+            seccionCredito.classList.add('hidden');
+            txtConfirmar.textContent = 'Completar Venta e Imprimir';
+
+            // Por defecto en contado, se espera cobro inmediato
+            document.getElementById('pagoEfectivoUSD').value = '';
+            document.getElementById('pagoZelleUSD').value = '';
+            document.getElementById('pagoMovilBS').value = '';
+            document.getElementById('eqMovilUSD').textContent = '$0.00 USD';
+            document.getElementById('pagoPuntoBS').value = '';
+            document.getElementById('eqPuntoUSD').textContent = '$0.00 USD';
+            document.getElementById('pagoCreditoUSD').value = '';
+        }
+
+        calcularRestantePago();
+        document.getElementById('modalCobrar').classList.remove('hidden');
+    }
+
+    function cerrarModalCobrar() {
+        document.getElementById('modalCobrar').classList.add('hidden');
+    }
+
+    function asignarTodoACredito() {
+        const totalUSD = obtenerTotalUSD();
+        document.getElementById('pagoEfectivoUSD').value = '';
+        document.getElementById('pagoZelleUSD').value = '';
+        document.getElementById('pagoMovilBS').value = '';
+        document.getElementById('eqMovilUSD').textContent = '$0.00 USD';
+        document.getElementById('pagoPuntoBS').value = '';
+        document.getElementById('eqPuntoUSD').textContent = '$0.00 USD';
+        document.getElementById('pagoCreditoUSD').value = totalUSD.toFixed(2);
+        calcularRestantePago();
+    }
+
+    function calcularDesdeBolivares(idInputBs, idLabelUSD) {
+        const valBs = parseFloat(document.getElementById(idInputBs).value) || 0;
+        const eqUSD = valBs > 0 ? (valBs / TASA_BCV) : 0;
+        document.getElementById(idLabelUSD).textContent = `$${eqUSD.toFixed(2)} USD`;
+        calcularRestantePago();
+    }
+
+    function obtenerTotalUSD() {
+        return carrito.reduce((acc, it) => acc + (it.cantidad * it.precio * (1 - it.descuento / 100)), 0);
+    }
+
+    function calcularRestantePago() {
+        const totalUSD = obtenerTotalUSD();
+
+        const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+        const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
+        const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
+        const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
+        const crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
+
+        // Convertir pagos en Bs. a USD
+        const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
+        const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
+
+        const totalPagadoUSD = efUSD + zeUSD + pmUSD + puUSD + crUSD;
+        const diferenciaUSD = totalUSD - totalPagadoUSD;
+        const diferenciaBS = diferenciaUSD * TASA_BCV;
+
+        const caja = document.getElementById('cajaEstadoPago');
+        const lbl = document.getElementById('lblEstadoPago');
+        const valUSD = document.getElementById('valRestanteUSD');
+        const valBS = document.getElementById('valRestanteBS');
+        const icono = document.getElementById('iconoEstadoPago');
+        const msg = document.getElementById('msgAuxiliarPago');
+
+        if (diferenciaUSD > 0.009) {
+            // FALTA DINERO (RESTANTE)
+            caja.className = 'p-4 rounded-2xl mb-4 border bg-rose-50 border-rose-200 transition-all';
+            lbl.textContent = condicionVenta === 'credito' ? 'Resta por asignar a crédito o inicial:' : 'Resta por pagar:';
+            lbl.className = 'text-xs font-bold uppercase tracking-wider block text-rose-800';
+            valUSD.textContent = `$${diferenciaUSD.toFixed(2)}`;
+            valUSD.className = 'text-2xl sm:text-3xl font-black text-rose-600';
+            valBS.textContent = `Bs. ${Number(diferenciaBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            valBS.className = 'text-lg sm:text-xl font-black text-rose-700';
+            icono.className = 'w-10 h-10 rounded-full flex items-center justify-center text-lg bg-rose-100 text-rose-600 shrink-0';
+            icono.innerHTML = '<i class="fa-solid fa-hand-holding-dollar"></i>';
+            msg.textContent = `Si el cliente desea cancelar el resto en Bolívares (Pago Móvil / Punto), debe pagar exactamente: Bs. ${Number(diferenciaBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        } else if (diferenciaUSD < -0.009) {
+            // VUELTO / CAMBIO
+            const vueltoUSD = Math.abs(diferenciaUSD);
+            const vueltoBS = Math.abs(diferenciaBS);
+            caja.className = 'p-4 rounded-2xl mb-4 border bg-blue-50 border-blue-200 transition-all';
+            lbl.textContent = 'Cambio / Vuelto a entregar:';
+            lbl.className = 'text-xs font-bold uppercase tracking-wider block text-blue-800';
+            valUSD.textContent = `$${vueltoUSD.toFixed(2)}`;
+            valUSD.className = 'text-2xl sm:text-3xl font-black text-blue-600';
+            valBS.textContent = `Bs. ${Number(vueltoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            valBS.className = 'text-lg sm:text-xl font-black text-blue-700';
+            icono.className = 'w-10 h-10 rounded-full flex items-center justify-center text-lg bg-blue-100 text-blue-600 shrink-0';
+            icono.innerHTML = '<i class="fa-solid fa-arrow-rotate-left"></i>';
+            msg.textContent = `Entregar vuelto al cliente: $${vueltoUSD.toFixed(2)} USD o su equivalente Bs. ${Number(vueltoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        } else {
+            // MONTO EXACTO
+            caja.className = 'p-4 rounded-2xl mb-4 border bg-emerald-50 border-emerald-200 transition-all';
+            lbl.textContent = condicionVenta === 'credito' ? 'Total asignado (Inicial + Crédito):' : 'Pago completado:';
+            lbl.className = 'text-xs font-bold uppercase tracking-wider block text-emerald-800';
+            valUSD.textContent = '$0.00';
+            valUSD.className = 'text-2xl sm:text-3xl font-black text-emerald-600';
+            valBS.textContent = 'Bs. 0,00';
+            valBS.className = 'text-lg sm:text-xl font-black text-emerald-700';
+            icono.className = 'w-10 h-10 rounded-full flex items-center justify-center text-lg bg-emerald-100 text-emerald-600 shrink-0';
+            icono.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            msg.textContent = condicionVenta === 'credito' ? 'La distribución de inicial y saldo a crédito cubre la totalidad de la factura.' : 'El monto cobrado cubre exactamente la totalidad de la factura.';
+        }
+    }
+
+    function asignarRestanteMetodo(metodo) {
+        const totalUSD = obtenerTotalUSD();
+
+        const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+        const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
+        const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
+        const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
+        const crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
+
+        // Monto pagado por otros métodos (excluyendo el seleccionado)
+        let otrosPagosUSD = 0;
+        if (metodo !== 'efectivoUSD') otrosPagosUSD += efUSD;
+        if (metodo !== 'zelleUSD') otrosPagosUSD += zeUSD;
+        if (metodo !== 'pagomovilBS') otrosPagosUSD += (pmBS / TASA_BCV);
+        if (metodo !== 'puntoBS') otrosPagosUSD += (puBS / TASA_BCV);
+        if (metodo !== 'creditoUSD') otrosPagosUSD += crUSD;
+
+        const restanteUSD = Math.max(0, totalUSD - otrosPagosUSD);
+        const restanteBS = restanteUSD * TASA_BCV;
+
+        if (metodo === 'efectivoUSD') {
+            document.getElementById('pagoEfectivoUSD').value = restanteUSD.toFixed(2);
+        } else if (metodo === 'zelleUSD') {
+            document.getElementById('pagoZelleUSD').value = restanteUSD.toFixed(2);
+        } else if (metodo === 'pagomovilBS') {
+            document.getElementById('pagoMovilBS').value = restanteBS.toFixed(2);
+            document.getElementById('eqMovilUSD').textContent = `$${restanteUSD.toFixed(2)} USD`;
+        } else if (metodo === 'puntoBS') {
+            document.getElementById('pagoPuntoBS').value = restanteBS.toFixed(2);
+            document.getElementById('eqPuntoUSD').textContent = `$${restanteUSD.toFixed(2)} USD`;
+        } else if (metodo === 'creditoUSD') {
+            document.getElementById('pagoCreditoUSD').value = restanteUSD.toFixed(2);
+        }
+
+        calcularRestantePago();
+    }
+
+    async function procesarFactura() {
+        const btn = document.getElementById('btnConfirmarVenta');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Procesando...';
+
+        const clienteNombre = document.getElementById('clienteNombre').value.trim() || 'CLIENTE DE CONTADO';
+        const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+        const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
+        const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
+        const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
+        let crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
+
+        const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
+        const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
+
+        const totalUSD = obtenerTotalUSD();
+        const totalPagado = efUSD + zeUSD + pmUSD + puUSD + crUSD;
+
+        // Si es a crédito y no se llenó el campo crédito pero falta por pagar, asignar la diferencia a crédito
+        if (condicionVenta === 'credito' && totalPagado < totalUSD) {
+            crUSD = totalUSD - (efUSD + zeUSD + pmUSD + puUSD);
+        }
+
+        const payload = {
+            cliente_nombre: clienteNombre,
+            condicion: condicionVenta,
+            efectivo: efUSD,
+            zelle: zeUSD,
+            pagomovil: pmUSD,
+            punto: puUSD,
+            credito: crUSD,
+            dias_credito: parseInt(document.getElementById('modalDiasCredito').value) || 15,
+            items: carrito.map(it => ({
+                codigo_articulo: it.codigo,
+                cantidad: it.cantidad,
+                precio_unitario: it.precio,
+                descuento_pct: it.descuento
+            }))
+        };
+
+        try {
+            const res = await fetch('/api/facturas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                cerrarModalCobrar();
+                const pagosRealizados = {
+                    efectivoUSD: efUSD,
+                    zelleUSD: zeUSD,
+                    pagoMovilBS: pmBS,
+                    pagoMovilUSD: pmUSD,
+                    puntoBS: puBS,
+                    puntoUSD: puUSD,
+                    creditoUSD: crUSD
+                };
+                mostrarTicket(data, clienteNombre, carrito, pagosRealizados);
+                carrito = [];
+                renderizarCarrito();
+                cargarSiguienteFactura();
+            } else {
+                Swal.fire('Error', data.detail || 'No se pudo guardar la factura', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Fallo de comunicación con el servidor', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i><span id="textoBtnConfirmarVenta">Completar e Imprimir</span>';
+        }
+    }
+
+    // ========================================================
+    // FORMATOS DE IMPRESIÓN TÉRMICA (58mm Y 80mm)
+    // ========================================================
+    function seleccionarFormatoImpresion(fmt) {
+        formatoImpresion = fmt;
+        localStorage.setItem('prolago_impresora_tamano', fmt);
+        aplicarFormatoImpresion(fmt);
+    }
+
+    function aplicarFormatoImpresion(fmt) {
+        const ticketEl = document.getElementById('seccionTicketImprimir');
+        const btn58 = document.getElementById('btnFmt58');
+        const btn80 = document.getElementById('btnFmt80');
+
+        if (!ticketEl) return;
+
+        if (fmt === '80') {
+            ticketEl.classList.remove('formato-58mm');
+            ticketEl.classList.add('formato-80mm');
+            btn80.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
+            btn58.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
+        } else {
+            ticketEl.classList.remove('formato-80mm');
+            ticketEl.classList.add('formato-58mm');
+            btn58.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
+            btn80.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
+        }
+    }
+
+    function mostrarTicket(factData, cliente, items, pagos) {
+        document.getElementById('tickNumero').textContent = factData.numero;
+        document.getElementById('tickFecha').textContent = new Date().toLocaleString();
+        document.getElementById('tickCliente').textContent = cliente;
+        document.getElementById('tickTotalUSD').textContent = `$${factData.total_usd.toFixed(2)}`;
+        document.getElementById('tickTotalBS').textContent = `Bs. ${Number(factData.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        document.getElementById('tickTasa').textContent = `${factData.tasa_bcv.toFixed(2)} Bs./$`;
+
+        // Identificación clara de condición en el recibo
+        const boxCondicion = document.getElementById('tickCondicionBox');
+        if (factData.condicion === 'credito') {
+            boxCondicion.className = 'p-1.5 rounded text-center font-bold text-[10px] uppercase bg-rose-50 border border-rose-300 text-rose-900 my-2';
+            boxCondicion.innerHTML = `
+                <div>*** VENTA A CRÉDITO ***</div>
+                <div class="text-[9px] font-semibold text-rose-700 mt-0.5">Saldo Pendiente: $${factData.saldo_pendiente.toFixed(2)} USD</div>
+                ${factData.fecha_vencimiento ? `<div class="text-[8px] font-normal text-slate-500">Vencimiento: ${factData.fecha_vencimiento}</div>` : ''}
+            `;
+        } else {
+            boxCondicion.className = 'p-1.5 rounded text-center font-bold text-[10px] uppercase bg-emerald-50 border border-emerald-300 text-emerald-900 my-2';
+            boxCondicion.innerHTML = `<div>*** VENTA AL CONTADO (PAGADA) ***</div>`;
+        }
+
+        // Render ítems
+        const tbody = document.getElementById('tickItems');
+        tbody.innerHTML = '';
+        items.forEach(it => {
+            const subt = it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-1 font-bold">${it.cantidad}</td>
+                <td class="py-1">${it.nombre}</td>
+                <td class="py-1 text-right font-mono">$${it.precio.toFixed(2)}</td>
+                <td class="py-1 text-right font-mono font-bold">$${subt.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Desglose de pagos en ticket
+        const desgloseEl = document.getElementById('tickDesglosePagos');
+        desgloseEl.innerHTML = '';
+        if (pagos.efectivoUSD > 0) {
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Efectivo USD:</span><span>$${pagos.efectivoUSD.toFixed(2)}</span></div>`;
+        }
+        if (pagos.pagoMovilBS > 0) {
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Pago Móvil:</span><span>Bs. ${Number(pagos.pagoMovilBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.pagoMovilUSD.toFixed(2)})</span></div>`;
+        }
+        if (pagos.puntoBS > 0) {
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Punto de Venta:</span><span>Bs. ${Number(pagos.puntoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.puntoUSD.toFixed(2)})</span></div>`;
+        }
+        if (pagos.zelleUSD > 0) {
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Zelle:</span><span>$${pagos.zelleUSD.toFixed(2)}</span></div>`;
+        }
+        if (pagos.creditoUSD > 0) {
+            desgloseEl.innerHTML += `<div class="flex justify-between font-bold text-rose-800"><span>- Saldo a Crédito:</span><span>$${pagos.creditoUSD.toFixed(2)}</span></div>`;
+        }
+
+        aplicarFormatoImpresion(formatoImpresion);
+        document.getElementById('modalTicket').classList.remove('hidden');
+    }
+
+    function cerrarModalTicket() {
+        document.getElementById('modalTicket').classList.add('hidden');
+    }
+
+    function imprimirTicketTermico() {
+        window.print();
+    }
+
+    // Modal nuevo cliente
+    function abrirModalNuevoCliente() {
+        document.getElementById('modalNuevoCliente').classList.remove('hidden');
+    }
+    function cerrarModalNuevoCliente() {
+        document.getElementById('modalNuevoCliente').classList.add('hidden');
+    }
+    async function guardarNuevoCliente() {
+        const nombre = document.getElementById('nuevoCliNombre').value.trim();
+        if (!nombre) {
+            Swal.fire('Atención', 'El nombre es obligatorio', 'warning');
+            return;
+        }
+        const ci = document.getElementById('nuevoCliCI').value.trim();
+        const telf = document.getElementById('nuevoCliTelf').value.trim();
+        const dir = document.getElementById('nuevoCliDir').value.trim();
+
+        try {
+            const res = await fetch('/api/clientes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, cedula_rif: ci, telefono: telf, direccion: dir })
+            });
+            if (res.ok) {
+                const nuevo = await res.json();
+                document.getElementById('clienteNombre').value = nuevo.nombre;
+                cerrarModalNuevoCliente();
+                cargarClientes();
+                Swal.fire({ icon: 'success', title: 'Cliente registrado', timer: 1000, showConfirmButton: false });
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initPOS);
+</script>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Facturación - Prolago Carora 2026{% endblock %}
+{% block nav_historial %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-800">Historial de Facturación</h1>
+            <p class="text-xs text-slate-500">Registro cronológico de ventas, formas de pago y reimpresión de comprobantes</p>
+        </div>
+
+        <div class="w-full sm:w-72 relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            </span>
+            <input type="text" id="filtroHistorial" oninput="filtrarHistorial()" placeholder="Buscar por N° o Cliente..."
+                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+        </div>
+    </div>
+
+    <!-- TABLA HISTORIAL -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3.5">Factura N°</th>
+                        <th class="px-3 py-3.5 text-center">Condición</th>
+                        <th class="px-4 py-3.5">Fecha y Hora</th>
+                        <th class="px-4 py-3.5">Cliente</th>
+                        <th class="px-3 py-3.5 text-right">Efectivo ($)</th>
+                        <th class="px-3 py-3.5 text-right">Zelle ($)</th>
+                        <th class="px-3 py-3.5 text-right">Pago Móvil ($)</th>
+                        <th class="px-3 py-3.5 text-right">Punto ($)</th>
+                        <th class="px-3 py-3.5 text-right">Crédito ($)</th>
+                        <th class="px-4 py-3.5 text-right">Total ($)</th>
+                        <th class="px-4 py-3.5 text-right">Total (Bs.)</th>
+                        <th class="px-3 py-3.5 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaHistorialBody" class="divide-y divide-slate-100">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL VER DETALLE DE FACTURA -->
+<div id="modalDetalleFactura" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-xs text-slate-800">
+        <div class="flex justify-between items-center border-b pb-3 mb-3">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h3 class="font-bold text-sm">Factura N° <span id="detNum" class="text-emerald-600"></span></h3>
+                    <span id="detCondicionBadge"></span>
+                </div>
+                <span id="detFecha" class="text-slate-400 text-[11px]"></span>
+            </div>
+            <button onclick="cerrarDetalle()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="flex justify-between items-center mb-3">
+            <p><strong>Cliente:</strong> <span id="detCliente"></span></p>
+            <span id="detSaldoContainer" class="hidden text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200">
+                Saldo: <span id="detSaldoPendiente"></span>
+            </span>
+        </div>
+
+        <table class="w-full text-left mb-3">
+            <thead>
+                <tr class="border-b text-[10px] text-slate-400 uppercase">
+                    <th class="py-1">Cant.</th>
+                    <th class="py-1">Producto</th>
+                    <th class="py-1 text-right">P.U.</th>
+                    <th class="py-1 text-right">Subt.</th>
+                </tr>
+            </thead>
+            <tbody id="detItemsTbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+
+        <div class="border-t pt-2 space-y-1 text-right font-bold">
+            <div class="flex justify-between text-slate-500">
+                <span>Tasa BCV:</span>
+                <span id="detTasa"></span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span>TOTAL USD:</span>
+                <span id="detTotalUSD" class="text-emerald-700"></span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+                <span>TOTAL BS.:</span>
+                <span id="detTotalBS"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 flex space-x-2">
+            <button onclick="cerrarDetalle()" class="flex-1 py-2 bg-slate-100 font-bold rounded-xl text-slate-700">Cerrar</button>
+            <button onclick="window.print()" class="flex-1 py-2 bg-slate-900 font-bold rounded-xl text-white flex items-center justify-center space-x-1">
+                <i class="fa-solid fa-print"></i>
+                <span>Imprimir</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let todasLasFacturas = [];
+
+    async function cargarHistorial() {
+        try {
+            const res = await fetch('/api/facturas?limit=100');
+            if (res.ok) {
+                const data = await res.json();
+                todasLasFacturas = data.items;
+                filtrarHistorial();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function filtrarHistorial() {
+        const txt = document.getElementById('filtroHistorial').value.trim().toLowerCase();
+        const filtradas = todasLasFacturas.filter(f => {
+            return !txt || f.numero.toLowerCase().includes(txt) || f.cliente_nombre.toLowerCase().includes(txt);
+        });
+
+        const tbody = document.getElementById('tablaHistorialBody');
+        tbody.innerHTML = '';
+
+        if (filtradas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="p-8 text-center text-slate-400 font-medium">No se registran ventas</td></tr>';
+            return;
+        }
+
+        filtradas.forEach(f => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
+            const fFecha = new Date(f.fecha).toLocaleString();
+            const totalBs = (f.total * (f.tasa_bcv || TASA_BCV)).toFixed(2);
+            const esCredito = f.condicion === 'credito' || (f.credito && f.credito > 0);
+            const badgeCondicion = esCredito
+                ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200"><i class="fa-solid fa-clock-rotate-left mr-1"></i> CRÉDITO</span>`
+                : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i> CONTADO</span>`;
+
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono font-bold text-emerald-700">#${f.numero}</td>
+                <td class="px-3 py-3 text-center">${badgeCondicion}</td>
+                <td class="px-4 py-3 text-slate-500">${fFecha}</td>
+                <td class="px-4 py-3 font-semibold text-slate-800">${f.cliente_nombre}</td>
+                <td class="px-3 py-3 text-right font-mono text-slate-600">${f.efectivo ? '$' + f.efectivo.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3 text-right font-mono text-purple-600">${f.zelle ? '$' + f.zelle.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3 text-right font-mono text-blue-600">${f.pagomovil ? '$' + f.pagomovil.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3 text-right font-mono text-amber-600">${f.punto ? '$' + f.punto.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3 text-right font-mono text-rose-600 font-bold">${f.credito ? '$' + f.credito.toFixed(2) : '-'}</td>
+                <td class="px-4 py-3 text-right font-mono font-black text-slate-900 text-sm">$${f.total.toFixed(2)}</td>
+                <td class="px-4 py-3 text-right font-mono text-slate-500">Bs. ${Number(totalBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                <td class="px-3 py-3 text-center">
+                    <button onclick="verDetalleFactura(${f.id})" class="text-slate-400 hover:text-cyan-600 p-1.5 transition" title="Ver detalle">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function verDetalleFactura(id) {
+        try {
+            const res = await fetch(`/api/facturas/${id}`);
+            if (res.ok) {
+                const d = await res.json();
+                document.getElementById('detNum').textContent = d.numero;
+                document.getElementById('detFecha').textContent = d.fecha;
+                document.getElementById('detCliente').textContent = d.cliente_nombre;
+                document.getElementById('detTotalUSD').textContent = `$${d.total_usd.toFixed(2)}`;
+                document.getElementById('detTotalBS').textContent = `Bs. ${Number(d.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('detTasa').textContent = `${d.tasa_bcv.toFixed(2)} Bs./$`;
+
+                const esCred = d.condicion === 'credito' || (d.pagos && d.pagos.credito > 0);
+                document.getElementById('detCondicionBadge').innerHTML = esCred
+                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200">A CRÉDITO</span>`
+                    : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">CONTADO</span>`;
+
+                const saldoContainer = document.getElementById('detSaldoContainer');
+                if (esCred && d.saldo_pendiente > 0) {
+                    saldoContainer.classList.remove('hidden');
+                    document.getElementById('detSaldoPendiente').textContent = `$${d.saldo_pendiente.toFixed(2)}`;
+                } else {
+                    saldoContainer.classList.add('hidden');
+                }
+
+                const tbody = document.getElementById('detItemsTbody');
+                tbody.innerHTML = '';
+                d.items.forEach(it => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="py-1 font-bold">${it.cantidad}</td>
+                        <td class="py-1">${it.nombre}</td>
+                        <td class="py-1 text-right font-mono">$${it.precio.toFixed(2)}</td>
+                        <td class="py-1 text-right font-mono font-bold">$${it.subtotal.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById('modalDetalleFactura').classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function cerrarDetalle() {
+        document.getElementById('modalDetalleFactura').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarHistorial);
+</script>
+{% endblock %}

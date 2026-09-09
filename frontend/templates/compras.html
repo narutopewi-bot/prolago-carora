@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Registro de Compras - Prolago Carora 2026{% endblock %}
+{% block nav_compras %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <h1 class="text-xl font-extrabold text-slate-800">Recepción de Mercancía / Compras</h1>
+        <p class="text-xs text-slate-500">Registra entradas de productos, actualiza los costos y calcula automáticamente el nuevo precio de venta</p>
+    </div>
+
+    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+        <form onsubmit="registrarCompra(event)" class="space-y-6">
+
+            <!-- Selección de Producto -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Producto a Ingresar</label>
+                <div class="relative">
+                    <input type="text" id="compraBuscarArticulo" autocomplete="off" required
+                        placeholder="Escriba código o nombre del producto existente..."
+                        class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none">
+                    
+                    <div id="compraResultadosDropdown" class="hidden mt-2 absolute w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-100 z-30"></div>
+                </div>
+
+                <!-- Detalle del Producto Seleccionado -->
+                <div id="badgeProductoSeleccionado" class="hidden mt-3 p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
+                    <div>
+                        <span class="font-bold text-amber-900" id="selNombre">Nombre</span>
+                        <span class="text-slate-500 ml-2">Cód: <strong id="selCodigo">0</strong></span>
+                    </div>
+                    <div>
+                        <span class="text-slate-600">Stock Actual: <strong id="selStock" class="text-slate-900">0</strong></span>
+                        <span class="text-slate-600 ml-3">Precio Actual: <strong id="selPrecio" class="text-emerald-700">$0.00</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cantidad y Costos -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Cantidad Entrante</label>
+                    <input type="number" step="0.5" min="0.1" id="compraCant" required value="1" oninput="calcularCompra()"
+                        class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Costo Unitario ($)</label>
+                    <input type="number" step="0.01" id="compraCosto" required value="0.00" oninput="calcularCompra()"
+                        class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Flete Unitario ($)</label>
+                    <input type="number" step="0.01" id="compraFlete" value="0.00" oninput="calcularCompra()"
+                        class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Recargo Extra (más)</label>
+                    <input type="number" step="0.01" id="compraMas" value="0.00" oninput="calcularCompra()"
+                        class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500">
+                </div>
+            </div>
+
+            <!-- Rentabilidad y Precios -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">% Rentabilidad Deseada</label>
+                    <div class="relative">
+                        <input type="number" step="0.5" id="compraRent" value="20" oninput="calcularCompra()"
+                            class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-amber-500">
+                        <span class="absolute inset-y-0 right-3 flex items-center font-bold text-slate-400 text-xs">%</span>
+                    </div>
+                </div>
+
+                <div class="text-center p-2">
+                    <span class="text-xs text-slate-500 block">Costo Final (Costo + Flete):</span>
+                    <span id="compraCostoFinalLbl" class="text-lg font-black text-slate-800">$0.00</span>
+                </div>
+
+                <div class="text-center p-2">
+                    <span class="text-xs text-slate-500 block">Precio Sugerido Calculado:</span>
+                    <span id="compraSugeridoLbl" class="text-lg font-black text-blue-600">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Precio Final a Establecer -->
+            <div class="bg-amber-50/50 p-5 rounded-2xl border border-amber-200">
+                <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1 text-center">Nuevo Precio de Venta al Público ($ USD)</label>
+                <input type="number" step="0.01" id="compraPrecioFinal" required
+                    class="w-full max-w-xs mx-auto block px-4 py-3 bg-white border-2 border-amber-500 rounded-xl text-xl font-black text-slate-900 text-center focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <p class="text-[11px] text-center text-slate-500 mt-2">Puedes ajustar manualmente este precio o dejar el precio sugerido por la fórmula.</p>
+            </div>
+
+            <button type="submit" id="btnGuardarCompra"
+                class="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-arrow-down-to-bracket text-base"></i>
+                <span>Registrar Entrada y Actualizar Inventario</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let articuloSeleccionado = null;
+
+    function configurarBuscadorCompra() {
+        const inp = document.getElementById('compraBuscarArticulo');
+        const dropdown = document.getElementById('compraResultadosDropdown');
+        let timer = null;
+
+        inp.addEventListener('input', (e) => {
+            clearTimeout(timer);
+            const val = e.target.value.trim();
+            if (val.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            timer = setTimeout(async () => {
+                const res = await fetch(`/api/articulos?search=${encodeURIComponent(val)}&limit=10`);
+                if (res.ok) {
+                    const data = await res.json();
+                    dropdown.innerHTML = '';
+                    if (data.items.length === 0) {
+                        dropdown.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">No se encontraron productos</div>';
+                    } else {
+                        data.items.forEach(it => {
+                            const d = document.createElement('div');
+                            d.className = 'p-3 hover:bg-amber-50 cursor-pointer flex justify-between items-center text-xs';
+                            d.innerHTML = `
+                                <div>
+                                    <strong class="text-slate-800">${it.nombre}</strong>
+                                    <span class="text-slate-400 block text-[10px]">Cód: ${it.codigo}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-bold text-slate-700">$${it.precio.toFixed(2)}</span>
+                                    <span class="block text-[10px] text-slate-400">Stock: ${it.stock}</span>
+                                </div>
+                            `;
+                            d.onclick = () => seleccionarArticulo(it);
+                            dropdown.appendChild(d);
+                        });
+                    }
+                    dropdown.classList.remove('hidden');
+                }
+            }, 200);
+        });
+    }
+
+    function seleccionarArticulo(it) {
+        articuloSeleccionado = it;
+        document.getElementById('compraBuscarArticulo').value = `${it.codigo} - ${it.nombre}`;
+        document.getElementById('compraResultadosDropdown').classList.add('hidden');
+
+        document.getElementById('selNombre').textContent = it.nombre;
+        document.getElementById('selCodigo').textContent = it.codigo;
+        document.getElementById('selStock').textContent = it.stock;
+        document.getElementById('selPrecio').textContent = `$${it.precio.toFixed(2)}`;
+        document.getElementById('badgeProductoSeleccionado').classList.remove('hidden');
+
+        document.getElementById('compraCosto').value = it.costo || 0;
+        document.getElementById('compraFlete').value = it.flete || 0;
+        document.getElementById('compraMas').value = it.mas || 0;
+        document.getElementById('compraRent').value = it.rentabilidad || 20;
+
+        calcularCompra();
+    }
+
+    function calcularCompra() {
+        const costo = parseFloat(document.getElementById('compraCosto').value) || 0;
+        const flete = parseFloat(document.getElementById('compraFlete').value) || 0;
+        const mas = parseFloat(document.getElementById('compraMas').value) || 0;
+        const rent = parseFloat(document.getElementById('compraRent').value) || 0;
+
+        const costoFinal = costo + flete;
+        const sugerido = costoFinal + (costoFinal * rent / 100) + mas;
+
+        document.getElementById('compraCostoFinalLbl').textContent = `$${costoFinal.toFixed(2)}`;
+        document.getElementById('compraSugeridoLbl').textContent = `$${sugerido.toFixed(2)}`;
+        document.getElementById('compraPrecioFinal').value = sugerido.toFixed(2);
+    }
+
+    async function registrarCompra(e) {
+        e.preventDefault();
+        if (!articuloSeleccionado) {
+            Swal.fire('Atención', 'Seleccione un producto de la lista primero', 'warning');
+            return;
+        }
+
+        const payload = {
+            codigo_articulo: articuloSeleccionado.codigo,
+            cantidad: parseFloat(document.getElementById('compraCant').value) || 0,
+            costo: parseFloat(document.getElementById('compraCosto').value) || 0,
+            flete: parseFloat(document.getElementById('compraFlete').value) || 0,
+            mas: parseFloat(document.getElementById('compraMas').value) || 0,
+            rentabilidad: parseFloat(document.getElementById('compraRent').value) || 0,
+            precio: parseFloat(document.getElementById('compraPrecioFinal').value) || 0
+        };
+
+        try {
+            const res = await fetch('/api/compras', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Compra registrada con éxito!',
+                    text: `Nuevo Stock: ${data.nuevo_stock} | Nuevo Precio: $${data.nuevo_precio.toFixed(2)}`,
+                    confirmButtonColor: '#f59e0b'
+                });
+                // Reset
+                document.getElementById('compraBuscarArticulo').value = '';
+                document.getElementById('badgeProductoSeleccionado').classList.add('hidden');
+                articuloSeleccionado = null;
+            } else {
+                const err = await res.json();
+                Swal.fire('Error', err.detail || 'No se pudo registrar la compra', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Fallo de conexión', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', configurarBuscadorCompra);
+</script>
+{% endblock %}

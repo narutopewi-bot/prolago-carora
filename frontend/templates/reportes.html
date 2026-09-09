@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Cierre de Caja y Reportes - Prolago Carora 2026{% endblock %}
+{% block nav_reportes %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-800">Cierre de Caja y Reportes</h1>
+            <p class="text-xs text-slate-500">Resumen de ingresos del día por forma de pago y valoración del patrimonio</p>
+        </div>
+
+        <button onclick="cargarReportes()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Actualizar</span>
+        </button>
+    </div>
+
+    <!-- TARJETAS DE RESUMEN DEL DÍA -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Total Ventas Hoy -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Ventas de Hoy</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="repTotalHoyUSD">$0.00</div>
+            <div class="text-xs text-emerald-600 font-semibold mt-1" id="repTotalHoyBS">Bs. 0,00</div>
+            <div class="text-[11px] text-slate-400 mt-2 pt-2 border-t" id="repCantFacturas">0 facturas emitidas</div>
+        </div>
+
+        <!-- Patrimonio / Valor de Inventario -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Valor Inventario (Costo)</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="repPatrimonioUSD">$0.00</div>
+            <div class="text-xs text-blue-600 font-semibold mt-1" id="repPatrimonioBS">Bs. 0,00</div>
+            <div class="text-[11px] text-slate-400 mt-2 pt-2 border-t" id="repTotalProductos">0 productos registrados</div>
+        </div>
+
+        <!-- Alertas de Stock -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Alerta de Stock</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-amber-600" id="repBajoStock">0</div>
+            <p class="text-xs text-slate-500 mt-1">Productos con 5 o menos unidades</p>
+            <div class="text-[11px] text-slate-400 mt-2 pt-2 border-t">Requieren reposición</div>
+        </div>
+
+        <!-- Tasa BCV Actual -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Tasa Oficial BCV</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-purple-700" id="repTasaBCV">0.00 Bs.</div>
+            <p class="text-xs text-slate-500 mt-1">Bolívares por Dólar</p>
+            <button onclick="abrirModalTasa()" class="text-[11px] text-purple-600 hover:text-purple-800 font-bold mt-2 pt-2 border-t block w-full text-left">
+                Actualizar tasa &rarr;
+            </button>
+        </div>
+    </div>
+
+    <!-- DESGLOSE DE MÉTODOS DE PAGO DEL DÍA -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4 flex items-center">
+            <i class="fa-solid fa-wallet text-emerald-600 mr-2"></i>
+            Ingresos de Hoy por Forma de Pago
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
+                <span class="text-xs font-bold text-emerald-800 block">Efectivo ($)</span>
+                <span class="text-xl font-black text-emerald-700 mt-1 block" id="pagoEfectivoHoy">$0.00</span>
+            </div>
+
+            <div class="p-4 bg-purple-50 rounded-xl border border-purple-100 text-center">
+                <span class="text-xs font-bold text-purple-800 block">Zelle ($)</span>
+                <span class="text-xl font-black text-purple-700 mt-1 block" id="pagoZelleHoy">$0.00</span>
+            </div>
+
+            <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                <span class="text-xs font-bold text-blue-800 block">Pago Móvil ($)</span>
+                <span class="text-xl font-black text-blue-700 mt-1 block" id="pagoMovilHoy">$0.00</span>
+            </div>
+
+            <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-center">
+                <span class="text-xs font-bold text-amber-800 block">Punto de Venta ($)</span>
+                <span class="text-xl font-black text-amber-700 mt-1 block" id="pagoPuntoHoy">$0.00</span>
+            </div>
+
+            <div class="p-4 bg-rose-50 rounded-xl border border-rose-100 text-center">
+                <span class="text-xs font-bold text-rose-800 block">Cuentas por Cobrar ($)</span>
+                <span class="text-xl font-black text-rose-700 mt-1 block" id="pagoCreditoHoy">$0.00</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function cargarReportes() {
+        try {
+            const res = await fetch('/api/reportes/resumen');
+            if (res.ok) {
+                const d = await res.json();
+                document.getElementById('repTotalHoyUSD').textContent = `$${d.ventas_hoy.total_usd.toFixed(2)}`;
+                document.getElementById('repTotalHoyBS').textContent = `Bs. ${Number(d.ventas_hoy.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('repCantFacturas').textContent = `${d.ventas_hoy.cantidad_facturas} facturas emitidas hoy`;
+
+                document.getElementById('repPatrimonioUSD').textContent = `$${d.inventario.patrimonio_usd.toFixed(2)}`;
+                document.getElementById('repPatrimonioBS').textContent = `Bs. ${Number(d.inventario.patrimonio_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('repTotalProductos').textContent = `${d.inventario.total_productos} productos en catálogo`;
+                document.getElementById('repBajoStock').textContent = d.inventario.bajo_stock;
+
+                document.getElementById('repTasaBCV').textContent = `${d.tasa_bcv.toFixed(2)} Bs./$`;
+
+                document.getElementById('pagoEfectivoHoy').textContent = `$${d.ventas_hoy.efectivo.toFixed(2)}`;
+                document.getElementById('pagoZelleHoy').textContent = `$${d.ventas_hoy.zelle.toFixed(2)}`;
+                document.getElementById('pagoMovilHoy').textContent = `$${d.ventas_hoy.pagomovil.toFixed(2)}`;
+                document.getElementById('pagoPuntoHoy').textContent = `$${d.ventas_hoy.punto.toFixed(2)}`;
+                document.getElementById('pagoCreditoHoy').textContent = `$${d.ventas_hoy.credito.toFixed(2)}`;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarReportes);
+</script>
+{% endblock %}

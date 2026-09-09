@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Cuentas por Cobrar y Créditos - Prolago Carora 2026{% endblock %}
+{% block nav_creditos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- ENCABEZADO -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-800 flex items-center space-x-2">
+                <i class="fa-solid fa-hand-holding-dollar text-rose-600"></i>
+                <span>Cuentas por Cobrar y Créditos</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">Control de saldos deudores, registro de abonos y cobranza directa por WhatsApp</p>
+        </div>
+
+        <button onclick="cargarCreditos()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 self-start sm:self-auto">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Actualizar</span>
+        </button>
+    </div>
+
+    <!-- TARJETAS DE RESUMEN KPI -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Total por Cobrar en USD -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Total por Cobrar ($)</span>
+                <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-rose-600" id="kpiTotalUSD">$0.00</div>
+            <p class="text-[11px] text-slate-400 mt-1">Suma de saldos pendientes en USD</p>
+        </div>
+
+        <!-- Total por Cobrar en Bolívares -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Equivalente en Bolívares</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+            </div>
+            <div class="text-xl sm:text-2xl font-black text-slate-900" id="kpiTotalBS">Bs. 0,00</div>
+            <p class="text-[11px] text-slate-400 mt-1">A tasa oficial BCV actual</p>
+        </div>
+
+        <!-- Clientes Deudores -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Clientes con Deuda</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-slate-800" id="kpiClientesCount">0</div>
+            <p class="text-[11px] text-slate-400 mt-1">Personas con saldo activo</p>
+        </div>
+
+        <!-- Facturas Pendientes -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Facturas a Crédito</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-slate-800" id="kpiFacturasCount">0</div>
+            <p class="text-[11px] text-slate-400 mt-1">Cuentas pendientes por saldar</p>
+        </div>
+    </div>
+
+    <!-- FILTROS Y CONTROLES DE BÚSQUEDA -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="w-full sm:w-80 relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            </span>
+            <input type="text" id="filtroTextoCredito" oninput="filtrarCreditos()" placeholder="Buscar cliente o N° de factura..."
+                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs">
+            <label class="flex items-center space-x-2 font-semibold text-slate-700 cursor-pointer">
+                <input type="checkbox" id="checkSoloPendientes" checked onchange="cargarCreditos()" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4">
+                <span>Solo facturas con saldo pendiente</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- TABLA DE CUENTAS POR COBRAR -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3.5">Factura N°</th>
+                        <th class="px-4 py-3.5">Fecha</th>
+                        <th class="px-4 py-3.5">Cliente / Deudor</th>
+                        <th class="px-4 py-3.5">Teléfono</th>
+                        <th class="px-3 py-3.5 text-right">Crédito Inicial ($)</th>
+                        <th class="px-4 py-3.5 text-right">Saldo Pendiente ($)</th>
+                        <th class="px-4 py-3.5 text-right">Saldo en Bs.</th>
+                        <th class="px-3 py-3.5 text-center">Estado</th>
+                        <th class="px-4 py-3.5 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCreditosBody" class="divide-y divide-slate-100">
+                    <!-- Dinámico -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL REGISTRAR ABONO / PAGO DE DEUDA                   -->
+<!-- ======================================================== -->
+<div id="modalAbono" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-800">
+        <div class="flex items-center justify-between border-b pb-3 mb-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-receipt text-emerald-600"></i>
+                    <span>Registrar Abono a Factura #<span id="abonoNumFactura"></span></span>
+                </h3>
+                <p class="text-xs text-slate-500" id="abonoClienteNombre"></p>
+            </div>
+            <button onclick="cerrarModalAbono()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <!-- Banner de Saldo Pendiente Actual -->
+        <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-xl mb-4 flex justify-between items-center text-xs">
+            <div>
+                <span class="text-slate-600 font-semibold block">Deuda Pendiente:</span>
+                <span class="text-lg font-black text-rose-600" id="abonoSaldoPendienteUSD">$0.00</span>
+            </div>
+            <div class="text-right">
+                <span class="text-slate-600 font-semibold block">En Bolívares:</span>
+                <span class="text-sm font-black text-slate-900" id="abonoSaldoPendienteBS">Bs. 0,00</span>
+            </div>
+        </div>
+
+        <form onsubmit="guardarAbono(event)" class="space-y-4 text-xs">
+            <input type="hidden" id="abonoFacturaId">
+
+            <!-- Monto a abonar en USD -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="font-bold text-slate-700">Monto a Abonar ($ USD)</label>
+                    <button type="button" onclick="saldarDeudaCompleta()" class="text-[10px] text-emerald-700 font-bold bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded transition">
+                        Saldar totalidad
+                    </button>
+                </div>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400">$</span>
+                    <input type="number" step="0.01" min="0.01" id="inputAbonoUSD" oninput="calcularAbonoBS()" required
+                        class="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Equivalente en Bolívares -->
+            <div class="p-3 bg-slate-50 rounded-xl border flex items-center justify-between">
+                <span class="text-slate-500 font-semibold">Equivalente en Bolívares (BCV):</span>
+                <span id="abonoEquivBS" class="font-black text-slate-800 text-sm">Bs. 0,00</span>
+            </div>
+
+            <!-- Método de Pago -->
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Forma de Pago del Abono</label>
+                <select id="abonoMetodoPago" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="efectivo">Efectivo ($ USD)</option>
+                    <option value="pagomovil">Pago Móvil (Bs.)</option>
+                    <option value="punto">Punto de Venta / Tarjeta (Bs.)</option>
+                    <option value="zelle">Zelle ($ USD)</option>
+                </select>
+            </div>
+
+            <!-- Nota / Referencia -->
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Nota o N° de Referencia (Opcional)</label>
+                <input type="text" id="abonoNota" placeholder="Ej: Ref. Pago Móvil 481920"
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <div class="pt-2 flex space-x-2">
+                <button type="button" onclick="cerrarModalAbono()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+                    Cancelar
+                </button>
+                <button type="submit" id="btnGuardarAbono"
+                    class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Confirmar Abono</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL HISTORIAL DE ABONOS DE UNA FACTURA                 -->
+<!-- ======================================================== -->
+<div id="modalHistorialAbonos" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-800">
+        <div class="flex items-center justify-between border-b pb-3 mb-3">
+            <h3 class="text-sm font-bold text-slate-900">Historial de Pagos Factura #<span id="histNumFact"></span></h3>
+            <button onclick="cerrarHistorialAbonos()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <div class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs mb-4" id="listaAbonosContenedor">
+            <!-- Dinámico -->
+        </div>
+
+        <button onclick="cerrarHistorialAbonos()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-700 text-xs transition">
+            Cerrar
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let todosLosCreditos = [];
+    let creditoSeleccionado = null;
+
+    async function cargarCreditos() {
+        const soloPend = document.getElementById('checkSoloPendientes').checked;
+        try {
+            const res = await fetch(`/api/creditos?solo_pendientes=${soloPend}`);
+            if (res.ok) {
+                const data = await res.json();
+                todosLosCreditos = data.items;
+                
+                // Actualizar KPIs
+                document.getElementById('kpiTotalUSD').textContent = `$${data.resumen.total_por_cobrar_usd.toFixed(2)}`;
+                document.getElementById('kpiTotalBS').textContent = `Bs. ${Number(data.resumen.total_por_cobrar_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('kpiClientesCount').textContent = data.resumen.total_deudores;
+                document.getElementById('kpiFacturasCount').textContent = data.resumen.facturas_activas;
+
+                filtrarCreditos();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function filtrarCreditos() {
+        const txt = document.getElementById('filtroTextoCredito').value.trim().toLowerCase();
+        const filtrados = todosLosCreditos.filter(c => {
+            return !txt || c.cliente_nombre.toLowerCase().includes(txt) || c.numero.toLowerCase().includes(txt) || (c.telefono && c.telefono.includes(txt));
+        });
+
+        const tbody = document.getElementById('tablaCreditosBody');
+        tbody.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-slate-400 font-medium">No se registran créditos bajo estos criterios</td></tr>';
+            return;
+        }
+
+        filtrados.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
+
+            let badgeEstado = '';
+            if (c.saldo_pendiente <= 0.009) {
+                badgeEstado = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Saldado</span>';
+            } else if (c.saldo_pendiente < c.monto_credito) {
+                badgeEstado = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">Abono Parcial</span>';
+            } else {
+                badgeEstado = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">Pendiente</span>';
+            }
+
+            const saldoBs = (c.saldo_pendiente * TASA_BCV).toFixed(2);
+
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono font-bold text-slate-800">#${c.numero}</td>
+                <td class="px-4 py-3 text-slate-500">${c.fecha}</td>
+                <td class="px-4 py-3 font-bold text-slate-900">${c.cliente_nombre}</td>
+                <td class="px-4 py-3 font-mono text-slate-600">${c.telefono || '<span class="text-slate-300">Sin telf</span>'}</td>
+                <td class="px-3 py-3 text-right font-mono text-slate-500">$${c.monto_credito.toFixed(2)}</td>
+                <td class="px-4 py-3 text-right font-mono font-black text-rose-600 text-sm">$${c.saldo_pendiente.toFixed(2)}</td>
+                <td class="px-4 py-3 text-right font-mono text-slate-700 font-bold">Bs. ${Number(saldoBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                <td class="px-3 py-3 text-center">${badgeEstado}</td>
+                <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center space-x-1.5">
+                        <!-- Botón WhatsApp -->
+                        <button onclick="enviarWhatsAppCobro(${JSON.stringify(c).replace(/"/g, '&quot;')})"
+                            class="p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition shadow-sm" title="Enviar recordatorio por WhatsApp">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                        </button>
+                        <!-- Botón Abonar -->
+                        ${c.saldo_pendiente > 0.009 ? `
+                        <button onclick="abrirModalAbono(${JSON.stringify(c).replace(/"/g, '&quot;')})"
+                            class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] transition shadow-sm flex items-center space-x-1" title="Registrar Abono">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                            <span>Abonar</span>
+                        </button>` : ''}
+                        <!-- Botón Ver Pagos -->
+                        <button onclick="verHistorialAbonos(${c.factura_id}, '${c.numero}')"
+                            class="p-1.5 text-slate-400 hover:text-slate-700 rounded transition" title="Ver historial de abonos">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ENVIAR RECORDATORIO POR WHATSAPP
+    function enviarWhatsAppCobro(c) {
+        let telf = (c.telefono || '').replace(/\D/g, '');
+        
+        // Si no tiene código de país, agregar prefijo Venezuela 58 si empieza por 0412/0414/0416/0424/0426
+        if (telf.startsWith('0')) {
+            telf = '58' + telf.substring(1);
+        } else if (telf.length === 10 && !telf.startsWith('58')) {
+            telf = '58' + telf;
+        }
+
+        const totalBs = Number((c.saldo_pendiente * TASA_BCV).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2});
+
+        const mensaje = `Hola *${c.cliente_nombre}*, le saludamos de *PROLAGO CARORA*.\n\nLe escribimos para recordarle cordialmente que mantiene un saldo pendiente de *$${c.saldo_pendiente.toFixed(2)} USD* (Equivalente a *Bs. ${totalBs}* a tasa oficial BCV de ${TASA_BCV.toFixed(2)} Bs./$) correspondiente a su compra bajo la *Factura N° #${c.numero}* del ${c.fecha}.\n\nPuede realizar su pago en efectivo, Zelle o Pago Móvil.\n\n¡Muchas gracias por su preferencia!`;
+
+        if (!telf) {
+            Swal.fire({
+                title: 'Cliente sin Teléfono',
+                text: 'Este cliente no tiene un teléfono guardado. Ingrese el número de WhatsApp para enviar el mensaje:',
+                input: 'text',
+                inputPlaceholder: 'Ej: 04121234567',
+                showCancelButton: true,
+                confirmButtonText: 'Abrir WhatsApp',
+                confirmButtonColor: '#22c55e'
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    let customTelf = result.value.replace(/\D/g, '');
+                    if (customTelf.startsWith('0')) customTelf = '58' + customTelf.substring(1);
+                    const url = `https://wa.me/${customTelf}?text=${encodeURIComponent(mensaje)}`;
+                    window.open(url, '_blank');
+                }
+            });
+            return;
+        }
+
+        const url = `https://wa.me/${telf}?text=${encodeURIComponent(mensaje)}`;
+        window.open(url, '_blank');
+    }
+
+    // MODAL DE ABONO
+    function abrirModalAbono(c) {
+        creditoSeleccionado = c;
+        document.getElementById('abonoFacturaId').value = c.factura_id;
+        document.getElementById('abonoNumFactura').textContent = c.numero;
+        document.getElementById('abonoClienteNombre').textContent = c.cliente_nombre;
+        document.getElementById('abonoSaldoPendienteUSD').textContent = `$${c.saldo_pendiente.toFixed(2)}`;
+        document.getElementById('abonoSaldoPendienteBS').textContent = `Bs. ${Number((c.saldo_pendiente * TASA_BCV).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+
+        document.getElementById('inputAbonoUSD').value = '';
+        document.getElementById('abonoEquivBS').textContent = 'Bs. 0,00';
+        document.getElementById('abonoNota').value = '';
+
+        document.getElementById('modalAbono').classList.remove('hidden');
+    }
+
+    function cerrarModalAbono() {
+        document.getElementById('modalAbono').classList.add('hidden');
+    }
+
+    function saldarDeudaCompleta() {
+        if (!creditoSeleccionado) return;
+        document.getElementById('inputAbonoUSD').value = creditoSeleccionado.saldo_pendiente.toFixed(2);
+        calcularAbonoBS();
+    }
+
+    function calcularAbonoBS() {
+        const valUSD = parseFloat(document.getElementById('inputAbonoUSD').value) || 0;
+        const valBS = valUSD * TASA_BCV;
+        document.getElementById('abonoEquivBS').textContent = `Bs. ${Number(valBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+    }
+
+    async function guardarAbono(e) {
+        e.preventDefault();
+        const facturaId = document.getElementById('abonoFacturaId').value;
+        const montoUSD = parseFloat(document.getElementById('inputAbonoUSD').value);
+        if (!montoUSD || montoUSD <= 0) {
+            Swal.fire('Atención', 'Ingrese un monto válido', 'warning');
+            return;
+        }
+
+        const payload = {
+            monto_usd: montoUSD,
+            monto_bs: montoUSD * TASA_BCV,
+            metodo_pago: document.getElementById('abonoMetodoPago').value,
+            nota: document.getElementById('abonoNota').value.trim()
+        };
+
+        const btn = document.getElementById('btnGuardarAbono');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/creditos/${facturaId}/abonos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                cerrarModalAbono();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Abono registrado!',
+                    text: `Monto abonado: $${data.monto_abonado.toFixed(2)} | Nuevo saldo: $${data.nuevo_saldo_pendiente.toFixed(2)}`,
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+                cargarCreditos();
+            } else {
+                const err = await res.json();
+                Swal.fire('Error', err.detail || 'No se pudo registrar el abono', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Fallo de conexión', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // HISTORIAL DE ABONOS
+    async function verHistorialAbonos(facturaId, numFact) {
+        document.getElementById('histNumFact').textContent = numFact;
+        const contenedor = document.getElementById('listaAbonosContenedor');
+        contenedor.innerHTML = '<div class="p-4 text-center text-slate-400">Cargando pagos...</div>';
+        document.getElementById('modalHistorialAbonos').classList.remove('hidden');
+
+        try {
+            const res = await fetch(`/api/creditos/${facturaId}/abonos`);
+            if (res.ok) {
+                const abonos = await res.json();
+                if (abonos.length === 0) {
+                    contenedor.innerHTML = '<div class="p-4 text-center text-slate-400">Aún no se han registrado abonos para esta factura.</div>';
+                    return;
+                }
+                contenedor.innerHTML = '';
+                abonos.forEach(a => {
+                    const d = document.createElement('div');
+                    d.className = 'py-2.5 flex justify-between items-center';
+                    d.innerHTML = `
+                        <div>
+                            <span class="font-bold text-slate-800">$${a.monto_usd.toFixed(2)}</span>
+                            <span class="text-slate-400 text-[10px] ml-1">(Bs. ${Number(a.monto_bs.toFixed(2)).toLocaleString('es-VE')})</span>
+                            <div class="text-[10px] text-slate-500">${a.fecha} &bull; <span class="uppercase font-semibold">${a.metodo_pago}</span></div>
+                            ${a.nota ? `<div class="text-[10px] text-slate-400 italic">${a.nota}</div>` : ''}
+                        </div>
+                        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Procesado</span>
+                    `;
+                    contenedor.appendChild(d);
+                });
+            }
+        } catch (e) {
+            contenedor.innerHTML = '<div class="p-4 text-center text-red-500">Error al cargar abonos</div>';
+        }
+    }
+
+    function cerrarHistorialAbonos() {
+        document.getElementById('modalHistorialAbonos').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarCreditos);
+</script>
+{% endblock %}
