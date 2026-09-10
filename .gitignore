@@ -4,3 +4,7 @@ venv/
 .env
 .idea/
 .vscode/
+build/
+dist/
+*.spec
+*.zip

@@ -25,9 +25,14 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Prolago Carora Web", version="1.0.0")
 
 # Directorios de frontend
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATIC_DIR = os.path.join(BASE_DIR, "frontend", "static")
-TEMPLATES_DIR = os.path.join(BASE_DIR, "frontend", "templates")
+import sys
+if getattr(sys, "frozen", False):
+    ROOT_DIR = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+else:
+    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+STATIC_DIR = os.path.join(ROOT_DIR, "frontend", "static")
+TEMPLATES_DIR = os.path.join(ROOT_DIR, "frontend", "templates")
 
 os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
