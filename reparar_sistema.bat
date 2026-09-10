@@ -23,18 +23,20 @@ echo.
 echo  [2] Liberar Puerto 8000 (Cierra procesos colgados)
 echo  [3] Reparar Firewall de Windows (Permite celulares en Wi-Fi)
 echo  [4] Crear Copia de Respaldo de Emergencia en el Escritorio
-echo  [5] Ver IP de esta computadora para conectar celulares
-echo  [6] Salir
+echo  [5] Restaurar Base de Datos desde una Copia de Seguridad
+echo  [6] Ver IP de esta computadora para conectar celulares
+echo  [7] Salir
 echo.
 echo ========================================================
-set /p opc=" Seleccione una opcion [1-6]: "
+set /p opc=" Seleccione una opcion [1-7]: "
 
 if "%opc%"=="1" goto REPARAR_TODO
 if "%opc%"=="2" goto LIBERAR_PUERTO
 if "%opc%"=="3" goto FIREWALL
 if "%opc%"=="4" goto BACKUP
-if "%opc%"=="5" goto VER_IP
-if "%opc%"=="6" exit /b
+if "%opc%"=="5" goto RESTAURAR
+if "%opc%"=="6" goto VER_IP
+if "%opc%"=="7" exit /b
 goto MENU
 
 :REPARAR_TODO
@@ -106,6 +108,46 @@ if exist "C:\ProlagoCarora\prolago.db" (
 ) else (
     echo [!] No se encontro el archivo prolago.db
 )
+pause
+goto MENU
+
+:RESTAURAR
+cls
+echo ========================================================
+echo        RESTAURAR BASE DE DATOS DESDE UNA COPIA
+echo ========================================================
+echo.
+echo Indique la ruta completa del archivo de respaldo .db
+echo (Por ejemplo: arrastra el archivo aqui o escribe E:\copia.db)
+echo.
+set /p RUTA_COPIA=" Ingrese o arrastre el archivo .db aqui: "
+set RUTA_COPIA=%RUTA_COPIA:"=%
+
+if not exist "%RUTA_COPIA%" (
+    echo.
+    echo [!] Error: No se encontro el archivo especificado: %RUTA_COPIA%
+    pause
+    goto MENU
+)
+
+echo.
+echo Cerrando instancias abiertas del sistema...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+
+echo.
+if exist "C:\ProlagoCarora\prolago.db" (
+    copy /y "%RUTA_COPIA%" "C:\ProlagoCarora\prolago.db" >nul
+    echo [EXITO] Base de datos restaurada en C:\ProlagoCarora\prolago.db
+) else if exist "prolago.db" (
+    copy /y "%RUTA_COPIA%" "prolago.db" >nul
+    echo [EXITO] Base de datos restaurada en prolago.db
+) else (
+    copy /y "%RUTA_COPIA%" "C:\ProlagoCarora\prolago.db" >nul
+    echo [EXITO] Base de datos instalada en C:\ProlagoCarora\prolago.db
+)
+
+echo.
+echo El sistema quedo tal cual como estaba en esa copia de seguridad.
 pause
 goto MENU
 

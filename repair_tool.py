@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import subprocess
 import socket
@@ -142,6 +142,118 @@ def hacer_backup_manual():
 
     input("\n Presione ENTER para continuar...")
 
+def restaurar_backup_manual():
+    clear_screen()
+    print("=" * 65)
+    print("        RESTAURAR COPIA DE SEGURIDAD DE LA BASE DE DATOS")
+    print("=" * 65)
+    print(" Esta funcion te permite recuperar tu sistema al estado exacto")
+    print(" de una copia previa si la base de datos se borro o dano.")
+    print("=" * 65 + "\n")
+
+    candidatos = []
+    carpetas_buscar = [
+        os.path.join(INSTALL_DIR, "respaldos"),
+        INSTALL_DIR,
+        os.path.join(os.environ.get("USERPROFILE", "C:\\"), "Desktop")
+    ]
+    for c in carpetas_buscar:
+        if os.path.exists(c):
+            for f in os.listdir(c):
+                if f.endswith(".db") and f != "prolago.db":
+                    full_p = os.path.join(c, f)
+                    if full_p not in candidatos:
+                        candidatos.append(full_p)
+
+    print(" Respaldos encontrados automaticamente en la computadora:")
+    if candidatos:
+        for idx, c in enumerate(candidatos, 1):
+            tam = round(os.path.getsize(c) / 1024, 1)
+            mtime = datetime.fromtimestamp(os.path.getmtime(c)).strftime("%Y-%m-%d %H:%M")
+            print(f"  [{idx}] {os.path.basename(c)}  ({tam} KB - {mtime})")
+    else:
+        print("  (No se encontraron copias automaticas en las carpetas comunes)")
+
+    print()
+    print("  [O] Escribir o arrastrar la ruta de otro archivo (Ej: desde un pendrive E:\\copia.db)")
+    print("  [0] Cancelar y volver al menu")
+    print("-" * 65)
+
+    eleccion = input(" Seleccione una opcion: ").strip().lower()
+    if eleccion == "0" or not eleccion:
+        return
+
+    archivo_seleccionado = None
+    if eleccion == "o":
+        ruta = input(" Escriba o arrastre aqui la ruta del archivo .db: ").strip().strip('"').strip("'")
+        if os.path.exists(ruta):
+            archivo_seleccionado = ruta
+        else:
+            print(" [!] No se encontro el archivo especificado.")
+            input(" Presione ENTER...")
+            return
+    elif eleccion.isdigit() and 1 <= int(eleccion) <= len(candidatos):
+        archivo_seleccionado = candidatos[int(eleccion) - 1]
+    else:
+        print(" [!] Opcion no valida.")
+        input(" Presione ENTER...")
+        return
+
+    print(f"\n Verificando archivo: {os.path.basename(archivo_seleccionado)}...")
+    try:
+        conn = sqlite3.connect(archivo_seleccionado)
+        cur = conn.cursor()
+        cur.execute("PRAGMA integrity_check;")
+        res = cur.fetchall()
+        cur.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='articulos';")
+        has_art = cur.fetchone()[0]
+        n_art = 0
+        if has_art:
+            cur.execute("SELECT count(*) FROM articulos;")
+            n_art = cur.fetchone()[0]
+        conn.close()
+
+        if not res or res[0][0].lower() != "ok":
+            print(" [!] Error: El archivo seleccionado no es una base de datos SQLite integra.")
+            input(" Presione ENTER...")
+            return
+        print(f" [OK] Archivo valido. Contiene {n_art} articulos registrados.")
+    except Exception as e:
+        print(f" [!] Error al inspeccionar el archivo: {e}")
+        input(" Presione ENTER...")
+        return
+
+    confirmar = input("\n ADVERTENCIA: ¿Seguro que deseas restaurar esta copia? (S/N): ").strip().lower()
+    if confirmar != "s":
+        print(" Operacion cancelada.")
+        input(" Presione ENTER...")
+        return
+
+    liberar_puerto()
+
+    if os.path.exists(DB_PATH):
+        f_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        try:
+            shutil.copy2(DB_PATH, os.path.join(INSTALL_DIR, f"prolago_antes_de_restaurar_{f_str}.db"))
+        except Exception:
+            pass
+
+    try:
+        shutil.copy2(archivo_seleccionado, DB_PATH)
+        print("\n" + "=" * 65)
+        print(" [EXITO TOTAL] ¡La base de datos fue restaurada exitosamente!")
+        print(f" Archivo activo: {DB_PATH}")
+        print(" El sistema quedo tal cual como estaba en esa copia de seguridad.")
+        print("=" * 65)
+
+        arrancar = input("\n ¿Deseas iniciar Prolago Carora ahora? (S/N): ").strip().lower()
+        if arrancar == "s":
+            reiniciar_sistema()
+    except Exception as e:
+        print(f" [!] Error al copiar archivo: {e}")
+
+    input("\n Presione ENTER para volver al menu...")
+
 def diagnostico_red():
     clear_screen()
     print("=" * 65)
@@ -155,7 +267,6 @@ def diagnostico_red():
     print(f"   http://{ip}:8000")
     print(f"  =========================================\n")
 
-    # Probar si el puerto 8000 responde
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(1.0)
     try:
@@ -180,10 +291,11 @@ def menu():
         print(" 3. Reparar Regla de Firewall de Windows (Permitir celulares)")
         print(" 4. Verificar y Optimizar Base de Datos (Sin borrar datos)")
         print(" 5. Crear Respaldo de Emergencia (Copia en el Escritorio)")
-        print(" 6. Diagnostico de Red y Direccion IP para Celulares")
-        print(" 7. Salir")
+        print(" 6. RESTAURAR BASE DE DATOS DESDE COPIA (Recuperacion total)")
+        print(" 7. Diagnostico de Red y Direccion IP para Celulares")
+        print(" 8. Salir")
         print("=" * 65)
-        opc = input(" Seleccione una opcion [1-7]: ").strip()
+        opc = input(" Seleccione una opcion [1-8]: ").strip()
 
         if opc == "1":
             reparacion_automatica_completa()
@@ -202,8 +314,10 @@ def menu():
         elif opc == "5":
             hacer_backup_manual()
         elif opc == "6":
-            diagnostico_red()
+            restaurar_backup_manual()
         elif opc == "7":
+            diagnostico_red()
+        elif opc == "8":
             break
 
 if __name__ == "__main__":

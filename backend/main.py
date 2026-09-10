@@ -777,7 +777,7 @@ def page_creditos(request: Request, user: Usuario = Depends(get_current_user)):
     return templates.TemplateResponse(request=request, name="creditos.html", context={"user": user})
 
 # ==========================================
-# MANTENIMIENTO, DIAGNÓSTICO Y REPARACIÓN
+# MANTENIMIENTO, DIAGNÓSTICO Y RESPALDOS
 # ==========================================
 import socket
 import sqlite3
@@ -794,6 +794,23 @@ def get_lan_ip():
     except Exception:
         return "127.0.0.1"
 
+def crear_autobackup_diario():
+    try:
+        base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
+        db_file = os.path.join(base_dir, "prolago.db")
+        if not os.path.exists(db_file):
+            return
+        backup_dir = os.path.join(base_dir, "respaldos")
+        os.makedirs(backup_dir, exist_ok=True)
+        hoy_str = datetime.now().strftime("%Y-%m-%d")
+        dest = os.path.join(backup_dir, f"prolago_autobackup_{hoy_str}.db")
+        if not os.path.exists(dest):
+            shutil.copy2(db_file, dest)
+    except Exception:
+        pass
+
+crear_autobackup_diario()
+
 @app.get("/mantenimiento", response_class=HTMLResponse)
 def page_mantenimiento(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
@@ -802,10 +819,9 @@ def page_mantenimiento(request: Request, user: Usuario = Depends(get_current_use
 
 @app.get("/api/mantenimiento/diagnostico")
 def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
-    if getattr(sys, "frozen", False):
-        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
-    else:
-        db_file = "prolago.db"
+    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
+    db_file = os.path.join(base_dir, "prolago.db")
+    backup_dir = os.path.join(base_dir, "respaldos")
 
     integrity = "OK"
     db_size_kb = 0
@@ -826,6 +842,11 @@ def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(requi
     total_clis = db.query(Cliente).count()
     tasa = get_config_val(db, "tasa_bcv", "473.92")
 
+    # Contar respaldos automáticos existentes
+    cant_respaldos = 0
+    if os.path.exists(backup_dir):
+        cant_respaldos = len([f for f in os.listdir(backup_dir) if f.endswith(".db")])
+
     return {
         "estado_sistema": "OPERATIVO",
         "integridad_db": integrity,
@@ -834,6 +855,7 @@ def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(requi
         "facturas_emitidas": total_facts,
         "clientes_registrados": total_clis,
         "tasa_bcv": tasa,
+        "respaldos_guardados": cant_respaldos,
         "ip_local": get_lan_ip(),
         "puerto": 8000,
         "fecha_servidor": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -841,10 +863,8 @@ def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(requi
 
 @app.post("/api/mantenimiento/optimizar")
 def optimizar_sistema(db: Session = Depends(get_db), user: Usuario = Depends(require_admin)):
-    if getattr(sys, "frozen", False):
-        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
-    else:
-        db_file = "prolago.db"
+    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
+    db_file = os.path.join(base_dir, "prolago.db")
 
     Base.metadata.create_all(bind=engine)
 
@@ -863,35 +883,92 @@ def optimizar_sistema(db: Session = Depends(get_db), user: Usuario = Depends(req
 
 @app.get("/api/mantenimiento/descargar_backup")
 def descargar_backup(user: Usuario = Depends(require_admin)):
-    if getattr(sys, "frozen", False):
-        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
-    else:
-        db_file = "prolago.db"
-
+    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
+    db_file = os.path.join(base_dir, "prolago.db")
     if not os.path.exists(db_file):
         raise HTTPException(status_code=404, detail="Archivo de base de datos no encontrado")
 
     fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"prolago_backup_{fecha}.db"
+    backup_dir = os.path.join(base_dir, "respaldos")
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    # Guardar copia local en la carpeta 'respaldos'
+    try:
+        shutil.copy2(db_file, os.path.join(backup_dir, f"prolago_respaldo_{fecha}.db"))
+    except Exception:
+        pass
+
+    filename = f"COPIA_SEGURIDAD_PROLAGO_{fecha}.db"
     return FileResponse(path=db_file, filename=filename, media_type="application/octet-stream")
 
 @app.post("/api/mantenimiento/restaurar_backup")
 async def restaurar_backup(archivo: UploadFile = File(...), user: Usuario = Depends(require_admin)):
     if not archivo.filename.endswith(".db"):
-        raise HTTPException(status_code=400, detail="El archivo debe ser una base de datos .db válida")
+        raise HTTPException(status_code=400, detail="El archivo debe tener extensión .db")
 
-    if getattr(sys, "frozen", False):
-        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
-    else:
-        db_file = "prolago.db"
+    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
+    db_file = os.path.join(base_dir, "prolago.db")
+    backup_dir = os.path.join(base_dir, "respaldos")
+    os.makedirs(backup_dir, exist_ok=True)
 
-    if os.path.exists(db_file):
-        shutil.copy2(db_file, f"{db_file}.prev_backup")
-
-    with open(db_file, "wb") as f:
+    # 1. Guardar archivo subido en temporal para verificar integridad antes de tocar la BD real
+    temp_path = os.path.join(backup_dir, "temp_restore.db")
+    with open(temp_path, "wb") as f:
         content = await archivo.read()
         f.write(content)
 
-    return {"status": "ok", "mensaje": "Base de datos restaurada correctamente"}
+    # 2. Validar que sea un archivo SQLite íntegro
+    cant_arts = 0
+    cant_facts = 0
+    try:
+        test_conn = sqlite3.connect(temp_path)
+        cur = test_conn.cursor()
+        cur.execute("PRAGMA integrity_check;")
+        check_res = cur.fetchall()
+        
+        cur.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='articulos';")
+        if cur.fetchone()[0]:
+            cur.execute("SELECT count(*) FROM articulos;")
+            cant_arts = cur.fetchone()[0]
+
+        cur.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='facturas';")
+        if cur.fetchone()[0]:
+            cur.execute("SELECT count(*) FROM facturas;")
+            cant_facts = cur.fetchone()[0]
+
+        test_conn.close()
+
+        if not check_res or check_res[0][0].lower() != "ok":
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise HTTPException(status_code=400, detail="El archivo está dañado o no es una base de datos válida.")
+    except Exception as e:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise HTTPException(status_code=400, detail=f"Error al validar archivo de respaldo: {str(e)}")
+
+    # 3. Liberar conexiones de SQLAlchemy en Windows para evitar bloqueos
+    engine.dispose()
+
+    # 4. Guardar copia de seguridad preventiva de la BD que se va a reemplazar
+    if os.path.exists(db_file):
+        fecha_seg = datetime.now().strftime("%Y%m%d_%H%M%S")
+        try:
+            shutil.copy2(db_file, os.path.join(backup_dir, f"prolago_reemplazada_{fecha_seg}.db"))
+        except Exception:
+            pass
+
+    # 5. Sobreescribir prolago.db con el respaldo validado
+    shutil.move(temp_path, db_file)
+
+    # 6. Asegurar esquemas e índices
+    Base.metadata.create_all(bind=engine)
+
+    return {
+        "status": "ok",
+        "mensaje": f"¡Base de datos restaurada con éxito! Se recuperaron {cant_arts} artículos y {cant_facts} facturas.",
+        "articulos_restaurados": cant_arts,
+        "facturas_restauradas": cant_facts
+    }
 
 
