@@ -35,7 +35,7 @@
                         <th class="px-3 py-3.5 text-right">Zelle ($)</th>
                         <th class="px-3 py-3.5 text-right">Pago Móvil ($)</th>
                         <th class="px-3 py-3.5 text-right">Punto ($)</th>
-                        <th class="px-3 py-3.5 text-right">Crédito ($)</th>
+                        <th class="px-3 py-3.5 text-right font-bold text-rose-600">Crédito / Debe ($)</th>
                         <th class="px-4 py-3.5 text-right">Total ($)</th>
                         <th class="px-4 py-3.5 text-right">Total (Bs.)</th>
                         <th class="px-3 py-3.5 text-center">Acciones</th>
@@ -51,7 +51,7 @@
 
 <!-- MODAL VER DETALLE DE FACTURA -->
 <div id="modalDetalleFactura" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-xs text-slate-800">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-xs text-slate-800 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3 mb-3">
             <div>
                 <div class="flex items-center space-x-2">
@@ -65,9 +65,32 @@
 
         <div class="flex justify-between items-center mb-3">
             <p><strong>Cliente:</strong> <span id="detCliente"></span></p>
-            <span id="detSaldoContainer" class="hidden text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200">
-                Saldo: <span id="detSaldoPendiente"></span>
-            </span>
+        </div>
+
+        <!-- Resumen de Crédito y Abonos si aplica -->
+        <div id="detCreditoBox" class="hidden my-3 p-3 bg-amber-50/70 border border-amber-200 rounded-2xl text-xs space-y-2">
+            <div class="flex justify-between items-center font-bold">
+                <span class="text-amber-900">Estado del Crédito:</span>
+                <span id="detEstadoCreditoBadge"></span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center pt-1 border-t border-amber-200/60 font-mono">
+                <div class="bg-white/80 p-1.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Préstamo</span>
+                    <span id="detCreditoInicial" class="font-bold text-slate-700">$0.00</span>
+                </div>
+                <div class="bg-white/80 p-1.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Abonado</span>
+                    <span id="detTotalAbonado" class="font-bold text-emerald-600">$0.00</span>
+                </div>
+                <div class="bg-white/80 p-1.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Resta Debe</span>
+                    <span id="detSaldoResta" class="font-black text-rose-600">$0.00</span>
+                </div>
+            </div>
+            <div id="detListaAbonosContainer" class="hidden pt-2 border-t border-amber-200/60">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Historial de Abonos:</span>
+                <div id="detListaAbonos" class="space-y-1 max-h-28 overflow-y-auto text-[11px]"></div>
+            </div>
         </div>
 
         <table class="w-full text-left mb-3">
@@ -88,11 +111,11 @@
                 <span id="detTasa"></span>
             </div>
             <div class="flex justify-between text-sm">
-                <span>TOTAL USD:</span>
+                <span>TOTAL FACTURA ($):</span>
                 <span id="detTotalUSD" class="text-emerald-700"></span>
             </div>
             <div class="flex justify-between text-slate-600">
-                <span>TOTAL BS.:</span>
+                <span>TOTAL FACTURA (BS.):</span>
                 <span id="detTotalBS"></span>
             </div>
         </div>
@@ -145,9 +168,45 @@
             const fFecha = new Date(f.fecha).toLocaleString();
             const totalBs = (f.total * (f.tasa_bcv || TASA_BCV)).toFixed(2);
             const esCredito = f.condicion === 'credito' || (f.credito && f.credito > 0);
-            const badgeCondicion = esCredito
-                ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200"><i class="fa-solid fa-clock-rotate-left mr-1"></i> CRÉDITO</span>`
-                : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i> CONTADO</span>`;
+            const saldoDebe = (f.saldo_pendiente !== undefined && f.saldo_pendiente !== null) ? f.saldo_pendiente : (f.credito || 0);
+            const abonado = (f.total_abonado !== undefined && f.total_abonado !== null) ? f.total_abonado : Math.max(0, (f.credito || 0) - saldoDebe);
+
+            let badgeCondicion = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i> CONTADO</span>`;
+            if (esCredito) {
+                if (saldoDebe <= 0.009) {
+                    badgeCondicion = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check-double mr-1"></i> SALDADO</span>`;
+                } else if (abonado > 0) {
+                    badgeCondicion = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 border border-amber-200"><i class="fa-solid fa-clock-rotate-left mr-1"></i> ABONO PARCIAL</span>`;
+                } else {
+                    badgeCondicion = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200"><i class="fa-solid fa-clock-rotate-left mr-1"></i> CRÉDITO</span>`;
+                }
+            }
+
+            let celdaCredito = '-';
+            if (esCredito) {
+                if (saldoDebe <= 0.009) {
+                    celdaCredito = `
+                        <div class="text-right">
+                            <span class="text-emerald-700 font-bold font-mono">$0.00</span>
+                            <span class="block text-[10px] text-emerald-600 font-bold leading-none mt-0.5">Saldado</span>
+                        </div>
+                    `;
+                } else if (abonado > 0) {
+                    celdaCredito = `
+                        <div class="text-right">
+                            <span class="text-rose-600 font-black font-mono text-xs">$${saldoDebe.toFixed(2)}</span>
+                            <span class="block text-[10px] text-slate-500 font-medium leading-none mt-0.5">Abonó: $${abonado.toFixed(2)}</span>
+                        </div>
+                    `;
+                } else {
+                    celdaCredito = `
+                        <div class="text-right">
+                            <span class="text-rose-600 font-black font-mono text-xs">$${saldoDebe.toFixed(2)}</span>
+                            <span class="block text-[10px] text-rose-400 font-medium leading-none mt-0.5">Debe total</span>
+                        </div>
+                    `;
+                }
+            }
 
             tr.innerHTML = `
                 <td class="px-4 py-3 font-mono font-bold text-emerald-700">#${f.numero}</td>
@@ -158,7 +217,7 @@
                 <td class="px-3 py-3 text-right font-mono text-purple-600">${f.zelle ? '$' + f.zelle.toFixed(2) : '-'}</td>
                 <td class="px-3 py-3 text-right font-mono text-blue-600">${f.pagomovil ? '$' + f.pagomovil.toFixed(2) : '-'}</td>
                 <td class="px-3 py-3 text-right font-mono text-amber-600">${f.punto ? '$' + f.punto.toFixed(2) : '-'}</td>
-                <td class="px-3 py-3 text-right font-mono text-rose-600 font-bold">${f.credito ? '$' + f.credito.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3 text-right font-mono">${celdaCredito}</td>
                 <td class="px-4 py-3 text-right font-mono font-black text-slate-900 text-sm">$${f.total.toFixed(2)}</td>
                 <td class="px-4 py-3 text-right font-mono text-slate-500">Bs. ${Number(totalBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
                 <td class="px-3 py-3 text-center">
@@ -183,17 +242,56 @@
                 document.getElementById('detTotalBS').textContent = `Bs. ${Number(d.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
                 document.getElementById('detTasa').textContent = `${d.tasa_bcv.toFixed(2)} Bs./$`;
 
-                const esCred = d.condicion === 'credito' || (d.pagos && d.pagos.credito > 0);
-                document.getElementById('detCondicionBadge').innerHTML = esCred
-                    ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200">A CRÉDITO</span>`
-                    : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">CONTADO</span>`;
+                const esCred = d.condicion === 'credito' || (d.pagos && d.pagos.credito > 0) || (d.credito_inicial && d.credito_inicial > 0);
+                const saldoDebe = (d.saldo_pendiente !== undefined && d.saldo_pendiente !== null) ? d.saldo_pendiente : 0;
+                const credIni = (d.credito_inicial !== undefined && d.credito_inicial !== null) ? d.credito_inicial : (d.pagos ? d.pagos.credito : 0);
+                const abonado = (d.total_abonado !== undefined && d.total_abonado !== null) ? d.total_abonado : Math.max(0, credIni - saldoDebe);
 
-                const saldoContainer = document.getElementById('detSaldoContainer');
-                if (esCred && d.saldo_pendiente > 0) {
-                    saldoContainer.classList.remove('hidden');
-                    document.getElementById('detSaldoPendiente').textContent = `$${d.saldo_pendiente.toFixed(2)}`;
+                if (esCred) {
+                    if (saldoDebe <= 0.009) {
+                        document.getElementById('detCondicionBadge').innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">SALDADO</span>`;
+                    } else if (abonado > 0) {
+                        document.getElementById('detCondicionBadge').innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 border border-amber-200">ABONO PARCIAL</span>`;
+                    } else {
+                        document.getElementById('detCondicionBadge').innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200">A CRÉDITO</span>`;
+                    }
+
+                    const credBox = document.getElementById('detCreditoBox');
+                    credBox.classList.remove('hidden');
+                    document.getElementById('detCreditoInicial').textContent = `$${credIni.toFixed(2)}`;
+                    document.getElementById('detTotalAbonado').textContent = `$${abonado.toFixed(2)}`;
+                    document.getElementById('detSaldoResta').textContent = `$${saldoDebe.toFixed(2)}`;
+
+                    let badgeEstado = '';
+                    if (saldoDebe <= 0.009) {
+                        badgeEstado = '<span class="text-emerald-700 font-black">Completamente Saldado</span>';
+                    } else if (abonado > 0) {
+                        badgeEstado = '<span class="text-amber-700 font-bold">Abono Parcial</span>';
+                    } else {
+                        badgeEstado = '<span class="text-rose-600 font-bold">Pendiente (Sin abonos)</span>';
+                    }
+                    document.getElementById('detEstadoCreditoBadge').innerHTML = badgeEstado;
+
+                    const listaAbonosCont = document.getElementById('detListaAbonosContainer');
+                    const listaAbonos = document.getElementById('detListaAbonos');
+                    if (d.abonos && d.abonos.length > 0) {
+                        listaAbonosCont.classList.remove('hidden');
+                        listaAbonos.innerHTML = d.abonos.map(ab => `
+                            <div class="flex justify-between items-center bg-white/70 px-2 py-1 rounded-lg border border-amber-100">
+                                <div>
+                                    <span class="font-bold text-slate-700">${ab.metodo_pago ? ab.metodo_pago.toUpperCase() : 'ABONO'}</span>
+                                    <span class="text-[10px] text-slate-400 ml-1.5">${ab.fecha}</span>
+                                </div>
+                                <span class="font-mono font-bold text-emerald-700">+$${ab.monto_usd.toFixed(2)}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        listaAbonosCont.classList.add('hidden');
+                        listaAbonos.innerHTML = '';
+                    }
                 } else {
-                    saldoContainer.classList.add('hidden');
+                    document.getElementById('detCondicionBadge').innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">CONTADO</span>`;
+                    document.getElementById('detCreditoBox').classList.add('hidden');
                 }
 
                 const tbody = document.getElementById('detItemsTbody');

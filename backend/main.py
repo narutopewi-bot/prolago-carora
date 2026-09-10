@@ -333,19 +333,61 @@ def list_facturas(
         query = query.filter(or_(Factura.numero.ilike(s), Factura.cliente_nombre.ilike(s)))
     total = query.count()
     facturas = query.order_by(Factura.fecha.desc()).offset(offset).limit(limit).all()
-    return {"total": total, "items": facturas}
+    
+    items = []
+    for f in facturas:
+        cred = f.credito or 0.0
+        saldo = f.saldo_pendiente if f.saldo_pendiente is not None else cred
+        abonado = round(max(0.0, cred - saldo), 2)
+        items.append({
+            "id": f.id,
+            "numero": f.numero,
+            "fecha": f.fecha.isoformat() if f.fecha else "",
+            "cliente_nombre": f.cliente_nombre or "CLIENTE DE CONTADO",
+            "condicion": f.condicion or "contado",
+            "total": f.total or 0.0,
+            "tasa_bcv": f.tasa_bcv or 1.0,
+            "efectivo": f.efectivo or 0.0,
+            "zelle": f.zelle or 0.0,
+            "pagomovil": f.pagomovil or 0.0,
+            "punto": f.punto or 0.0,
+            "credito": cred,
+            "saldo_pendiente": saldo,
+            "total_abonado": abonado,
+            "estado_credito": f.estado_credito or ("saldado" if saldo <= 0.009 else "pendiente")
+        })
+    return {"total": total, "items": items}
 
 @app.get("/api/facturas/{id}")
 def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     factura = db.query(Factura).filter(Factura.id == id).first()
     if not factura:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
+    
+    cred = factura.credito or 0.0
+    saldo = factura.saldo_pendiente if factura.saldo_pendiente is not None else cred
+    abonado = round(max(0.0, cred - saldo), 2)
+    
+    abonos_list = [
+        {
+            "id": ab.id,
+            "fecha": ab.fecha.strftime("%Y-%m-%d %H:%M") if ab.fecha else "",
+            "monto_usd": ab.monto_usd,
+            "monto_bs": ab.monto_bs,
+            "metodo_pago": ab.metodo_pago
+        }
+        for ab in (factura.abonos or [])
+    ]
+
     return {
         "id": factura.id,
         "numero": factura.numero,
         "condicion": factura.condicion or "contado",
-        "saldo_pendiente": factura.saldo_pendiente or 0.0,
-        "fecha": factura.fecha.strftime("%Y-%m-%d %H:%M:%S"),
+        "credito_inicial": cred,
+        "saldo_pendiente": saldo,
+        "total_abonado": abonado,
+        "estado_credito": factura.estado_credito or ("saldado" if saldo <= 0.009 else "pendiente"),
+        "fecha": factura.fecha.strftime("%Y-%m-%d %H:%M:%S") if factura.fecha else "",
         "cliente_nombre": factura.cliente_nombre,
         "total_usd": factura.total,
         "total_bs": round(factura.total * factura.tasa_bcv, 2),
@@ -355,8 +397,9 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
             "zelle": factura.zelle,
             "pagomovil": factura.pagomovil,
             "punto": factura.punto,
-            "credito": factura.credito
+            "credito": cred
         },
+        "abonos": abonos_list,
         "items": [
             {
                 "codigo": it.codigo_articulo,
