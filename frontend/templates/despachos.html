@@ -213,7 +213,7 @@
                 <td class="px-4 py-3 font-mono font-bold text-slate-500 text-xs">${it.codigo}</td>
                 <td class="px-4 py-3 font-semibold text-slate-800 text-xs">${it.nombre}</td>
                 <td class="px-3 py-3 text-center">
-                    <input type="number" step="0.5" min="0.1" value="${it.cantidad}" onchange="cambiarCantDesp(${idx}, this.value)"
+                    <input type="number" step="any" min="0.001" value="${it.cantidad}" onchange="cambiarCantDesp(${idx}, this.value)"
                         class="w-16 px-2 py-1 text-center font-bold text-xs border border-slate-300 rounded-lg">
                 </td>
                 <td class="px-3 py-3 text-right font-mono font-bold text-xs text-slate-700">$${it.costo.toFixed(2)}</td>
