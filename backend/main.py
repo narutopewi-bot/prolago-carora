@@ -1,8 +1,8 @@
 import os
 from datetime import datetime, date, timedelta
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, Request, Response, status
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, status, UploadFile, File
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -775,4 +775,123 @@ def page_creditos(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
     return templates.TemplateResponse(request=request, name="creditos.html", context={"user": user})
+
+# ==========================================
+# MANTENIMIENTO, DIAGNÓSTICO Y REPARACIÓN
+# ==========================================
+import socket
+import sqlite3
+import shutil
+
+def get_lan_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(0.5)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+@app.get("/mantenimiento", response_class=HTMLResponse)
+def page_mantenimiento(request: Request, user: Usuario = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
+    return templates.TemplateResponse(request=request, name="mantenimiento.html", context={"user": user})
+
+@app.get("/api/mantenimiento/diagnostico")
+def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if getattr(sys, "frozen", False):
+        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
+    else:
+        db_file = "prolago.db"
+
+    integrity = "OK"
+    db_size_kb = 0
+    if os.path.exists(db_file):
+        db_size_kb = round(os.path.getsize(db_file) / 1024, 2)
+        try:
+            conn = sqlite3.connect(db_file)
+            cur = conn.cursor()
+            cur.execute("PRAGMA integrity_check;")
+            res = cur.fetchall()
+            integrity = res[0][0] if res else "UNKNOWN"
+            conn.close()
+        except Exception as e:
+            integrity = f"ERROR: {str(e)}"
+
+    total_arts = db.query(Articulo).count()
+    total_facts = db.query(Factura).count()
+    total_clis = db.query(Cliente).count()
+    tasa = get_config_val(db, "tasa_bcv", "473.92")
+
+    return {
+        "estado_sistema": "OPERATIVO",
+        "integridad_db": integrity,
+        "tamano_db_kb": db_size_kb,
+        "articulos_activos": total_arts,
+        "facturas_emitidas": total_facts,
+        "clientes_registrados": total_clis,
+        "tasa_bcv": tasa,
+        "ip_local": get_lan_ip(),
+        "puerto": 8000,
+        "fecha_servidor": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+@app.post("/api/mantenimiento/optimizar")
+def optimizar_sistema(db: Session = Depends(get_db), user: Usuario = Depends(require_admin)):
+    if getattr(sys, "frozen", False):
+        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
+    else:
+        db_file = "prolago.db"
+
+    Base.metadata.create_all(bind=engine)
+
+    if os.path.exists(db_file):
+        try:
+            conn = sqlite3.connect(db_file)
+            cur = conn.cursor()
+            cur.execute("VACUUM;")
+            cur.execute("PRAGMA optimize;")
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al optimizar: {str(e)}")
+
+    return {"status": "ok", "mensaje": "Base de datos optimizada, compactada y verificada exitosamente"}
+
+@app.get("/api/mantenimiento/descargar_backup")
+def descargar_backup(user: Usuario = Depends(require_admin)):
+    if getattr(sys, "frozen", False):
+        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
+    else:
+        db_file = "prolago.db"
+
+    if not os.path.exists(db_file):
+        raise HTTPException(status_code=404, detail="Archivo de base de datos no encontrado")
+
+    fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"prolago_backup_{fecha}.db"
+    return FileResponse(path=db_file, filename=filename, media_type="application/octet-stream")
+
+@app.post("/api/mantenimiento/restaurar_backup")
+async def restaurar_backup(archivo: UploadFile = File(...), user: Usuario = Depends(require_admin)):
+    if not archivo.filename.endswith(".db"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una base de datos .db válida")
+
+    if getattr(sys, "frozen", False):
+        db_file = os.path.join(os.path.dirname(sys.executable), "prolago.db")
+    else:
+        db_file = "prolago.db"
+
+    if os.path.exists(db_file):
+        shutil.copy2(db_file, f"{db_file}.prev_backup")
+
+    with open(db_file, "wb") as f:
+        content = await archivo.read()
+        f.write(content)
+
+    return {"status": "ok", "mensaje": "Base de datos restaurada correctamente"}
+
 

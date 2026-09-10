@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import zipfile
 import subprocess
@@ -124,14 +124,27 @@ def main():
     create_shortcut(APP_EXE, user_desktop, APP_ICO)
     create_shortcut(APP_EXE, public_desktop, APP_ICO)
     create_shortcut(APP_EXE, start_menu, APP_ICO)
-    print("       -> Acceso directo 'Prolago Carora 2026' listo.")
+    print("       -> Acceso directo principal 'Prolago Carora 2026' listo.")
+
+    # Acceso directo para la Herramienta de Reparación y Rescate
+    REPAIR_EXE = os.path.join(INSTALL_DIR, "Reparar_Prolago.exe")
+    user_desktop_repair = os.path.join(os.environ.get("USERPROFILE", "C:\\"), "Desktop", "Reparar Prolago Carora.lnk")
+    public_desktop_repair = r"C:\Users\Public\Desktop\Reparar Prolago Carora.lnk"
+    start_menu_repair = r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Reparar Prolago Carora.lnk"
+
+    create_shortcut(REPAIR_EXE, user_desktop_repair, APP_ICO, "Herramienta de Diagnostico y Reparacion Prolago")
+    create_shortcut(REPAIR_EXE, public_desktop_repair, APP_ICO, "Herramienta de Diagnostico y Reparacion Prolago")
+    create_shortcut(REPAIR_EXE, start_menu_repair, APP_ICO, "Herramienta de Diagnostico y Reparacion Prolago")
+    print("       -> Acceso directo 'Reparar Prolago Carora' listo.")
 
     print()
     print("=" * 65)
     print("   [LISTO] PROLAGO CARORA 2026 HA SIDO INSTALADO CORRECTAMENTE")
     print("=" * 65)
     print(" - Ubicacion: C:\\ProlagoCarora")
-    print(" - Acceso directo en el Escritorio creado.")
+    print(" - Accesos directos creados:")
+    print("     1. 'Prolago Carora 2026' (Sistema de ventas y caja)")
+    print("     2. 'Reparar Prolago Carora' (Subprograma de rescate y diagnostico)")
     print(" - Puerto de red 8000 habilitado para celulares y tablets en Wi-Fi.")
     print("=" * 65)
     print()

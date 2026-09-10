@@ -1,0 +1,287 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Centro de Mantenimiento y Recuperación - Prolago Carora 2026{% endblock %}
+{% block nav_mantenimiento %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- ENCABEZADO -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-800 flex items-center">
+                <i class="fa-solid fa-screwdriver-wrench text-amber-500 mr-2.5"></i>
+                Mantenimiento y Reparación del Sistema
+            </h1>
+            <p class="text-xs text-slate-500">Herramientas de diagnóstico, respaldos automáticos y optimización de base de datos</p>
+        </div>
+        <div>
+            <button onclick="cargarDiagnostico()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Actualizar Diagnóstico</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PANELES PRINCIPALES (DIAGNÓSTICO Y RED) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- 1. ESTADO DE LA BASE DE DATOS -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center">
+                    <i class="fa-solid fa-database text-blue-600 mr-2"></i>
+                    Salud de la Base de Datos
+                </h2>
+                <span id="badgeEstadoDB" class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                    VERIFICANDO...
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Integridad SQLite</span>
+                    <strong id="diagIntegridad" class="text-slate-800 text-sm font-mono">Verificando...</strong>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Tamaño del Archivo</span>
+                    <strong id="diagTamano" class="text-slate-800 text-sm font-mono">0 KB</strong>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Artículos en Catálogo</span>
+                    <strong id="diagArticulos" class="text-slate-800 text-sm font-mono">0</strong>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-400 block text-[10px] font-bold uppercase">Total Facturas</span>
+                    <strong id="diagFacturas" class="text-slate-800 text-sm font-mono">0</strong>
+                </div>
+            </div>
+
+            <button onclick="optimizarDB()" id="btnOptimizar"
+                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-broom"></i>
+                <span>Optimizar y Compactar Base de Datos (VACUUM)</span>
+            </button>
+            <p class="text-[11px] text-slate-400 text-center">Reconstruye índices, compacta el archivo .db y elimina datos residuales sin borrar registros.</p>
+        </div>
+
+        <!-- 2. CONEXIÓN Y RED LOCAL -->
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center">
+                    <i class="fa-solid fa-wifi text-emerald-600 mr-2"></i>
+                    Conexión de Red Local (Wi-Fi)
+                </h2>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-700 border border-blue-200">
+                    ACTIVO
+                </span>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div class="bg-amber-50/60 border border-amber-200 p-3.5 rounded-2xl">
+                    <span class="text-amber-900 font-bold block text-xs mb-1">Dirección para Celulares y Tablets:</span>
+                    <div class="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-amber-200 font-mono text-sm font-black text-slate-800">
+                        <span id="diagUrlMovil">http://...:8000</span>
+                        <button onclick="copiarUrlMovil()" class="text-slate-400 hover:text-amber-600 p-1 transition" title="Copiar enlace">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-2">Cualquier teléfono o computadora conectado al mismo Wi-Fi puede abrir este enlace en Google Chrome para facturar.</p>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-500 font-semibold">Tasa Oficial BCV:</span>
+                    <strong id="diagTasa" class="text-slate-800 font-mono">0.00 Bs./$</strong>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-500 font-semibold">Hora del Servidor:</span>
+                    <strong id="diagHora" class="text-slate-800 font-mono">--:--:--</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACCIONES DE RESPALDO Y RECUPERACIÓN -->
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-5">
+        <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center border-b pb-3">
+            <i class="fa-solid fa-shield-halved text-emerald-600 mr-2"></i>
+            Respaldos y Recuperación de Emergencia
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Descargar Copia -->
+            <div class="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl flex flex-col justify-between space-y-3">
+                <div>
+                    <span class="font-bold text-emerald-900 text-xs block mb-1">Descargar Respaldo</span>
+                    <p class="text-[11px] text-slate-500">Guarda una copia completa del archivo prolago.db en tu computadora o pendrive.</p>
+                </div>
+                <a href="/api/mantenimiento/descargar_backup" download
+                    class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition text-center flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Descargar .db Ahora</span>
+                </a>
+            </div>
+
+            <!-- Restaurar Copia -->
+            <div class="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl flex flex-col justify-between space-y-3">
+                <div>
+                    <span class="font-bold text-amber-900 text-xs block mb-1">Restaurar Base de Datos</span>
+                    <p class="text-[11px] text-slate-500">Sube una copia previa de prolago.db si necesitas recuperar información pasada.</p>
+                </div>
+                <div>
+                    <input type="file" id="inputArchivoDB" accept=".db" class="hidden" onchange="restaurarDB(event)">
+                    <button onclick="document.getElementById('inputArchivoDB').click()"
+                        class="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow transition text-center flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Seleccionar Archivo .db</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ficha de Diagnóstico para Soporte -->
+            <div class="p-4 bg-purple-50/50 border border-purple-200 rounded-2xl flex flex-col justify-between space-y-3">
+                <div>
+                    <span class="font-bold text-purple-900 text-xs block mb-1">Reporte para Soporte</span>
+                    <p class="text-[11px] text-slate-500">Genera una ficha técnica en texto con las métricas del sistema para enviar por WhatsApp si surge un problema.</p>
+                </div>
+                <button onclick="descargarFichaSoporte()"
+                    class="py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow transition text-center flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-file-waveform"></i>
+                    <span>Exportar Diagnóstico (.txt)</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let ultimoDiagnostico = null;
+
+    async function cargarDiagnostico() {
+        try {
+            const res = await fetch('/api/mantenimiento/diagnostico');
+            if (res.ok) {
+                const d = await res.json();
+                ultimoDiagnostico = d;
+
+                document.getElementById('diagIntegridad').textContent = d.integridad_db;
+                document.getElementById('diagTamano').textContent = `${d.tamano_db_kb} KB`;
+                document.getElementById('diagArticulos').textContent = d.articulos_activos;
+                document.getElementById('diagFacturas').textContent = d.facturas_emitidas;
+                document.getElementById('diagTasa').textContent = `${d.tasa_bcv} Bs./$`;
+                document.getElementById('diagHora').textContent = d.fecha_servidor;
+
+                const urlMovil = `http://${d.ip_local}:${d.puerto}`;
+                document.getElementById('diagUrlMovil').textContent = urlMovil;
+
+                const badge = document.getElementById('badgeEstadoDB');
+                if (d.integridad_db === 'OK' || d.integridad_db === 'ok') {
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-700 border border-emerald-200';
+                    badge.textContent = 'INTEGRIDAD 100% OK';
+                } else {
+                    badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-700 border border-rose-200';
+                    badge.textContent = 'ATENCIÓN REQUERIDA';
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function optimizarDB() {
+        const btn = document.getElementById('btnOptimizar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Optimizando...</span>';
+
+        try {
+            const res = await fetch('/api/mantenimiento/optimizar', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert('¡Éxito! ' + data.mensaje);
+                cargarDiagnostico();
+            } else {
+                alert('Error: ' + (data.detail || 'No se pudo optimizar'));
+            }
+        } catch (e) {
+            alert('Error de conexión: ' + e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-broom"></i> <span>Optimizar y Compactar Base de Datos (VACUUM)</span>';
+        }
+    }
+
+    async function restaurarDB(ev) {
+        const file = ev.target.files[0];
+        if (!file) return;
+
+        if (!confirm(`¿Estás seguro de que deseas restaurar la base de datos desde "${file.name}"?\nSe reemplazará la información actual.`)) {
+            ev.target.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('archivo', file);
+
+        try {
+            const res = await fetch('/api/mantenimiento/restaurar_backup', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert('¡Base de datos restaurada exitosamente! El sistema se recargará.');
+                window.location.reload();
+            } else {
+                alert('Error al restaurar: ' + (data.detail || 'Error desconocido'));
+            }
+        } catch (e) {
+            alert('Error de red: ' + e);
+        } finally {
+            ev.target.value = '';
+        }
+    }
+
+    function copiarUrlMovil() {
+        const url = document.getElementById('diagUrlMovil').textContent;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Enlace copiado al portapapeles: ' + url);
+        });
+    }
+
+    function descargarFichaSoporte() {
+        if (!ultimoDiagnostico) {
+            alert('Cargando diagnóstico primero...');
+            return;
+        }
+
+        const d = ultimoDiagnostico;
+        const texto = `=== REPORTE DE DIAGNÓSTICO TÉCNICO PROLAGO CARORA 2026 ===\n` +
+            `Fecha y Hora: ${d.fecha_servidor}\n` +
+            `Estado del Sistema: ${d.estado_sistema}\n` +
+            `Integridad Base de Datos: ${d.integridad_db}\n` +
+            `Tamaño de BD: ${d.tamano_db_kb} KB\n` +
+            `Total Artículos: ${d.articulos_activos}\n` +
+            `Total Facturas: ${d.facturas_emitidas}\n` +
+            `Total Clientes: ${d.clientes_registrados}\n` +
+            `Tasa BCV configurada: ${d.tasa_bcv} Bs./$\n` +
+            `IP Local: ${d.ip_local}\n` +
+            `Puerto: ${d.puerto}\n` +
+            `URL Móvil: http://${d.ip_local}:${d.puerto}\n` +
+            `=============================================================`;
+
+        const blob = new Blob([texto], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Diagnostico_Prolago_${new Date().toISOString().slice(0, 10)}.txt`;
+        a.click();
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarDiagnostico);
+</script>
+{% endblock %}
