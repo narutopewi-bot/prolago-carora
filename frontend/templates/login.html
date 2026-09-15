@@ -84,6 +84,19 @@
             document.getElementById('password').value = p;
         }
 
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInp = document.getElementById('username');
+            const passInp = document.getElementById('password');
+
+            userInp.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    passInp.focus();
+                    passInp.select();
+                }
+            });
+        });
+
         async function hacerLogin(e) {
             e.preventDefault();
             const btn = document.getElementById('btnLogin');

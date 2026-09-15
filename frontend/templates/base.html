@@ -422,10 +422,91 @@
             if (elMob) elMob.textContent = `${fmt}mm`;
         }
 
+        // =========================================================================
+        // NAVEGACIÓN GLOBAL CON TECLA ENTER (COMPORTAMIENTO TIPO TABULADOR)
+        // =========================================================================
+        function inicializarNavegacionConEnter() {
+            document.addEventListener('keydown', function(e) {
+                // Solo intervenir si la tecla presionada es Enter
+                if (e.key !== 'Enter') return;
+
+                // Si otro evento ya lo procesó o canceló, no intervenir
+                if (e.defaultPrevented) return;
+
+                const target = e.target;
+                if (!target) return;
+
+                // En un textarea se debe permitir insertar saltos de línea con Enter
+                if (target.tagName === 'TEXTAREA') return;
+
+                // Si es un botón, enlace o botón submit, Enter debe hacer click natural
+                if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.type === 'submit' || target.type === 'button') {
+                    return;
+                }
+
+                // Excluir inputs especiales que tienen su propio comportamiento con Enter
+                // ej: el buscador principal de productos del POS que procesa código de barras
+                if (target.id === 'buscadorArticulo' || target.getAttribute('data-no-enter-tab') === 'true') {
+                    return;
+                }
+
+                // Solo procesar inputs y selects
+                if (target.tagName !== 'INPUT' && target.tagName !== 'SELECT') return;
+
+                // Identificar el ámbito / contenedor activo:
+                // 1. Si está dentro de un modal visible o sweetalert
+                // 2. Si no, si está dentro de un formulario o contenedor de sección
+                // 3. Si no, el cuerpo del documento
+                const modalActivo = target.closest('.fixed:not(.hidden), [role="dialog"]:not(.hidden), .swal2-container, .modal-dialog');
+                const contenedor = modalActivo || target.closest('form') || target.closest('.seccion-formulario') || document.body;
+
+                // Selector de campos navegables (visibles y habilitados)
+                const selector = 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([disabled]):not([readonly]), select:not([disabled])';
+                const campos = Array.from(contenedor.querySelectorAll(selector)).filter(el => {
+                    if (el.offsetParent === null && el.offsetWidth === 0 && el.offsetHeight === 0) return false;
+                    const style = window.getComputedStyle(el);
+                    return style.display !== 'none' && style.visibility !== 'hidden';
+                });
+
+                const indexActual = campos.indexOf(target);
+                if (indexActual === -1) return;
+
+                // Prevenir el submit anticipado o salto no deseado
+                e.preventDefault();
+
+                if (e.shiftKey) {
+                    // Shift + Enter: Retroceder al campo anterior
+                    if (indexActual > 0) {
+                        const anterior = campos[indexActual - 1];
+                        anterior.focus();
+                        if (anterior.select && anterior.tagName === 'INPUT' && anterior.type !== 'checkbox' && anterior.type !== 'radio') {
+                            anterior.select();
+                        }
+                    }
+                } else {
+                    // Enter normal: Avanzar al siguiente campo
+                    if (indexActual < campos.length - 1) {
+                        const siguiente = campos[indexActual + 1];
+                        siguiente.focus();
+                        if (siguiente.select && siguiente.tagName === 'INPUT' && siguiente.type !== 'checkbox' && siguiente.type !== 'radio') {
+                            siguiente.select();
+                        }
+                    } else {
+                        // Último campo del contenedor: Buscar y enfocar el botón principal de acción
+                        const btnAccion = contenedor.querySelector('button[type="submit"], button.btn-primary, button[id*="btnConfirmar"], button[id*="btnGuardar"], button[id*="btnLogin"], button[onclick*="guardar"], button[onclick*="confirmar"], button[onclick*="procesar"]');
+                        if (btnAccion && !btnAccion.disabled && btnAccion.offsetParent !== null) {
+                            btnAccion.focus();
+                        }
+                    }
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             cargarConfiguracion();
             const fmt = localStorage.getItem('prolago_impresora_tamano') || '58';
             actualizarDisplayImpresora(fmt);
+            inicializarNavegacionConEnter();
         });
     </script>
     {% block extra_scripts %}{% endblock %}
