@@ -319,6 +319,16 @@
             return;
         }
 
+        if (despachoItems.length === 0) {
+            Swal.fire('Atención', 'No hay artículos en la lista de despacho', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btnGuardarDespacho');
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Procesando...';
+
         const payload = {
             destino_cliente: destino,
             direccion: document.getElementById('despachoDireccion').value.trim(),
@@ -344,12 +354,23 @@
                     confirmButtonColor: '#9333ea'
                 });
                 vaciarDespacho();
+                document.getElementById('despachoDestino').value = '';
+                document.getElementById('despachoDireccion').value = '';
                 initDespachos();
             } else {
-                Swal.fire('Error', 'No se pudo guardar el despacho', 'error');
+                const err = await res.json().catch(() => ({ detail: 'No se pudo guardar el despacho' }));
+                Swal.fire('Error al despachar', err.detail || 'No se pudo guardar el despacho', 'error');
             }
         } catch (e) {
-            Swal.fire('Error', 'Fallo de conexión', 'error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Comunicación',
+                text: 'No se pudo conectar con el servidor. Si el sistema se está actualizando o reiniciando, por favor espere unos segundos e intente de nuevo.',
+                confirmButtonColor: '#9333ea'
+            });
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
         }
     }
 

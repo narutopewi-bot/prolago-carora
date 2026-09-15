@@ -755,6 +755,9 @@ def get_next_despacho_num(db: Session = Depends(get_db), user: Usuario = Depends
 
 @app.post("/api/despachos")
 def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("despachos"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para emitir notas de entrega")
+
     if not payload.items:
         raise HTTPException(status_code=400, detail="El despacho no contiene artículos")
 
@@ -803,6 +806,8 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
 
 @app.get("/api/despachos")
 def list_despachos(limit: int = 50, offset: int = 0, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("despachos"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para consultar notas de entrega")
     return db.query(Despacho).order_by(Despacho.fecha.desc()).offset(offset).limit(limit).all()
 
 # ==========================================

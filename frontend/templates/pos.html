@@ -5,45 +5,155 @@
 
 {% block extra_head %}
 <style>
-    /* ESTILOS PARA IMPRESIÓN */
+    /* ESTILOS PARA IMPRESIÓN LIMPIA DE 1 SOLA PÁGINA */
     @media print {
-        body * {
-            visibility: hidden;
+        header, nav, footer, .no-print {
+            display: none !important;
         }
 
-        /* Cuando se imprime comprobante formal Media Hoja A4 (Crédito) */
-        body.imprimiendo-media-hoja #seccionComprobanteMediaHoja,
-        body.imprimiendo-media-hoja #seccionComprobanteMediaHoja * {
-            visibility: visible;
+        /* ---------------------------------------------------- */
+        /* CASO 1: COMPROBANTE A CRÉDITO - FORMATO MEDIA HOJA   */
+        /* ---------------------------------------------------- */
+        body.imprimiendo-media-hoja {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
         }
+
+        body.imprimiendo-media-hoja > *:not(main) {
+            display: none !important;
+        }
+
+        body.imprimiendo-media-hoja main {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
+
+        body.imprimiendo-media-hoja main > *:not(#modalComprobanteCredito) {
+            display: none !important;
+        }
+
+        body.imprimiendo-media-hoja #modalComprobanteCredito {
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            overflow: visible !important;
+        }
+
+        body.imprimiendo-media-hoja #modalComprobanteCredito > div {
+            position: static !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: transparent !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
         body.imprimiendo-media-hoja #seccionComprobanteMediaHoja {
-            position: absolute;
-            left: 0;
-            top: 0;
+            visibility: visible !important;
+            display: block !important;
+            position: relative !important;
             width: 100% !important;
             max-width: 195mm !important;
+            max-height: 140mm !important;
             margin: 0 auto !important;
-            padding: 4mm 6mm !important;
+            padding: 3mm 5mm !important;
             background: white !important;
             color: black !important;
+            border: 2px solid #000 !important;
+            border-radius: 4px !important;
             box-sizing: border-box !important;
             font-family: Arial, Helvetica, sans-serif !important;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-inside: avoid !important;
+            break-after: avoid !important;
         }
 
-        /* Cuando se imprime ticket térmico (Contado) */
-        body.imprimiendo-ticket #seccionTicketImprimir,
-        body.imprimiendo-ticket #seccionTicketImprimir * {
-            visibility: visible;
+        /* ---------------------------------------------------- */
+        /* CASO 2: TICKET TÉRMICO (VENTAS DE CONTADO)          */
+        /* ---------------------------------------------------- */
+        body.imprimiendo-ticket {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
         }
+
+        body.imprimiendo-ticket > *:not(main) {
+            display: none !important;
+        }
+
+        body.imprimiendo-ticket main {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
+
+        body.imprimiendo-ticket main > *:not(#modalTicket) {
+            display: none !important;
+        }
+
+        body.imprimiendo-ticket #modalTicket {
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+        }
+
+        body.imprimiendo-ticket #modalTicket > div {
+            position: static !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: transparent !important;
+            overflow: visible !important;
+        }
+
         body.imprimiendo-ticket #seccionTicketImprimir {
-            position: absolute;
-            left: 0;
-            top: 0;
+            visibility: visible !important;
+            display: block !important;
+            position: relative !important;
             margin: 0 !important;
             padding: 2mm !important;
             background: white !important;
             color: black !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
+
         .formato-58mm {
             width: 54mm !important;
             max-width: 54mm !important;
@@ -56,6 +166,7 @@
             font-size: 12px !important;
             line-height: 1.35 !important;
         }
+
         @page {
             margin: 4mm;
             size: A4 portrait;
