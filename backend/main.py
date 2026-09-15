@@ -1314,6 +1314,78 @@ def get_reporte_inventario(
         ]
     }
 
+# 3.1. Reporte de Stock por Acabarse (Alerta de Stock personalizada)
+@app.get("/api/reportes/stock-alerta")
+def get_reporte_stock_alerta(
+    filtro: Optional[str] = "todos",
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("reportes") and not user.tiene_permiso("inventario"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes de inventario")
+    
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    articulos = db.query(Articulo).filter(Articulo.activo == True).order_by(Articulo.nombre.asc()).all()
+    
+    items_alerta = []
+    total_agotados = 0
+    total_por_acabarse = 0
+    inversion_reposicion_usd = 0.0
+
+    for a in articulos:
+        limite_alerta = a.stock_alerta if a.stock_alerta is not None else 5.0
+        if a.stock <= limite_alerta:
+            es_agotado = (a.stock <= 0)
+            if es_agotado:
+                total_agotados += 1
+            else:
+                total_por_acabarse += 1
+                
+            deficit = max(0.0, limite_alerta - a.stock)
+            costo_unit = a.costo_final or a.costo or 0.0
+            costo_rep_usd = round(deficit * costo_unit, 2)
+            inversion_reposicion_usd += costo_rep_usd
+            
+            estado_texto = "Agotado" if es_agotado else "Por acabarse"
+            
+            items_alerta.append({
+                "codigo": a.codigo,
+                "nombre": a.nombre,
+                "categoria": a.categoria or "GENERAL",
+                "marca": a.marca or "",
+                "proveedor": a.proveedor or "",
+                "stock": round(a.stock, 2) if a.stock is not None else 0.0,
+                "stock_alerta": round(limite_alerta, 2),
+                "deficit": round(deficit, 2),
+                "costo_final": costo_unit,
+                "precio": a.precio or 0.0,
+                "costo_reposicion_usd": costo_rep_usd,
+                "costo_reposicion_bs": round(costo_rep_usd * tasa_bcv, 2),
+                "estado": estado_texto,
+                "es_agotado": es_agotado
+            })
+
+    if filtro == "agotados":
+        filtrados = [i for i in items_alerta if i["es_agotado"]]
+    elif filtro == "por_acabarse":
+        filtrados = [i for i in items_alerta if not i["es_agotado"]]
+    else:
+        filtrados = items_alerta
+
+    # Ordenar: agotados primero, luego por menor stock
+    filtrados.sort(key=lambda x: (0 if x["es_agotado"] else 1, x["stock"]))
+
+    return {
+        "totales": {
+            "total_articulos_alerta": len(items_alerta),
+            "total_agotados": total_agotados,
+            "total_por_acabarse": total_por_acabarse,
+            "inversion_reposicion_usd": round(inversion_reposicion_usd, 2),
+            "inversion_reposicion_bs": round(inversion_reposicion_usd * tasa_bcv, 2)
+        },
+        "articulos": filtrados
+    }
+
 # 4. Reporte de Cajas
 @app.get("/api/reportes/cajas")
 def get_reporte_cajas_consolidado(

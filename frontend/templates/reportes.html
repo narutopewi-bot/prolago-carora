@@ -130,6 +130,12 @@
                 <i class="fa-solid fa-boxes-stacked text-sm"></i>
                 <span>Reporte de Inventario</span>
             </button>
+            <button onclick="cambiarTab('stock_alerta')" id="tabBtn_stock_alerta"
+                class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-sm"></i>
+                <span>Stock por Acabarse</span>
+                <span id="badgeStockAlertaCount" class="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 hidden">0</span>
+            </button>
             <button onclick="cambiarTab('cajas')" id="tabBtn_cajas"
                 class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
                 <i class="fa-solid fa-vault text-sm"></i>
@@ -351,6 +357,93 @@
     </div>
 
     <!-- ======================================================== -->
+    <!-- 3.1 PESTAÑA: REPORTE DE STOCK POR ACABARSE               -->
+    <!-- ======================================================== -->
+    <div id="panel_stock_alerta" class="panel-reporte hidden space-y-6">
+        <!-- Banner Explicativo -->
+        <div class="bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <span class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm">
+                    <i class="fa-solid fa-bell-concierge"></i>
+                </span>
+                <div>
+                    <h2 class="text-sm font-black text-amber-950">Artículos con Stock por Acabarse (Límite de Alerta)</h2>
+                    <p class="text-xs text-amber-800">Monitoreo automático de productos cuya existencia actual es menor o igual al <strong>Stock para Alerta</strong> configurado.</p>
+                </div>
+            </div>
+            <button onclick="cargarReporteStockAlerta()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm no-print">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Actualizar Alertas</span>
+            </button>
+        </div>
+
+        <!-- Métricas KPI Alerta de Stock -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Artículos en Alerta</span>
+                <span class="text-xl sm:text-2xl font-black text-amber-600 font-mono mt-1 block" id="saTotalAlerta">0</span>
+                <span class="text-[10px] text-amber-700 font-bold">Requieren atención o compra</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Agotados (Stock 0)</span>
+                <span class="text-xl sm:text-2xl font-black text-rose-600 font-mono mt-1 block" id="saTotalAgotados">0</span>
+                <span class="text-[10px] text-rose-500 font-semibold">Sin existencia disponible</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Por Acabarse (Críticos)</span>
+                <span class="text-xl sm:text-2xl font-black text-orange-600 font-mono mt-1 block" id="saTotalCriticos">0</span>
+                <span class="text-[10px] text-orange-500 font-semibold">Existencia mayor a 0</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Inversión Faltante Sugerida</span>
+                <span class="text-xl sm:text-2xl font-black text-slate-900 font-mono mt-1 block" id="saInversionUSD">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-bold" id="saInversionBS">Bs. 0,00</span>
+            </div>
+        </div>
+
+        <!-- Barra de Búsqueda y Sub-filtros -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold text-slate-500">Filtrar:</span>
+                <button onclick="filtrarReporteStockAlerta('todos')" id="btnSa_todos" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white">Todos en Alerta</button>
+                <button onclick="filtrarReporteStockAlerta('por_acabarse')" id="btnSa_por_acabarse" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100">Solo Por Acabarse</button>
+                <button onclick="filtrarReporteStockAlerta('agotados')" id="btnSa_agotados" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100">Solo Agotados</button>
+            </div>
+            <div class="relative w-full sm:w-64">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <input type="text" id="buscadorStockAlerta" oninput="buscarStockAlertaEnTabla()" placeholder="Buscar producto o código..." 
+                    class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none">
+            </div>
+        </div>
+
+        <!-- Tabla de Artículos en Alerta -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] border-b">
+                        <tr>
+                            <th class="py-2.5 px-3">Cód.</th>
+                            <th class="py-2.5 px-3">Producto</th>
+                            <th class="py-2.5 px-3">Categoría / Proveedor</th>
+                            <th class="py-2.5 px-3 text-center">Stock Actual</th>
+                            <th class="py-2.5 px-3 text-center">Stock para Alerta</th>
+                            <th class="py-2.5 px-3 text-center">Déficit Faltante</th>
+                            <th class="py-2.5 px-3 text-right">Costo Unit. ($)</th>
+                            <th class="py-2.5 px-3 text-right">Reposición Mínima ($)</th>
+                            <th class="py-2.5 px-3 text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaReporteStockAlerta" class="divide-y divide-slate-100">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
     <!-- 4. PESTAÑA: REPORTE DE CAJAS                             -->
     <!-- ======================================================== -->
     <div id="panel_cajas" class="panel-reporte hidden space-y-6">
@@ -557,6 +650,7 @@
         if (tabActiva === 'ventas') await cargarReporteVentas(desde, hasta);
         else if (tabActiva === 'compras') await cargarReporteCompras(desde, hasta);
         else if (tabActiva === 'inventario') await cargarReporteInventario();
+        else if (tabActiva === 'stock_alerta') await cargarReporteStockAlerta();
         else if (tabActiva === 'cajas') await cargarReporteCajas(desde, hasta);
         else if (tabActiva === 'cobranza') await cargarReporteCobranza(desde, hasta);
     }
@@ -709,6 +803,129 @@
         cargarReporteInventario();
     }
 
+    // ==========================================
+    // JS REPORTE STOCK POR ACABARSE (ALERTA)
+    // ==========================================
+    let filtroStockAlertaActual = 'todos';
+    let articulosAlertaCache = [];
+
+    async function actualizarBadgeStockAlerta() {
+        try {
+            const res = await fetch('/api/reportes/stock-alerta?filtro=todos');
+            if (res.ok) {
+                const d = await res.json();
+                const total = d.totales ? d.totales.total_articulos_alerta : 0;
+                const badge = document.getElementById('badgeStockAlertaCount');
+                if (badge) {
+                    badge.textContent = total;
+                    if (total > 0) {
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("No se pudo actualizar badge alerta:", e);
+        }
+    }
+
+    async function cargarReporteStockAlerta() {
+        try {
+            const res = await fetch(`/api/reportes/stock-alerta?filtro=${filtroStockAlertaActual}`);
+            if (res.ok) {
+                const d = await res.json();
+                cacheReporte['stock_alerta'] = d;
+                articulosAlertaCache = d.articulos || [];
+
+                document.getElementById('saTotalAlerta').textContent = d.totales.total_articulos_alerta;
+                document.getElementById('saTotalAgotados').textContent = d.totales.total_agotados;
+                document.getElementById('saTotalCriticos').textContent = d.totales.total_por_acabarse;
+                document.getElementById('saInversionUSD').textContent = `$${d.totales.inversion_reposicion_usd.toFixed(2)}`;
+                document.getElementById('saInversionBS').textContent = `Bs. ${d.totales.inversion_reposicion_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+
+                const badge = document.getElementById('badgeStockAlertaCount');
+                if (badge) {
+                    badge.textContent = d.totales.total_articulos_alerta;
+                    if (d.totales.total_articulos_alerta > 0) badge.classList.remove('hidden');
+                    else badge.classList.add('hidden');
+                }
+
+                renderTablaStockAlerta(articulosAlertaCache);
+            }
+        } catch (e) {
+            console.error("Error al cargar reporte de stock por acabarse:", e);
+        }
+    }
+
+    function renderTablaStockAlerta(items) {
+        const tbody = document.getElementById('tablaReporteStockAlerta');
+        if (!items || items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-2xl mb-1 block"></i>
+                <span class="font-bold text-slate-600">¡Excelente! No hay artículos en alerta con este filtro.</span>
+            </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = items.map(a => {
+            const esAgotado = a.es_agotado;
+            const badgeStock = esAgotado
+                ? `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">0.0 (Agotado)</span>`
+                : `<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">${a.stock} (Crítico)</span>`;
+
+            const badgeEstado = esAgotado
+                ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-600 text-white uppercase tracking-wider">Agotado</span>`
+                : `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500 text-white uppercase tracking-wider">Por Acabarse</span>`;
+
+            return `
+                <tr class="hover:bg-amber-50/40 transition">
+                    <td class="py-2.5 px-3 font-mono font-bold text-slate-700">${a.codigo}</td>
+                    <td class="py-2.5 px-3 font-bold text-slate-900">${a.nombre}</td>
+                    <td class="py-2.5 px-3 text-slate-500 text-xs">
+                        <span class="block text-slate-700 font-semibold">${a.categoria}</span>
+                        ${a.proveedor ? `<span class="text-[10px] text-slate-400">Prov: ${a.proveedor}</span>` : ''}
+                    </td>
+                    <td class="py-2.5 px-3 text-center">${badgeStock}</td>
+                    <td class="py-2.5 px-3 text-center font-mono font-bold text-slate-700 text-xs">&le; ${a.stock_alerta}</td>
+                    <td class="py-2.5 px-3 text-center font-mono font-bold text-rose-700 text-xs">-${a.deficit}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-slate-600">$${(a.costo_final || 0).toFixed(2)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-black text-slate-900">
+                        <span>$${a.costo_reposicion_usd.toFixed(2)}</span>
+                        <small class="block text-[10px] text-slate-400 font-normal">Bs. ${a.costo_reposicion_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}</small>
+                    </td>
+                    <td class="py-2.5 px-3 text-center">${badgeEstado}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function filtrarReporteStockAlerta(tipo) {
+        filtroStockAlertaActual = tipo;
+        ['todos', 'por_acabarse', 'agotados'].forEach(t => {
+            const btn = document.getElementById(`btnSa_${t}`);
+            if (btn) btn.className = (t === tipo) 
+                ? "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white" 
+                : "px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100";
+        });
+        cargarReporteStockAlerta();
+    }
+
+    function buscarStockAlertaEnTabla() {
+        const query = (document.getElementById('buscadorStockAlerta').value || '').toLowerCase().trim();
+        if (!query) {
+            renderTablaStockAlerta(articulosAlertaCache);
+            return;
+        }
+        const filtrados = articulosAlertaCache.filter(a => 
+            String(a.codigo).includes(query) ||
+            (a.nombre && a.nombre.toLowerCase().includes(query)) ||
+            (a.categoria && a.categoria.toLowerCase().includes(query)) ||
+            (a.proveedor && a.proveedor.toLowerCase().includes(query))
+        );
+        renderTablaStockAlerta(filtrados);
+    }
+
     async function cargarReporteCajas(desde, hasta) {
         try {
             const res = await fetch(`/api/reportes/cajas?desde=${desde}&hasta=${hasta}`);
@@ -806,6 +1023,7 @@
             'ventas': 'Informe de Ventas y Facturación',
             'compras': 'Informe de Compras y Reposición',
             'inventario': 'Valoración General del Inventario',
+            'stock_alerta': 'Informe de Artículos con Stock por Acabarse (Alerta de Reposición)',
             'cajas': 'Consolidado de Turnos y Cajas',
             'cobranza': 'Cartera de Créditos y Cobranzas'
         };
@@ -844,6 +1062,17 @@
             (d.articulos || []).forEach(a => {
                 csv += `"${a.codigo}","${a.nombre.replace(/"/g, '""')}","${a.categoria}",${a.stock},${a.stock_alerta || 5.0},${a.costo_final},${a.precio},${a.valoracion_costo}\n`;
             });
+        } else if (tabActiva === 'stock_alerta') {
+            csv = "REPORTE DE ARTICULOS CON STOCK POR ACABARSE (ALERTA DE REPOSICION) - PROLAGO C.A.\n";
+            csv += `Total Articulos en Alerta,${d.totales.total_articulos_alerta}\n`;
+            csv += `Total Agotados,${d.totales.total_agotados}\n`;
+            csv += `Total Por Acabarse,${d.totales.total_por_acabarse}\n`;
+            csv += `Inversion Reposicion Minima USD,${d.totales.inversion_reposicion_usd}\n`;
+            csv += `Inversion Reposicion Minima BS,${d.totales.inversion_reposicion_bs}\n\n`;
+            csv += "Codigo,Producto,Categoria,Proveedor,Stock Actual,Stock para Alerta,Deficit Faltante,Costo Unit USD,Reposicion Minima USD,Reposicion Minima BS,Estado\n";
+            (d.articulos || []).forEach(a => {
+                csv += `"${a.codigo}","${a.nombre.replace(/"/g, '""')}","${a.categoria}","${a.proveedor || ''}",${a.stock},${a.stock_alerta},${a.deficit},${a.costo_final},${a.costo_reposicion_usd},${a.costo_reposicion_bs},"${a.estado}"\n`;
+            });
         } else if (tabActiva === 'cajas') {
             csv = "REPORTE DE CAJAS PROLAGO C.A.\nNumero,Cajero,Apertura,Cierre,Base USD,Ventas USD,Abonos USD,Esperado Ef USD,Declarado Ef USD,Diferencia USD,Estado\n";
             (d.cajas || []).forEach(c => {
@@ -868,6 +1097,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         initFechas();
         cargarReporteActivo();
+        actualizarBadgeStockAlerta();
     });
 </script>
 {% endblock %}
