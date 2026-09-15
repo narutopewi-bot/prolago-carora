@@ -141,3 +141,17 @@ class FacturaUpdate(BaseModel):
     items: Optional[List[ItemFacturaUpdate]] = None
     admin_password: Optional[str] = None
 
+# Esquemas de Control de Cajas (Turnos)
+class CajaApertura(BaseModel):
+    monto_apertura_usd: float = 0.0
+    monto_apertura_bs: Optional[float] = 0.0
+    observaciones: Optional[str] = ""
+
+class CajaCierre(BaseModel):
+    declarado_efectivo: float = 0.0
+    declarado_zelle: Optional[float] = 0.0
+    declarado_pagomovil: Optional[float] = 0.0
+    declarado_punto: Optional[float] = 0.0
+    observaciones: Optional[str] = ""
+
+

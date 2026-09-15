@@ -18,11 +18,11 @@ class Usuario(Base):
     @property
     def lista_permisos(self):
         if self.rol == "admin":
-            return ["pos", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
+            return ["pos", "cajas", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
         if not self.permisos or self.permisos == "*":
             if self.rol == "admin":
-                return ["pos", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
-            return ["pos", "historial", "clientes"]
+                return ["pos", "cajas", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
+            return ["pos", "cajas", "historial", "clientes"]
         try:
             import json
             p = json.loads(self.permisos)
@@ -37,6 +37,63 @@ class Usuario(Base):
             return True
         perms = self.lista_permisos
         return "*" in perms or perm in perms
+
+class Caja(Base):
+    __tablename__ = "cajas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    numero = Column(Integer, unique=True, index=True, nullable=False)  # Consecutivo: 1, 2, 3...
+    estado = Column(String(20), default="abierta")  # 'abierta', 'cerrada'
+
+    fecha_apertura = Column(DateTime, default=datetime.utcnow)
+    fecha_cierre = Column(DateTime, nullable=True)
+
+    usuario_apertura_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    usuario_apertura_nombre = Column(String(100), default="")
+    usuario_cierre_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    usuario_cierre_nombre = Column(String(100), default="")
+
+    # Monto de Apertura / Fondo Base
+    monto_apertura_usd = Column(Float, default=0.0)
+    monto_apertura_bs = Column(Float, default=0.0)
+    tasa_bcv_apertura = Column(Float, default=1.0)
+    tasa_bcv_cierre = Column(Float, default=1.0)
+
+    # Ingresos del sistema registrados en el turno
+    ventas_efectivo = Column(Float, default=0.0)
+    ventas_zelle = Column(Float, default=0.0)
+    ventas_pagomovil = Column(Float, default=0.0)
+    ventas_punto = Column(Float, default=0.0)
+    ventas_credito = Column(Float, default=0.0)
+    total_ventas = Column(Float, default=0.0)
+
+    # Abonos cobrados durante el turno
+    abonos_efectivo = Column(Float, default=0.0)
+    abonos_zelle = Column(Float, default=0.0)
+    abonos_pagomovil = Column(Float, default=0.0)
+    abonos_punto = Column(Float, default=0.0)
+    total_abonos = Column(Float, default=0.0)
+
+    # Totales esperados
+    total_esperado_efectivo = Column(Float, default=0.0)  # apertura_usd + ventas_efectivo + abonos_efectivo
+    total_esperado_general = Column(Float, default=0.0)   # apertura_usd + ventas contado + abonos
+
+    # Arqueo Declarado por el cajero al cierre
+    declarado_efectivo = Column(Float, default=0.0)
+    declarado_zelle = Column(Float, default=0.0)
+    declarado_pagomovil = Column(Float, default=0.0)
+    declarado_punto = Column(Float, default=0.0)
+    total_declarado = Column(Float, default=0.0)
+
+    # Diferencias (declarado - esperado)
+    diferencia_efectivo = Column(Float, default=0.0)
+    diferencia_general = Column(Float, default=0.0)
+
+    observaciones_apertura = Column(String(255), default="")
+    observaciones_cierre = Column(String(255), default="")
+
+    facturas = relationship("Factura", back_populates="caja")
+    abonos = relationship("AbonoCredito", back_populates="caja")
 
 class Articulo(Base):
     __tablename__ = "articulos"
@@ -110,6 +167,8 @@ class Factura(Base):
     punto = Column(Float, default=0.0)
     
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    caja_id = Column(Integer, ForeignKey("cajas.id"), nullable=True)
+    caja = relationship("Caja", back_populates="facturas")
     items = relationship("DetalleFactura", back_populates="factura", cascade="all, delete-orphan")
     abonos = relationship("AbonoCredito", back_populates="factura", cascade="all, delete-orphan")
 
@@ -125,6 +184,8 @@ class AbonoCredito(Base):
     metodo_pago = Column(String(50), default="efectivo") # 'efectivo', 'pagomovil', 'zelle', 'punto'
     nota = Column(String(255), default="")
 
+    caja_id = Column(Integer, ForeignKey("cajas.id"), nullable=True)
+    caja = relationship("Caja", back_populates="abonos")
     factura = relationship("Factura", back_populates="abonos")
 
 class DetalleFactura(Base):

@@ -10,11 +10,12 @@ from sqlalchemy import func, or_, desc, text
 import json
 
 from .database import get_db, engine, Base
-from .models import Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito
+from .models import Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito, Caja
 from .schemas import (
     LoginRequest, TasaBCVUpdate, ArticuloCreate, ArticuloOut,
     ClienteCreate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, AbonoCreate,
-    UsuarioCreate, UsuarioUpdate, UsuarioOut, VerificarAdminRequest, ItemFacturaUpdate, FacturaUpdate
+    UsuarioCreate, UsuarioUpdate, UsuarioOut, VerificarAdminRequest, ItemFacturaUpdate, FacturaUpdate,
+    CajaApertura, CajaCierre
 )
 from .auth import (
     hash_password, verify_password, create_session, check_admin_password,
@@ -33,6 +34,16 @@ with engine.connect() as conn:
         pass
     try:
         conn.execute(text("ALTER TABLE usuarios ADD COLUMN permisos TEXT DEFAULT '*'"))
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute(text("ALTER TABLE facturas ADD COLUMN caja_id INTEGER"))
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute(text("ALTER TABLE abonos_credito ADD COLUMN caja_id INTEGER"))
         conn.commit()
     except Exception:
         pass
@@ -330,6 +341,8 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
     saldo_pendiente = credito if (credito > 0 or condicion == "credito") else 0.0
     estado_credito = "pendiente" if saldo_pendiente > 0 else "saldado"
     fecha_venc = (datetime.now() + timedelta(days=payload.dias_credito or 15)) if saldo_pendiente > 0 else None
+    caja_activa = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+    caja_id = caja_activa.id if caja_activa else None
 
     factura = Factura(
         numero=next_num,
@@ -348,6 +361,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         estado_credito=estado_credito,
         fecha_vencimiento=fecha_venc,
         usuario_id=user.id,
+        caja_id=caja_id,
         items=detalles
     )
     db.add(factura)
@@ -698,6 +712,9 @@ def registrar_abono(
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
     monto_bs = payload.monto_bs if payload.monto_bs and payload.monto_bs > 0 else round(monto_abono * tasa_bcv, 2)
 
+    caja_activa = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+    caja_id = caja_activa.id if caja_activa else None
+
     abono = AbonoCredito(
         factura_id=factura.id,
         fecha=datetime.now(),
@@ -705,7 +722,8 @@ def registrar_abono(
         monto_bs=round(monto_bs, 2),
         tasa_bcv=tasa_bcv,
         metodo_pago=payload.metodo_pago or "efectivo",
-        nota=payload.nota or ""
+        nota=payload.nota or "",
+        caja_id=caja_id
     )
     db.add(abono)
 
@@ -881,13 +899,528 @@ def update_tasa_bcv(payload: TasaBCVUpdate, db: Session = Depends(get_db), user:
     return {"status": "ok", "tasa_bcv": cfg.valor}
 
 # ==========================================
-# REPORTES Y ESTADÍSTICAS
+# CONTROL DE CAJAS Y TURNOS
 # ==========================================
+def calcular_metricas_caja(caja: Caja, db: Session) -> Caja:
+    facturas = db.query(Factura).filter(Factura.caja_id == caja.id).all()
+    abonos = db.query(AbonoCredito).filter(AbonoCredito.caja_id == caja.id).all()
+    
+    ventas_efectivo = sum(f.efectivo or 0.0 for f in facturas)
+    ventas_zelle = sum(f.zelle or 0.0 for f in facturas)
+    ventas_pagomovil = sum(f.pagomovil or 0.0 for f in facturas)
+    ventas_punto = sum(f.punto or 0.0 for f in facturas)
+    ventas_credito = sum(f.credito or 0.0 for f in facturas)
+    total_ventas = sum(f.total or 0.0 for f in facturas)
+    
+    abonos_efectivo = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'efectivo')
+    abonos_zelle = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'zelle')
+    abonos_pagomovil = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'pagomovil')
+    abonos_punto = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'punto')
+    total_abonos = sum(a.monto_usd for a in abonos)
+    
+    caja.ventas_efectivo = round(ventas_efectivo, 2)
+    caja.ventas_zelle = round(ventas_zelle, 2)
+    caja.ventas_pagomovil = round(ventas_pagomovil, 2)
+    caja.ventas_punto = round(ventas_punto, 2)
+    caja.ventas_credito = round(ventas_credito, 2)
+    caja.total_ventas = round(total_ventas, 2)
+    
+    caja.abonos_efectivo = round(abonos_efectivo, 2)
+    caja.abonos_zelle = round(abonos_zelle, 2)
+    caja.abonos_pagomovil = round(abonos_pagomovil, 2)
+    caja.abonos_punto = round(abonos_punto, 2)
+    caja.total_abonos = round(total_abonos, 2)
+    
+    caja.total_esperado_efectivo = round((caja.monto_apertura_usd or 0.0) + caja.ventas_efectivo + caja.abonos_efectivo, 2)
+    caja.total_esperado_general = round((caja.monto_apertura_usd or 0.0) + (caja.total_ventas - caja.ventas_credito) + caja.total_abonos, 2)
+    return caja
+
+def serializar_caja(caja: Caja, db: Session, detalle: bool = False):
+    caja = calcular_metricas_caja(caja, db)
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    
+    res = {
+        "id": caja.id,
+        "numero": caja.numero,
+        "estado": caja.estado,
+        "fecha_apertura": caja.fecha_apertura.strftime("%d/%m/%Y %I:%M %p") if caja.fecha_apertura else "",
+        "fecha_cierre": caja.fecha_cierre.strftime("%d/%m/%Y %I:%M %p") if caja.fecha_cierre else "",
+        "usuario_apertura_id": caja.usuario_apertura_id,
+        "usuario_apertura_nombre": caja.usuario_apertura_nombre or "Administrador",
+        "usuario_cierre_id": caja.usuario_cierre_id,
+        "usuario_cierre_nombre": caja.usuario_cierre_nombre or "",
+        "monto_apertura_usd": caja.monto_apertura_usd or 0.0,
+        "monto_apertura_bs": caja.monto_apertura_bs or 0.0,
+        "tasa_bcv_apertura": caja.tasa_bcv_apertura or 1.0,
+        "tasa_bcv_cierre": caja.tasa_bcv_cierre or tasa_bcv,
+        
+        "ventas_efectivo": caja.ventas_efectivo or 0.0,
+        "ventas_zelle": caja.ventas_zelle or 0.0,
+        "ventas_pagomovil": caja.ventas_pagomovil or 0.0,
+        "ventas_punto": caja.ventas_punto or 0.0,
+        "ventas_credito": caja.ventas_credito or 0.0,
+        "total_ventas": caja.total_ventas or 0.0,
+        
+        "abonos_efectivo": caja.abonos_efectivo or 0.0,
+        "abonos_zelle": caja.abonos_zelle or 0.0,
+        "abonos_pagomovil": caja.abonos_pagomovil or 0.0,
+        "abonos_punto": caja.abonos_punto or 0.0,
+        "total_abonos": caja.total_abonos or 0.0,
+        
+        "total_esperado_efectivo": caja.total_esperado_efectivo or 0.0,
+        "total_esperado_general": caja.total_esperado_general or 0.0,
+        
+        "declarado_efectivo": caja.declarado_efectivo or 0.0,
+        "declarado_zelle": caja.declarado_zelle or 0.0,
+        "declarado_pagomovil": caja.declarado_pagomovil or 0.0,
+        "declarado_punto": caja.declarado_punto or 0.0,
+        "total_declarado": caja.total_declarado or 0.0,
+        
+        "diferencia_efectivo": caja.diferencia_efectivo or 0.0,
+        "diferencia_general": caja.diferencia_general or 0.0,
+        
+        "observaciones_apertura": caja.observaciones_apertura or "",
+        "observaciones_cierre": caja.observaciones_cierre or ""
+    }
+    
+    if detalle:
+        facturas = db.query(Factura).filter(Factura.caja_id == caja.id).order_by(Factura.fecha.desc()).all()
+        abonos = db.query(AbonoCredito).filter(AbonoCredito.caja_id == caja.id).order_by(AbonoCredito.fecha.desc()).all()
+        res["facturas"] = [
+            {
+                "id": f.id,
+                "numero": f.numero,
+                "cliente": f.cliente_nombre,
+                "total": f.total,
+                "condicion": f.condicion,
+                "hora": f.fecha.strftime("%I:%M %p") if f.fecha else ""
+            } for f in facturas
+        ]
+        res["abonos_lista"] = [
+            {
+                "id": a.id,
+                "factura_id": a.factura_id,
+                "monto_usd": a.monto_usd,
+                "metodo_pago": a.metodo_pago,
+                "hora": a.fecha.strftime("%I:%M %p") if a.fecha else ""
+            } for a in abonos
+        ]
+    return res
+
+@app.get("/api/cajas/estado")
+def get_caja_estado(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    caja = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    if not caja:
+        return {"activa": False, "caja": None, "tasa_bcv": tasa_bcv}
+    return {"activa": True, "caja": serializar_caja(caja, db, detalle=True), "tasa_bcv": tasa_bcv}
+
+@app.post("/api/cajas/abrir")
+def abrir_caja(payload: CajaApertura, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("cajas") and not user.tiene_permiso("pos"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para abrir caja")
+
+    caja_activa = db.query(Caja).filter(Caja.estado == "abierta").first()
+    if caja_activa:
+        raise HTTPException(status_code=400, detail=f"Ya existe una caja abierta (#{caja_activa.numero}). Debe cerrarla antes de abrir una nueva.")
+    
+    last_caja = db.query(Caja).order_by(Caja.id.desc()).first()
+    nuevo_num = (last_caja.numero + 1) if (last_caja and last_caja.numero) else 1
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    
+    monto_usd = round(payload.monto_apertura_usd or 0.0, 2)
+    monto_bs = payload.monto_apertura_bs if (payload.monto_apertura_bs and payload.monto_apertura_bs > 0) else round(monto_usd * tasa_bcv, 2)
+    
+    nueva_caja = Caja(
+        numero=nuevo_num,
+        estado="abierta",
+        fecha_apertura=datetime.now(),
+        usuario_apertura_id=user.id,
+        usuario_apertura_nombre=user.nombre,
+        monto_apertura_usd=monto_usd,
+        monto_apertura_bs=monto_bs,
+        tasa_bcv_apertura=tasa_bcv,
+        observaciones_apertura=(payload.observaciones or "").strip(),
+        total_esperado_efectivo=monto_usd,
+        total_esperado_general=monto_usd
+    )
+    db.add(nueva_caja)
+    db.commit()
+    db.refresh(nueva_caja)
+    return {"status": "ok", "caja": serializar_caja(nueva_caja, db)}
+
+@app.post("/api/cajas/cerrar")
+def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("cajas") and not user.tiene_permiso("pos"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para cerrar caja")
+
+    caja = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+    if not caja:
+        raise HTTPException(status_code=400, detail="No hay ninguna caja abierta actualmente para cerrar")
+    
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    caja = calcular_metricas_caja(caja, db)
+    
+    dec_ef = round(payload.declarado_efectivo or 0.0, 2)
+    dec_zelle = round(payload.declarado_zelle or 0.0, 2)
+    dec_pm = round(payload.declarado_pagomovil or 0.0, 2)
+    dec_punto = round(payload.declarado_punto or 0.0, 2)
+    total_dec = round(dec_ef + dec_zelle + dec_pm + dec_punto, 2)
+    
+    dif_efectivo = round(dec_ef - (caja.total_esperado_efectivo or 0.0), 2)
+    dif_general = round(total_dec - (caja.total_esperado_general or 0.0), 2)
+    
+    caja.estado = "cerrada"
+    caja.fecha_cierre = datetime.now()
+    caja.usuario_cierre_id = user.id
+    caja.usuario_cierre_nombre = user.nombre
+    caja.tasa_bcv_cierre = tasa_bcv
+    caja.declarado_efectivo = dec_ef
+    caja.declarado_zelle = dec_zelle
+    caja.declarado_pagomovil = dec_pm
+    caja.declarado_punto = dec_punto
+    caja.total_declarado = total_dec
+    caja.diferencia_efectivo = dif_efectivo
+    caja.diferencia_general = dif_general
+    caja.observaciones_cierre = (payload.observaciones or "").strip()
+    
+    db.commit()
+    db.refresh(caja)
+    return {"status": "ok", "caja": serializar_caja(caja, db, detalle=True)}
+
+@app.get("/api/cajas")
+def listar_cajas(limit: int = 50, offset: int = 0, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    cajas = db.query(Caja).order_by(Caja.id.desc()).offset(offset).limit(limit).all()
+    return [serializar_caja(c, db) for c in cajas]
+
+@app.get("/api/cajas/{caja_id}")
+def obtener_caja_detalle(caja_id: int, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    caja = db.query(Caja).filter(Caja.id == caja_id).first()
+    if not caja:
+        raise HTTPException(status_code=404, detail="Caja no encontrada")
+    return serializar_caja(caja, db, detalle=True)
+
+# ==========================================
+# REPORTES Y ESTADÍSTICAS GERENCIALES
+# ==========================================
+def parse_date_range(desde: Optional[str], hasta: Optional[str]):
+    try:
+        dt_inicio = datetime.strptime(desde, "%Y-%m-%d") if desde else datetime.combine(date.today() - timedelta(days=30), datetime.min.time())
+    except:
+        dt_inicio = datetime.combine(date.today() - timedelta(days=30), datetime.min.time())
+        
+    try:
+        dt_fin = datetime.strptime(hasta, "%Y-%m-%d") + timedelta(days=1, microseconds=-1) if hasta else datetime.combine(date.today(), datetime.max.time())
+    except:
+        dt_fin = datetime.combine(date.today(), datetime.max.time())
+    return dt_inicio, dt_fin
+
+# 1. Reporte de Ventas
+@app.get("/api/reportes/ventas")
+def get_reporte_ventas(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    condicion: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("reportes"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
+    dt_inicio, dt_fin = parse_date_range(desde, hasta)
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    
+    q = db.query(Factura).filter(Factura.fecha >= dt_inicio, Factura.fecha <= dt_fin)
+    if condicion and condicion in ["contado", "credito"]:
+        q = q.filter(Factura.condicion == condicion)
+    facturas = q.order_by(Factura.fecha.desc()).all()
+    
+    total_usd = sum(f.total for f in facturas)
+    total_contado = sum(f.total for f in facturas if f.condicion == "contado")
+    total_credito = sum(f.total for f in facturas if f.condicion == "credito")
+    
+    efectivo = sum(f.efectivo or 0.0 for f in facturas)
+    zelle = sum(f.zelle or 0.0 for f in facturas)
+    pagomovil = sum(f.pagomovil or 0.0 for f in facturas)
+    punto = sum(f.punto or 0.0 for f in facturas)
+    credito = sum(f.credito or 0.0 for f in facturas)
+    
+    cant = len(facturas)
+    ticket_promedio = round(total_usd / cant, 2) if cant > 0 else 0.0
+    
+    factura_ids = [f.id for f in facturas]
+    top_prods = []
+    if factura_ids:
+        rows = (
+            db.query(
+                DetalleFactura.codigo_articulo,
+                DetalleFactura.nombre_articulo,
+                func.sum(DetalleFactura.cantidad).label("total_cant"),
+                func.sum(DetalleFactura.subtotal).label("total_subt")
+            )
+            .filter(DetalleFactura.factura_id.in_(factura_ids))
+            .group_by(DetalleFactura.codigo_articulo, DetalleFactura.nombre_articulo)
+            .order_by(desc("total_cant"))
+            .limit(10)
+            .all()
+        )
+        top_prods = [
+            {
+                "codigo": r[0],
+                "nombre": r[1],
+                "cantidad": round(r[2], 2),
+                "total_usd": round(r[3], 2)
+            }
+            for r in rows
+        ]
+    
+    usuarios_map = {u.id: u.nombre for u in db.query(Usuario).all()}
+    cajero_ventas = {}
+    for f in facturas:
+        uid = f.usuario_id or 0
+        unom = usuarios_map.get(uid, "Desconocido")
+        if unom not in cajero_ventas:
+            cajero_ventas[unom] = {"nombre": unom, "facturas": 0, "total_usd": 0.0}
+        cajero_ventas[unom]["facturas"] += 1
+        cajero_ventas[unom]["total_usd"] = round(cajero_ventas[unom]["total_usd"] + f.total, 2)
+    
+    return {
+        "periodo": {
+            "desde": dt_inicio.strftime("%d/%m/%Y"),
+            "hasta": dt_fin.strftime("%d/%m/%Y")
+        },
+        "totales": {
+            "total_usd": round(total_usd, 2),
+            "total_bs": round(total_usd * tasa_bcv, 2),
+            "total_contado_usd": round(total_contado, 2),
+            "total_credito_usd": round(total_credito, 2),
+            "cantidad_facturas": cant,
+            "ticket_promedio_usd": ticket_promedio
+        },
+        "desglose_pagos": {
+            "efectivo": round(efectivo, 2),
+            "zelle": round(zelle, 2),
+            "pagomovil": round(pagomovil, 2),
+            "punto": round(punto, 2),
+            "credito": round(credito, 2)
+        },
+        "top_productos": top_prods,
+        "ventas_por_cajero": list(cajero_ventas.values()),
+        "facturas_recientes": [
+            {
+                "numero": f.numero,
+                "fecha": f.fecha.strftime("%d/%m/%Y %I:%M %p") if f.fecha else "",
+                "cliente": f.cliente_nombre,
+                "condicion": f.condicion,
+                "total": f.total
+            }
+            for f in facturas[:50]
+        ]
+    }
+
+# 2. Reporte de Compras
+@app.get("/api/reportes/compras")
+def get_reporte_compras(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("reportes"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
+    dt_inicio, dt_fin = parse_date_range(desde, hasta)
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    
+    compras = db.query(Compra).filter(Compra.fecha >= dt_inicio, Compra.fecha <= dt_fin).order_by(Compra.fecha.desc()).all()
+    total_invertido = sum((c.cantidad * c.costo) for c in compras)
+    total_unidades = sum(c.cantidad for c in compras)
+    
+    return {
+        "periodo": {
+            "desde": dt_inicio.strftime("%d/%m/%Y"),
+            "hasta": dt_fin.strftime("%d/%m/%Y")
+        },
+        "totales": {
+            "total_invertido_usd": round(total_invertido, 2),
+            "total_invertido_bs": round(total_invertido * tasa_bcv, 2),
+            "cantidad_compras": len(compras),
+            "total_unidades": round(total_unidades, 2)
+        },
+        "compras": [
+            {
+                "id": c.id,
+                "fecha": c.fecha.strftime("%d/%m/%Y %I:%M %p") if c.fecha else "",
+                "codigo": c.codigo_articulo,
+                "nombre": c.nombre_articulo,
+                "cantidad": c.cantidad,
+                "costo": c.costo,
+                "subtotal": round(c.cantidad * c.costo, 2)
+            }
+            for c in compras
+        ]
+    }
+
+# 3. Reporte de Inventario
+@app.get("/api/reportes/inventario")
+def get_reporte_inventario(
+    filtro: Optional[str] = "todos",
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("reportes"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    articulos = db.query(Articulo).filter(Articulo.activo == True).order_by(Articulo.nombre.asc()).all()
+    
+    total_costo = sum(a.stock * a.costo_final for a in articulos if a.stock > 0)
+    total_pvp = sum(a.stock * a.precio for a in articulos if a.stock > 0)
+    ganancia_potencial = total_pvp - total_costo
+    margen_pct = round((ganancia_potencial / total_costo * 100), 2) if total_costo > 0 else 0.0
+    
+    criticos = [a for a in articulos if a.stock <= (a.stock_alerta if a.stock_alerta is not None else 5.0) and a.stock > 0]
+    agotados = [a for a in articulos if a.stock <= 0]
+    
+    items_filtrados = articulos
+    if filtro == "alerta":
+        items_filtrados = criticos
+    elif filtro == "agotados":
+        items_filtrados = agotados
+    elif filtro == "con_stock":
+        items_filtrados = [a for a in articulos if a.stock > 0]
+    
+    return {
+        "totales": {
+            "patrimonio_costo_usd": round(total_costo, 2),
+            "patrimonio_costo_bs": round(total_costo * tasa_bcv, 2),
+            "patrimonio_pvp_usd": round(total_pvp, 2),
+            "patrimonio_pvp_bs": round(total_pvp * tasa_bcv, 2),
+            "ganancia_proyectada_usd": round(ganancia_potencial, 2),
+            "margen_proyectado_pct": margen_pct,
+            "total_productos": len(articulos),
+            "productos_alerta": len(criticos),
+            "productos_agotados": len(agotados)
+        },
+        "articulos": [
+            {
+                "codigo": a.codigo,
+                "nombre": a.nombre,
+                "categoria": a.categoria,
+                "stock": a.stock,
+                "stock_alerta": a.stock_alerta,
+                "costo_final": a.costo_final,
+                "precio": a.precio,
+                "valoracion_costo": round(a.stock * a.costo_final, 2) if a.stock > 0 else 0.0
+            }
+            for a in items_filtrados
+        ]
+    }
+
+# 4. Reporte de Cajas
+@app.get("/api/reportes/cajas")
+def get_reporte_cajas_consolidado(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("reportes"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
+    dt_inicio, dt_fin = parse_date_range(desde, hasta)
+    cajas = db.query(Caja).filter(Caja.fecha_apertura >= dt_inicio, Caja.fecha_apertura <= dt_fin).order_by(Caja.id.desc()).all()
+    
+    cajas_serializadas = [serializar_caja(c, db) for c in cajas]
+    total_ingresos = sum(c["total_ventas"] for c in cajas_serializadas)
+    total_abonos = sum(c["total_abonos"] for c in cajas_serializadas)
+    total_efectivo = sum(c["ventas_efectivo"] + c["abonos_efectivo"] for c in cajas_serializadas)
+    total_diferencias = sum(c["diferencia_efectivo"] for c in cajas_serializadas if c["estado"] == "cerrada")
+    
+    return {
+        "periodo": {
+            "desde": dt_inicio.strftime("%d/%m/%Y"),
+            "hasta": dt_fin.strftime("%d/%m/%Y")
+        },
+        "totales": {
+            "cantidad_cajas": len(cajas),
+            "total_ventas_usd": round(total_ingresos, 2),
+            "total_abonos_usd": round(total_abonos, 2),
+            "total_efectivo_usd": round(total_efectivo, 2),
+            "total_diferencias_usd": round(total_diferencias, 2)
+        },
+        "cajas": cajas_serializadas
+    }
+
+# 5. Reporte de Cobranza (Cuentas por Cobrar)
+@app.get("/api/reportes/cobranza")
+def get_reporte_cobranza(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("reportes"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
+    dt_inicio, dt_fin = parse_date_range(desde, hasta)
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    now = datetime.now()
+    
+    facturas_pendientes = db.query(Factura).filter(Factura.condicion == "credito", Factura.saldo_pendiente > 0).all()
+    cartera_total = sum(f.saldo_pendiente for f in facturas_pendientes)
+    cartera_vencida = sum(f.saldo_pendiente for f in facturas_pendientes if f.fecha_vencimiento and f.fecha_vencimiento < now)
+    cartera_vigente = cartera_total - cartera_vencida
+    
+    deudores_dict = {}
+    for f in facturas_pendientes:
+        nom = f.cliente_nombre or "CLIENTE"
+        if nom not in deudores_dict:
+            deudores_dict[nom] = {
+                "cliente": nom,
+                "saldo_total": 0.0,
+                "facturas_count": 0,
+                "vencidas_count": 0
+            }
+        deudores_dict[nom]["saldo_total"] = round(deudores_dict[nom]["saldo_total"] + f.saldo_pendiente, 2)
+        deudores_dict[nom]["facturas_count"] += 1
+        if f.fecha_vencimiento and f.fecha_vencimiento < now:
+            deudores_dict[nom]["vencidas_count"] += 1
+            
+    abonos = db.query(AbonoCredito).filter(AbonoCredito.fecha >= dt_inicio, AbonoCredito.fecha <= dt_fin).order_by(AbonoCredito.fecha.desc()).all()
+    total_abonos_periodo = sum(a.monto_usd for a in abonos)
+    
+    facturas_dict = {f.id: f for f in db.query(Factura).filter(Factura.id.in_([a.factura_id for a in abonos])).all()} if abonos else {}
+    
+    return {
+        "periodo": {
+            "desde": dt_inicio.strftime("%d/%m/%Y"),
+            "hasta": dt_fin.strftime("%d/%m/%Y")
+        },
+        "totales": {
+            "cartera_total_usd": round(cartera_total, 2),
+            "cartera_total_bs": round(cartera_total * tasa_bcv, 2),
+            "cartera_vencida_usd": round(cartera_vencida, 2),
+            "cartera_vigente_usd": round(cartera_vigente, 2),
+            "total_abonos_periodo_usd": round(total_abonos_periodo, 2),
+            "clientes_deudores_count": len(deudores_dict)
+        },
+        "clientes_deudores": sorted(list(deudores_dict.values()), key=lambda x: x["saldo_total"], reverse=True),
+        "abonos_periodo": [
+            {
+                "id": a.id,
+                "fecha": a.fecha.strftime("%d/%m/%Y %I:%M %p") if a.fecha else "",
+                "factura_num": facturas_dict[a.factura_id].numero if a.factura_id in facturas_dict else str(a.factura_id),
+                "cliente": facturas_dict[a.factura_id].cliente_nombre if a.factura_id in facturas_dict else "",
+                "monto_usd": a.monto_usd,
+                "monto_bs": a.monto_bs,
+                "metodo_pago": a.metodo_pago,
+                "nota": a.nota
+            }
+            for a in abonos
+        ]
+    }
+
+# Compatibilidad para widgets existentes
 @app.get("/api/reportes/resumen")
 def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     today_start = datetime.combine(date.today(), datetime.min.time())
     
-    # Facturas de hoy
     facturas_hoy = db.query(Factura).filter(Factura.fecha >= today_start).all()
     total_hoy = sum(f.total for f in facturas_hoy)
     efectivo_hoy = sum(f.efectivo for f in facturas_hoy)
@@ -896,7 +1429,6 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
     punto_hoy = sum(f.punto for f in facturas_hoy)
     credito_hoy = sum(f.credito for f in facturas_hoy)
 
-    # Métricas globales de inventario
     articulos = db.query(Articulo).filter(Articulo.activo == True).all()
     total_articulos = len(articulos)
     bajo_stock = sum(1 for a in articulos if a.stock <= (a.stock_alerta if a.stock_alerta is not None else 5.0))
@@ -923,6 +1455,7 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
         },
         "tasa_bcv": tasa_bcv
     }
+
 
 # ==========================================
 # GESTIÓN DE USUARIOS Y PERMISOS
@@ -1034,6 +1567,7 @@ def delete_usuario(id: int, db: Session = Depends(get_db), user: Usuario = Depen
 def get_user_first_allowed_url(user: Usuario) -> str:
     modulo_urls = [
         ("pos", "/"),
+        ("cajas", "/cajas"),
         ("inventario", "/inventario"),
         ("compras", "/compras"),
         ("despachos", "/despachos"),
@@ -1060,6 +1594,14 @@ def page_pos(request: Request, user: Usuario = Depends(get_current_user)):
     if not user.tiene_permiso("pos"):
         return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="pos.html", context={"user": user})
+
+@app.get("/cajas", response_class=HTMLResponse)
+def page_cajas(request: Request, user: Usuario = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
+    if not user.tiene_permiso("cajas"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
+    return templates.TemplateResponse(request=request, name="cajas.html", context={"user": user})
 
 @app.get("/inventario", response_class=HTMLResponse)
 def page_inventario(request: Request, user: Usuario = Depends(get_current_user)):

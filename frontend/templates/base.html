@@ -83,6 +83,11 @@
                         <i class="fa-solid fa-cash-register mr-1.5 text-emerald-300 shrink-0 w-4 text-center"></i><span>Ventas</span>
                     </a>
                     {% endif %}
+                    {% if not user or user.tiene_permiso('cajas') %}
+                    <a href="/cajas" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_cajas %}{% endblock %}">
+                        <i class="fa-solid fa-vault mr-1.5 text-emerald-400 shrink-0 w-4 text-center"></i><span>Cajas</span>
+                    </a>
+                    {% endif %}
                     {% if not user or user.tiene_permiso('inventario') %}
                     <a href="/inventario" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_inventario %}{% endblock %}">
                         <i class="fa-solid fa-boxes-stacked mr-1.5 text-blue-300 shrink-0 w-4 text-center"></i><span>Inventario</span>
@@ -115,7 +120,7 @@
                     {% endif %}
                     {% if not user or user.tiene_permiso('reportes') %}
                     <a href="/reportes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_reportes %}{% endblock %}">
-                        <i class="fa-solid fa-chart-pie mr-1.5 text-yellow-300 shrink-0 w-4 text-center"></i><span>Caja</span>
+                        <i class="fa-solid fa-chart-pie mr-1.5 text-yellow-300 shrink-0 w-4 text-center"></i><span>Reportes</span>
                     </a>
                     {% endif %}
                     {% if not user or user.tiene_permiso('mantenimiento') %}
@@ -219,9 +224,14 @@
                 <i class="fa-solid fa-users mr-2.5 text-pink-300 w-5 text-center"></i><span>Directorio de Clientes</span>
             </a>
             {% endif %}
+            {% if not user or user.tiene_permiso('cajas') %}
+            <a href="/cajas" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-vault mr-2.5 text-emerald-400 w-5 text-center"></i><span>Control de Cajas y Turnos</span>
+            </a>
+            {% endif %}
             {% if not user or user.tiene_permiso('reportes') %}
             <a href="/reportes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-chart-pie mr-2.5 text-yellow-300 w-5 text-center"></i><span>Cierre de Caja y Reportes</span>
+                <i class="fa-solid fa-chart-pie mr-2.5 text-yellow-300 w-5 text-center"></i><span>Reportes Gerenciales</span>
             </a>
             {% endif %}
             {% if not user or user.tiene_permiso('mantenimiento') %}

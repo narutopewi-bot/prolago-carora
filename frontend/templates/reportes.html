@@ -1,112 +1,484 @@
 {% extends "base.html" %}
 
-{% block title %}Cierre de Caja y Reportes - Prolago Carora 2026{% endblock %}
+{% block title %}Reportes Gerenciales - Prolago Carora 2026{% endblock %}
 {% block nav_reportes %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+
+{% block extra_head %}
+<style>
+    @media print {
+        header, nav, footer, .no-print {
+            display: none !important;
+        }
+        body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        .panel-reporte {
+            display: none !important;
+        }
+        .panel-reporte.active {
+            display: block !important;
+        }
+        #encabezadoImpresionReporte {
+            display: block !important;
+        }
+        @page {
+            margin: 8mm;
+            size: A4 landscape;
+        }
+    }
+    #encabezadoImpresionReporte {
+        display: none;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
-    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-        <div>
-            <h1 class="text-xl font-extrabold text-slate-800">Cierre de Caja y Reportes</h1>
-            <p class="text-xs text-slate-500">Resumen de ingresos del día por forma de pago y valoración del patrimonio</p>
+    <!-- ENCABEZADO OCULTO EN PANTALLA, VISIBLE SOLO EN IMPRESIÓN -->
+    <div id="encabezadoImpresionReporte" class="border-b-2 border-slate-900 pb-3 mb-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="font-black text-xl text-slate-950">PROLAGO C.A. - INFORME GERENCIAL</h1>
+                <p class="text-xs text-slate-600">Medicina Veterinaria y Alimentos Concentrados &bull; RIF: J-50493821-0 &bull; Carora, Lara</p>
+                <p class="text-xs font-bold text-slate-800 mt-1" id="printSubtituloReporte">Reporte de Operaciones</p>
+            </div>
+            <div class="text-right text-xs">
+                <span class="text-slate-500 block">Generado el:</span>
+                <strong id="printFechaGenerado" class="text-slate-800"></strong>
+            </div>
         </div>
-
-        <button onclick="cargarReportes()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Actualizar</span>
-        </button>
     </div>
 
-    <!-- TARJETAS DE RESUMEN DEL DÍA (2 cols en móvil, 4 cols en desktop) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        
-        <!-- Total Ventas Hoy -->
-        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Ventas Hoy</span>
-                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs sm:text-sm">
-                    <i class="fa-solid fa-dollar-sign"></i>
+    <!-- CABECERA PRINCIPAL Y FILTRO DE FECHAS (NO-PRINT) -->
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 no-print space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <span class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center text-xl shadow-md shadow-amber-500/20">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </span>
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-800">Centro de Reportes Gerenciales</h1>
+                    <p class="text-xs text-slate-500">Auditoría consolidada de Ventas, Compras, Inventario, Cajas y Cobranza</p>
                 </div>
             </div>
-            <div class="text-lg sm:text-2xl font-black text-slate-900 font-mono" id="repTotalHoyUSD">$0.00</div>
-            <div class="text-[11px] sm:text-xs text-emerald-600 font-bold mt-0.5" id="repTotalHoyBS">Bs. 0,00</div>
-            <div class="text-[10px] text-slate-400 mt-2 pt-1.5 border-t" id="repCantFacturas">0 facturas</div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center space-x-2">
+                <button onclick="imprimirReporteActivo()" class="px-4 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Imprimir Reporte</span>
+                </button>
+                <button onclick="exportarExcelReporteActivo()" class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>Exportar CSV</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Patrimonio / Valor de Inventario -->
-        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Inventario (Costo)</span>
-                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs sm:text-sm">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                </div>
+        <!-- BARRA DE FILTROS TEMPORALES -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="font-bold text-slate-600 text-[11px] uppercase tracking-wider mr-1">Rango:</span>
+                <button onclick="setRangoRapido('hoy')" class="px-3 py-1.5 rounded-lg font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition">Hoy</button>
+                <button onclick="setRangoRapido('semana')" class="px-3 py-1.5 rounded-lg font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition">Esta Semana</button>
+                <button onclick="setRangoRapido('mes')" class="px-3 py-1.5 rounded-lg font-bold bg-emerald-50 border border-emerald-300 text-emerald-800 transition" id="btnMesRapido">Este Mes</button>
+                <button onclick="setRangoRapido('anio')" class="px-3 py-1.5 rounded-lg font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition">Este Año</button>
             </div>
-            <div class="text-base sm:text-2xl font-black text-slate-900 font-mono" id="repPatrimonioUSD">$0.00</div>
-            <div class="text-[11px] sm:text-xs text-blue-600 font-bold mt-0.5" id="repPatrimonioBS">Bs. 0,00</div>
-            <div class="text-[10px] text-slate-400 mt-2 pt-1.5 border-t" id="repTotalProductos">982 prods</div>
-        </div>
 
-        <!-- Alertas de Stock -->
-        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-1.5 sm:mb-2">
-                <span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Alerta Stock</span>
-                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xs sm:text-sm">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-1">
+                    <span class="text-slate-500 font-bold">Desde:</span>
+                    <input type="date" id="filtroDesde" onchange="cargarReporteActivo()"
+                        class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                 </div>
+                <div class="flex items-center space-x-1">
+                    <span class="text-slate-500 font-bold">Hasta:</span>
+                    <input type="date" id="filtroHasta" onchange="cargarReporteActivo()"
+                        class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <button onclick="cargarReporteActivo()" class="p-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition" title="Consultar">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
             </div>
-            <div class="text-lg sm:text-2xl font-black text-amber-600 font-mono" id="repBajoStock">0</div>
-            <p class="text-[10px] text-slate-500 mt-0.5">&le; alerta individual</p>
-            <div class="text-[10px] text-slate-400 mt-2 pt-1.5 border-t">Reposición requerida</div>
         </div>
+    </div>
 
-        <!-- Tasa BCV Actual -->
-        <div class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-bold text-slate-400 uppercase">Tasa Oficial BCV</span>
-                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm">
-                    <i class="fa-solid fa-coins"></i>
-                </div>
-            </div>
-            <div class="text-2xl font-black text-purple-700" id="repTasaBCV">0.00 Bs.</div>
-            <p class="text-xs text-slate-500 mt-1">Bolívares por Dólar</p>
-            <button onclick="abrirModalTasa()" class="text-[11px] text-purple-600 hover:text-purple-800 font-bold mt-2 pt-2 border-t block w-full text-left">
-                Actualizar tasa &rarr;
+    <!-- PESTAÑAS DE NAVEGACIÓN DE REPORTES (NO-PRINT) -->
+    <div class="border-b border-slate-200 no-print overflow-x-auto">
+        <div class="flex space-x-1 sm:space-x-2 min-w-max pb-1">
+            <button onclick="cambiarTab('ventas')" id="tabBtn_ventas"
+                class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-emerald-600 text-white shadow-md shadow-emerald-600/20">
+                <i class="fa-solid fa-chart-line text-sm"></i>
+                <span>Reporte de Ventas</span>
+            </button>
+            <button onclick="cambiarTab('compras')" id="tabBtn_compras"
+                class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
+                <i class="fa-solid fa-truck-ramp-box text-sm"></i>
+                <span>Reporte de Compras</span>
+            </button>
+            <button onclick="cambiarTab('inventario')" id="tabBtn_inventario"
+                class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
+                <i class="fa-solid fa-boxes-stacked text-sm"></i>
+                <span>Reporte de Inventario</span>
+            </button>
+            <button onclick="cambiarTab('cajas')" id="tabBtn_cajas"
+                class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
+                <i class="fa-solid fa-vault text-sm"></i>
+                <span>Reporte de Cajas</span>
+            </button>
+            <button onclick="cambiarTab('cobranza')" id="tabBtn_cobranza"
+                class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
+                <i class="fa-solid fa-hand-holding-dollar text-sm"></i>
+                <span>Reporte de Cobranza</span>
             </button>
         </div>
     </div>
 
-    <!-- DESGLOSE DE MÉTODOS DE PAGO DEL DÍA -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4 flex items-center">
-            <i class="fa-solid fa-wallet text-emerald-600 mr-2"></i>
-            Ingresos de Hoy por Forma de Pago
-        </h2>
+    <!-- ======================================================== -->
+    <!-- 1. PESTAÑA: REPORTE DE VENTAS                            -->
+    <!-- ======================================================== -->
+    <div id="panel_ventas" class="panel-reporte active space-y-6">
+        <!-- Métricas KPI Ventas -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Ventas ($)</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 block" id="vTotalUSD">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-bold" id="vTotalBS">Bs. 0,00</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Facturas Emitidas</span>
+                <span class="text-xl sm:text-2xl font-black text-slate-800 font-mono mt-1 block" id="vCantFacturas">0</span>
+                <span class="text-[10px] text-slate-400">Total comprobantes</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Ticket Promedio</span>
+                <span class="text-xl sm:text-2xl font-black text-blue-600 font-mono mt-1 block" id="vTicketPromedio">$0.00</span>
+                <span class="text-[10px] text-slate-400">Promedio por venta</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Ventas de Contado</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-700 font-mono mt-1 block" id="vTotalContado">$0.00</span>
+                <span class="text-[10px] text-emerald-600 font-semibold">100% Cobrado</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Ventas a Crédito</span>
+                <span class="text-xl sm:text-2xl font-black text-rose-700 font-mono mt-1 block" id="vTotalCredito">$0.00</span>
+                <span class="text-[10px] text-rose-600 font-semibold">Cuentas por cobrar</span>
+            </div>
+        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-            <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
-                <span class="text-xs font-bold text-emerald-800 block">Efectivo ($)</span>
-                <span class="text-xl font-black text-emerald-700 mt-1 block" id="pagoEfectivoHoy">$0.00</span>
+        <!-- Desglose por Formas de Pago -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-wallet text-emerald-600 mr-2"></i>
+                Desglose de Recaudación en Ventas por Forma de Pago
+            </h3>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <span class="text-[10px] font-bold text-emerald-800 uppercase block">Efectivo ($)</span>
+                    <strong class="text-base font-black text-emerald-700 font-mono" id="vPagoEf">$0.00</strong>
+                </div>
+                <div class="p-3 bg-purple-50 rounded-xl border border-purple-100">
+                    <span class="text-[10px] font-bold text-purple-800 uppercase block">Zelle ($)</span>
+                    <strong class="text-base font-black text-purple-700 font-mono" id="vPagoZe">$0.00</strong>
+                </div>
+                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <span class="text-[10px] font-bold text-blue-800 uppercase block">Pago Móvil ($)</span>
+                    <strong class="text-base font-black text-blue-700 font-mono" id="vPagoPM">$0.00</strong>
+                </div>
+                <div class="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                    <span class="text-[10px] font-bold text-amber-800 uppercase block">Punto Venta ($)</span>
+                    <strong class="text-base font-black text-amber-700 font-mono" id="vPagoPu">$0.00</strong>
+                </div>
+                <div class="p-3 bg-rose-50 rounded-xl border border-rose-100">
+                    <span class="text-[10px] font-bold text-rose-800 uppercase block">Crédito Concedido</span>
+                    <strong class="text-base font-black text-rose-700 font-mono" id="vPagoCr">$0.00</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dos Columnas: Top Productos y Ventas por Cajero -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-trophy text-amber-500 mr-2"></i>
+                    Top 10 Productos Más Vendidos del Período
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] border-b">
+                            <tr>
+                                <th class="py-2 px-3">Cód.</th>
+                                <th class="py-2 px-3">Producto</th>
+                                <th class="py-2 px-3 text-center">Unidades</th>
+                                <th class="py-2 px-3 text-right">Monto ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vTopProductos" class="divide-y divide-slate-100">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="p-4 bg-purple-50 rounded-xl border border-purple-100 text-center">
-                <span class="text-xs font-bold text-purple-800 block">Zelle ($)</span>
-                <span class="text-xl font-black text-purple-700 mt-1 block" id="pagoZelleHoy">$0.00</span>
+            <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-users text-blue-500 mr-2"></i>
+                    Ventas por Cajero / Usuario
+                </h3>
+                <div class="space-y-2" id="vVentasCajeros">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 2. PESTAÑA: REPORTE DE COMPRAS                           -->
+    <!-- ======================================================== -->
+    <div id="panel_compras" class="panel-reporte hidden space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Invertido ($)</span>
+                <span class="text-2xl font-black text-amber-600 font-mono mt-1 block" id="cTotalUSD">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-bold" id="cTotalBS">Bs. 0,00</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Cantidad de Compras</span>
+                <span class="text-2xl font-black text-slate-800 font-mono mt-1 block" id="cCantCompras">0</span>
+                <span class="text-[10px] text-slate-400">Entradas registradas</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Unidades Ingresadas</span>
+                <span class="text-2xl font-black text-blue-600 font-mono mt-1 block" id="cTotalUnidades">0</span>
+                <span class="text-[10px] text-slate-400">Artículos recibidos</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                <h3 class="text-xs font-bold text-slate-800 uppercase">Detalle de Compras y Reposiciones</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] border-b">
+                        <tr>
+                            <th class="py-2.5 px-3">Fecha</th>
+                            <th class="py-2.5 px-3">Cód.</th>
+                            <th class="py-2.5 px-3">Producto</th>
+                            <th class="py-2.5 px-3 text-center">Cantidad</th>
+                            <th class="py-2.5 px-3 text-right">Costo Unit. ($)</th>
+                            <th class="py-2.5 px-3 text-right">Subtotal Invertido ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaReporteCompras" class="divide-y divide-slate-100">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 3. PESTAÑA: REPORTE DE INVENTARIO                        -->
+    <!-- ======================================================== -->
+    <div id="panel_inventario" class="panel-reporte hidden space-y-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Valoración al Costo ($)</span>
+                <span class="text-xl sm:text-2xl font-black text-blue-600 font-mono mt-1 block" id="iPatrimonioCosto">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-bold" id="iPatrimonioCostoBS">Bs. 0,00</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Valoración a PVP ($)</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 block" id="iPatrimonioPVP">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-bold" id="iPatrimonioPVPBS">Bs. 0,00</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Ganancia Proyectada ($)</span>
+                <span class="text-xl sm:text-2xl font-black text-purple-600 font-mono mt-1 block" id="iGananciaProyectada">$0.00</span>
+                <span class="text-[10px] text-purple-700 font-bold" id="iMargenProyectado">0% margen</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Estado del Stock</span>
+                <div class="flex items-center space-x-2 mt-1">
+                    <span class="px-2 py-0.5 rounded-lg text-xs font-black bg-amber-100 text-amber-800" id="iCriticosCount">0 Alertas</span>
+                    <span class="px-2 py-0.5 rounded-lg text-xs font-black bg-rose-100 text-rose-800" id="iAgotadosCount">0 Agotados</span>
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block" id="iTotalProds">0 artículos activos</span>
+            </div>
+        </div>
+
+        <!-- Filtros rápidos para inventario -->
+        <div class="flex items-center space-x-2 no-print">
+            <span class="text-xs font-bold text-slate-500">Filtrar tabla:</span>
+            <button onclick="filtrarReporteInventario('todos')" id="btnInv_todos" class="px-3 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white">Todos</button>
+            <button onclick="filtrarReporteInventario('alerta')" id="btnInv_alerta" class="px-3 py-1 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100">Stock Crítico</button>
+            <button onclick="filtrarReporteInventario('agotados')" id="btnInv_agotados" class="px-3 py-1 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100">Agotados</button>
+            <button onclick="filtrarReporteInventario('con_stock')" id="btnInv_con_stock" class="px-3 py-1 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100">Con Existencia</button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] border-b">
+                        <tr>
+                            <th class="py-2.5 px-3">Cód.</th>
+                            <th class="py-2.5 px-3">Producto</th>
+                            <th class="py-2.5 px-3">Categoría</th>
+                            <th class="py-2.5 px-3 text-center">Stock Actual</th>
+                            <th class="py-2.5 px-3 text-center">Alerta</th>
+                            <th class="py-2.5 px-3 text-right">Costo Final ($)</th>
+                            <th class="py-2.5 px-3 text-right">PVP ($)</th>
+                            <th class="py-2.5 px-3 text-right">Total al Costo ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaReporteInventario" class="divide-y divide-slate-100">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 4. PESTAÑA: REPORTE DE CAJAS                             -->
+    <!-- ======================================================== -->
+    <div id="panel_cajas" class="panel-reporte hidden space-y-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Ventas en Cajas</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 block" id="rcTotalVentas">$0.00</span>
+                <span class="text-[10px] text-slate-400">En turnos seleccionados</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Abonos Recaudados</span>
+                <span class="text-xl sm:text-2xl font-black text-blue-600 font-mono mt-1 block" id="rcTotalAbonos">$0.00</span>
+                <span class="text-[10px] text-slate-400">Cobranzas en turno</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Efectivo Físico</span>
+                <span class="text-xl sm:text-2xl font-black text-slate-800 font-mono mt-1 block" id="rcTotalEfectivo">$0.00</span>
+                <span class="text-[10px] text-slate-400">Ventas + Abonos efectivo</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Diferencias de Cuadre</span>
+                <span class="text-xl sm:text-2xl font-black font-mono mt-1 block" id="rcTotalDiferencias">$0.00</span>
+                <span class="text-[10px] text-slate-400" id="rcDiferenciaNota">Balance neto</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-slate-800 uppercase">Turnos de Caja Realizados en el Período</h3>
+                <a href="/cajas" class="text-xs text-emerald-600 font-bold hover:underline no-print">Ir al Módulo de Cajas &rarr;</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] border-b">
+                        <tr>
+                            <th class="py-2.5 px-3 text-center">N° Turno</th>
+                            <th class="py-2.5 px-3">Cajero</th>
+                            <th class="py-2.5 px-3">Apertura</th>
+                            <th class="py-2.5 px-3">Cierre</th>
+                            <th class="py-2.5 px-3 text-right">Fondo Inicial ($)</th>
+                            <th class="py-2.5 px-3 text-right">Ventas ($)</th>
+                            <th class="py-2.5 px-3 text-right">Abonos ($)</th>
+                            <th class="py-2.5 px-3 text-right">Esperado Ef ($)</th>
+                            <th class="py-2.5 px-3 text-right">Declarado Ef ($)</th>
+                            <th class="py-2.5 px-3 text-right">Diferencia ($)</th>
+                            <th class="py-2.5 px-3 text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaReporteCajas" class="divide-y divide-slate-100">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 5. PESTAÑA: REPORTE DE COBRANZA                          -->
+    <!-- ======================================================== -->
+    <div id="panel_cobranza" class="panel-reporte hidden space-y-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Cartera Total por Cobrar</span>
+                <span class="text-xl sm:text-2xl font-black text-rose-600 font-mono mt-1 block" id="cobCarteraTotal">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-bold" id="cobCarteraTotalBS">Bs. 0,00</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Deuda Vencida ($)</span>
+                <span class="text-xl sm:text-2xl font-black text-red-700 font-mono mt-1 block" id="cobCarteraVencida">$0.00</span>
+                <span class="text-[10px] text-red-600 font-bold">Plazo superado</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Deuda Vigente ($)</span>
+                <span class="text-xl sm:text-2xl font-black text-amber-600 font-mono mt-1 block" id="cobCarteraVigente">$0.00</span>
+                <span class="text-[10px] text-amber-700 font-semibold">Dentro del plazo</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Abonos Recaudados</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 block" id="cobAbonosRecaudados">$0.00</span>
+                <span class="text-[10px] text-slate-400">En el período elegido</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Ranking de Clientes Deudores -->
+            <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-3 p-4">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-user-clock text-rose-500 mr-2"></i>
+                    Clientes con Saldo Pendiente (Cuentas por Cobrar)
+                </h3>
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] border-b">
+                            <tr>
+                                <th class="py-2 px-3">Cliente</th>
+                                <th class="py-2 px-3 text-center">Facturas</th>
+                                <th class="py-2 px-3 text-center">Vencidas</th>
+                                <th class="py-2 px-3 text-right">Saldo Deudor ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCobClientes" class="divide-y divide-slate-100">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
-                <span class="text-xs font-bold text-blue-800 block">Pago Móvil ($)</span>
-                <span class="text-xl font-black text-blue-700 mt-1 block" id="pagoMovilHoy">$0.00</span>
-            </div>
-
-            <div class="p-4 bg-amber-50 rounded-xl border border-amber-100 text-center">
-                <span class="text-xs font-bold text-amber-800 block">Punto de Venta ($)</span>
-                <span class="text-xl font-black text-amber-700 mt-1 block" id="pagoPuntoHoy">$0.00</span>
-            </div>
-
-            <div class="p-4 bg-rose-50 rounded-xl border border-rose-100 text-center">
-                <span class="text-xs font-bold text-rose-800 block">Cuentas por Cobrar ($)</span>
-                <span class="text-xl font-black text-rose-700 mt-1 block" id="pagoCreditoHoy">$0.00</span>
+            <!-- Historial de Abonos Recibidos -->
+            <div class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-3 p-4">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-money-bill-transfer text-emerald-500 mr-2"></i>
+                    Abonos Recibidos en el Período
+                </h3>
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] border-b">
+                            <tr>
+                                <th class="py-2 px-3">Fecha</th>
+                                <th class="py-2 px-3">Cliente</th>
+                                <th class="py-2 px-3">Método</th>
+                                <th class="py-2 px-3 text-right">Monto ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCobAbonos" class="divide-y divide-slate-100">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -115,33 +487,387 @@
 
 {% block extra_scripts %}
 <script>
-    async function cargarReportes() {
+    let tabActiva = 'ventas';
+    let cacheReporte = {};
+
+    function initFechas() {
+        const hoy = new Date();
+        const y = hoy.getFullYear();
+        const m = String(hoy.getMonth() + 1).padStart(2, '0');
+        const d = String(hoy.getDate()).padStart(2, '0');
+        
+        // Primer día del mes
+        const primeroMes = `${y}-${m}-01`;
+        const hoyStr = `${y}-${m}-${d}`;
+        
+        document.getElementById('filtroDesde').value = primeroMes;
+        document.getElementById('filtroHasta').value = hoyStr;
+    }
+
+    function setRangoRapido(tipo) {
+        const hoy = new Date();
+        const y = hoy.getFullYear();
+        const m = String(hoy.getMonth() + 1).padStart(2, '0');
+        const d = String(hoy.getDate()).padStart(2, '0');
+        const hoyStr = `${y}-${m}-${d}`;
+
+        let desdeStr = hoyStr;
+        if (tipo === 'hoy') {
+            desdeStr = hoyStr;
+        } else if (tipo === 'semana') {
+            const lunes = new Date(hoy);
+            const diaSem = hoy.getDay();
+            const diff = hoy.getDate() - diaSem + (diaSem === 0 ? -6 : 1);
+            lunes.setDate(diff);
+            desdeStr = lunes.toISOString().split('T')[0];
+        } else if (tipo === 'mes') {
+            desdeStr = `${y}-${m}-01`;
+        } else if (tipo === 'anio') {
+            desdeStr = `${y}-01-01`;
+        }
+
+        document.getElementById('filtroDesde').value = desdeStr;
+        document.getElementById('filtroHasta').value = hoyStr;
+        cargarReporteActivo();
+    }
+
+    function cambiarTab(tab) {
+        tabActiva = tab;
+        document.querySelectorAll('.panel-reporte').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.panel-reporte').forEach(p => p.classList.remove('active'));
+
+        const panel = document.getElementById(`panel_${tab}`);
+        panel.classList.remove('hidden');
+        panel.classList.add('active');
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.className = "tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200";
+        });
+
+        const activeBtn = document.getElementById(`tabBtn_${tab}`);
+        activeBtn.className = "tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-emerald-600 text-white shadow-md shadow-emerald-600/20";
+
+        cargarReporteActivo();
+    }
+
+    async function cargarReporteActivo() {
+        const desde = document.getElementById('filtroDesde').value;
+        const hasta = document.getElementById('filtroHasta').value;
+
+        if (tabActiva === 'ventas') await cargarReporteVentas(desde, hasta);
+        else if (tabActiva === 'compras') await cargarReporteCompras(desde, hasta);
+        else if (tabActiva === 'inventario') await cargarReporteInventario();
+        else if (tabActiva === 'cajas') await cargarReporteCajas(desde, hasta);
+        else if (tabActiva === 'cobranza') await cargarReporteCobranza(desde, hasta);
+    }
+
+    async function cargarReporteVentas(desde, hasta) {
         try {
-            const res = await fetch('/api/reportes/resumen');
+            const res = await fetch(`/api/reportes/ventas?desde=${desde}&hasta=${hasta}`);
             if (res.ok) {
                 const d = await res.json();
-                document.getElementById('repTotalHoyUSD').textContent = `$${d.ventas_hoy.total_usd.toFixed(2)}`;
-                document.getElementById('repTotalHoyBS').textContent = `Bs. ${Number(d.ventas_hoy.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
-                document.getElementById('repCantFacturas').textContent = `${d.ventas_hoy.cantidad_facturas} facturas emitidas hoy`;
+                cacheReporte['ventas'] = d;
 
-                document.getElementById('repPatrimonioUSD').textContent = `$${d.inventario.patrimonio_usd.toFixed(2)}`;
-                document.getElementById('repPatrimonioBS').textContent = `Bs. ${Number(d.inventario.patrimonio_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
-                document.getElementById('repTotalProductos').textContent = `${d.inventario.total_productos} productos en catálogo`;
-                document.getElementById('repBajoStock').textContent = d.inventario.bajo_stock;
+                document.getElementById('vTotalUSD').textContent = `$${d.totales.total_usd.toFixed(2)}`;
+                document.getElementById('vTotalBS').textContent = `Bs. ${d.totales.total_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('vCantFacturas').textContent = d.totales.cantidad_facturas;
+                document.getElementById('vTicketPromedio').textContent = `$${d.totales.ticket_promedio_usd.toFixed(2)}`;
+                document.getElementById('vTotalContado').textContent = `$${d.totales.total_contado_usd.toFixed(2)}`;
+                document.getElementById('vTotalCredito').textContent = `$${d.totales.total_credito_usd.toFixed(2)}`;
 
-                document.getElementById('repTasaBCV').textContent = `${d.tasa_bcv.toFixed(2)} Bs./$`;
+                document.getElementById('vPagoEf').textContent = `$${d.desglose_pagos.efectivo.toFixed(2)}`;
+                document.getElementById('vPagoZe').textContent = `$${d.desglose_pagos.zelle.toFixed(2)}`;
+                document.getElementById('vPagoPM').textContent = `$${d.desglose_pagos.pagomovil.toFixed(2)}`;
+                document.getElementById('vPagoPu').textContent = `$${d.desglose_pagos.punto.toFixed(2)}`;
+                document.getElementById('vPagoCr').textContent = `$${d.desglose_pagos.credito.toFixed(2)}`;
 
-                document.getElementById('pagoEfectivoHoy').textContent = `$${d.ventas_hoy.efectivo.toFixed(2)}`;
-                document.getElementById('pagoZelleHoy').textContent = `$${d.ventas_hoy.zelle.toFixed(2)}`;
-                document.getElementById('pagoMovilHoy').textContent = `$${d.ventas_hoy.pagomovil.toFixed(2)}`;
-                document.getElementById('pagoPuntoHoy').textContent = `$${d.ventas_hoy.punto.toFixed(2)}`;
-                document.getElementById('pagoCreditoHoy').textContent = `$${d.ventas_hoy.credito.toFixed(2)}`;
+                const tbodyTop = document.getElementById('vTopProductos');
+                if (!d.top_productos || d.top_productos.length === 0) {
+                    tbodyTop.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">Sin ventas en este período</td></tr>`;
+                } else {
+                    tbodyTop.innerHTML = d.top_productos.map((it, idx) => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 px-3 font-mono font-bold text-slate-500">${it.codigo}</td>
+                            <td class="py-2 px-3 font-semibold text-slate-800">${it.nombre}</td>
+                            <td class="py-2 px-3 text-center font-bold text-slate-700">${it.cantidad}</td>
+                            <td class="py-2 px-3 text-right font-mono font-black text-emerald-700">$${it.total_usd.toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                const divCajeros = document.getElementById('vVentasCajeros');
+                if (!d.ventas_por_cajero || d.ventas_por_cajero.length === 0) {
+                    divCajeros.innerHTML = `<p class="text-slate-400 text-xs text-center py-4">Sin datos de cajeros</p>`;
+                } else {
+                    divCajeros.innerHTML = d.ventas_por_cajero.map(c => `
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                            <div>
+                                <strong class="text-xs text-slate-800 block">${c.nombre}</strong>
+                                <span class="text-[10px] text-slate-400">${c.facturas} facturas emitidas</span>
+                            </div>
+                            <span class="text-sm font-black font-mono text-emerald-600">$${c.total_usd.toFixed(2)}</span>
+                        </div>
+                    `).join('');
+                }
             }
         } catch (e) {
-            console.error(e);
+            console.error("Error al cargar ventas:", e);
         }
     }
 
-    document.addEventListener('DOMContentLoaded', cargarReportes);
+    async function cargarReporteCompras(desde, hasta) {
+        try {
+            const res = await fetch(`/api/reportes/compras?desde=${desde}&hasta=${hasta}`);
+            if (res.ok) {
+                const d = await res.json();
+                cacheReporte['compras'] = d;
+
+                document.getElementById('cTotalUSD').textContent = `$${d.totales.total_invertido_usd.toFixed(2)}`;
+                document.getElementById('cTotalBS').textContent = `Bs. ${d.totales.total_invertido_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('cCantCompras').textContent = d.totales.cantidad_compras;
+                document.getElementById('cTotalUnidades').textContent = d.totales.total_unidades;
+
+                const tbody = document.getElementById('tablaReporteCompras');
+                if (!d.compras || d.compras.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No se registraron compras en este rango de fecha</td></tr>`;
+                } else {
+                    tbody.innerHTML = d.compras.map(c => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 px-3 text-slate-600 text-[11px]">${c.fecha}</td>
+                            <td class="py-2 px-3 font-mono font-bold text-slate-500">${c.codigo}</td>
+                            <td class="py-2 px-3 font-semibold text-slate-800">${c.nombre}</td>
+                            <td class="py-2 px-3 text-center font-bold text-slate-700">${c.cantidad}</td>
+                            <td class="py-2 px-3 text-right font-mono text-slate-700">$${c.costo.toFixed(2)}</td>
+                            <td class="py-2 px-3 text-right font-mono font-black text-amber-700">$${c.subtotal.toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar compras:", e);
+        }
+    }
+
+    let filtroInventarioActual = 'todos';
+    async function cargarReporteInventario() {
+        try {
+            const res = await fetch(`/api/reportes/inventario?filtro=${filtroInventarioActual}`);
+            if (res.ok) {
+                const d = await res.json();
+                cacheReporte['inventario'] = d;
+
+                document.getElementById('iPatrimonioCosto').textContent = `$${d.totales.patrimonio_costo_usd.toFixed(2)}`;
+                document.getElementById('iPatrimonioCostoBS').textContent = `Bs. ${d.totales.patrimonio_costo_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('iPatrimonioPVP').textContent = `$${d.totales.patrimonio_pvp_usd.toFixed(2)}`;
+                document.getElementById('iPatrimonioPVPBS').textContent = `Bs. ${d.totales.patrimonio_pvp_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('iGananciaProyectada').textContent = `$${d.totales.ganancia_proyectada_usd.toFixed(2)}`;
+                document.getElementById('iMargenProyectado').textContent = `${d.totales.margen_proyectado_pct}% ganancia proyectada`;
+
+                document.getElementById('iCriticosCount').textContent = `${d.totales.productos_alerta} Alertas`;
+                document.getElementById('iAgotadosCount').textContent = `${d.totales.productos_agotados} Agotados`;
+                document.getElementById('iTotalProds').textContent = `${d.totales.total_productos} productos en catálogo`;
+
+                const tbody = document.getElementById('tablaReporteInventario');
+                if (!d.articulos || d.articulos.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400">No se encontraron artículos con el filtro seleccionado</td></tr>`;
+                } else {
+                    tbody.innerHTML = d.articulos.map(a => {
+                        const esCritico = a.stock <= (a.stock_alerta || 5.0) && a.stock > 0;
+                        const esAgotado = a.stock <= 0;
+                        const stockBadge = esAgotado 
+                            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">Agotado (0)</span>`
+                            : (esCritico ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">${a.stock} (Bajo)</span>` : `<span class="font-bold text-slate-800">${a.stock}</span>`);
+
+                        return `
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-2 px-3 font-mono font-bold text-slate-500">${a.codigo}</td>
+                                <td class="py-2 px-3 font-semibold text-slate-800">${a.nombre}</td>
+                                <td class="py-2 px-3 text-slate-500">${a.categoria}</td>
+                                <td class="py-2 px-3 text-center">${stockBadge}</td>
+                                <td class="py-2 px-3 text-center font-mono text-slate-400 text-[11px]">&le; ${a.stock_alerta || 5.0}</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-700">$${(a.costo_final || 0).toFixed(2)}</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-slate-900">$${(a.precio || 0).toFixed(2)}</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-blue-700">$${a.valoracion_costo.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar inventario:", e);
+        }
+    }
+
+    function filtrarReporteInventario(tipo) {
+        filtroInventarioActual = tipo;
+        ['todos', 'alerta', 'agotados', 'con_stock'].forEach(t => {
+            const btn = document.getElementById(`btnInv_${t}`);
+            if (btn) btn.className = (t === tipo) 
+                ? "px-3 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white" 
+                : "px-3 py-1 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-100";
+        });
+        cargarReporteInventario();
+    }
+
+    async function cargarReporteCajas(desde, hasta) {
+        try {
+            const res = await fetch(`/api/reportes/cajas?desde=${desde}&hasta=${hasta}`);
+            if (res.ok) {
+                const d = await res.json();
+                cacheReporte['cajas'] = d;
+
+                document.getElementById('rcTotalVentas').textContent = `$${d.totales.total_ventas_usd.toFixed(2)}`;
+                document.getElementById('rcTotalAbonos').textContent = `$${d.totales.total_abonos_usd.toFixed(2)}`;
+                document.getElementById('rcTotalEfectivo').textContent = `$${d.totales.total_efectivo_usd.toFixed(2)}`;
+                
+                const dif = d.totales.total_diferencias_usd;
+                const txtDif = document.getElementById('rcTotalDiferencias');
+                txtDif.textContent = `${dif >= 0 ? '+$' : '-$'}${Math.abs(dif).toFixed(2)}`;
+                txtDif.className = `text-xl sm:text-2xl font-black font-mono mt-1 block ${dif === 0 ? 'text-slate-800' : (dif > 0 ? 'text-emerald-600' : 'text-rose-600')}`;
+
+                const tbody = document.getElementById('tablaReporteCajas');
+                if (!d.cajas || d.cajas.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="11" class="text-center py-6 text-slate-400">No hay turnos de caja registrados en estas fechas</td></tr>`;
+                } else {
+                    tbody.innerHTML = d.cajas.map(c => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 px-3 text-center font-mono font-bold text-slate-900">#${c.numero}</td>
+                            <td class="py-2 px-3 font-semibold text-slate-800">${c.usuario_apertura_nombre}</td>
+                            <td class="py-2 px-3 text-slate-500 text-[11px]">${c.fecha_apertura}</td>
+                            <td class="py-2 px-3 text-slate-500 text-[11px]">${c.fecha_cierre || '<em class="text-emerald-600">Abierta</em>'}</td>
+                            <td class="py-2 px-3 text-right font-mono text-slate-600">$${c.monto_apertura_usd.toFixed(2)}</td>
+                            <td class="py-2 px-3 text-right font-mono font-bold text-slate-800">$${c.total_ventas.toFixed(2)}</td>
+                            <td class="py-2 px-3 text-right font-mono text-blue-700">$${c.total_abonos.toFixed(2)}</td>
+                            <td class="py-2 px-3 text-right font-mono font-bold text-slate-900">$${c.total_esperado_efectivo.toFixed(2)}</td>
+                            <td class="py-2 px-3 text-right font-mono text-slate-800">${c.estado === 'cerrada' ? '$' + c.declarado_efectivo.toFixed(2) : '-'}</td>
+                            <td class="py-2 px-3 text-right font-mono font-bold ${c.diferencia_efectivo >= 0 ? 'text-emerald-600' : 'text-rose-600'}">${c.estado === 'cerrada' ? (c.diferencia_efectivo >= 0 ? '+$' : '-$') + Math.abs(c.diferencia_efectivo).toFixed(2) : '-'}</td>
+                            <td class="py-2 px-3 text-center">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.estado === 'abierta' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'} uppercase">
+                                    ${c.estado}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar cajas:", e);
+        }
+    }
+
+    async function cargarReporteCobranza(desde, hasta) {
+        try {
+            const res = await fetch(`/api/reportes/cobranza?desde=${desde}&hasta=${hasta}`);
+            if (res.ok) {
+                const d = await res.json();
+                cacheReporte['cobranza'] = d;
+
+                document.getElementById('cobCarteraTotal').textContent = `$${d.totales.cartera_total_usd.toFixed(2)}`;
+                document.getElementById('cobCarteraTotalBS').textContent = `Bs. ${d.totales.cartera_total_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+                document.getElementById('cobCarteraVencida').textContent = `$${d.totales.cartera_vencida_usd.toFixed(2)}`;
+                document.getElementById('cobCarteraVigente').textContent = `$${d.totales.cartera_vigente_usd.toFixed(2)}`;
+                document.getElementById('cobAbonosRecaudados').textContent = `$${d.totales.total_abonos_periodo_usd.toFixed(2)}`;
+
+                const tbodyCli = document.getElementById('tablaCobClientes');
+                if (!d.clientes_deudores || d.clientes_deudores.length === 0) {
+                    tbodyCli.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">Sin deudas pendientes</td></tr>`;
+                } else {
+                    tbodyCli.innerHTML = d.clientes_deudores.map(c => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 px-3 font-semibold text-slate-800">${c.cliente}</td>
+                            <td class="py-2 px-3 text-center font-bold text-slate-600">${c.facturas_count}</td>
+                            <td class="py-2 px-3 text-center ${c.vencidas_count > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'}">${c.vencidas_count}</td>
+                            <td class="py-2 px-3 text-right font-mono font-black text-rose-700">$${c.saldo_total.toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                const tbodyAb = document.getElementById('tablaCobAbonos');
+                if (!d.abonos_periodo || d.abonos_periodo.length === 0) {
+                    tbodyAb.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">Sin abonos en el período seleccionado</td></tr>`;
+                } else {
+                    tbodyAb.innerHTML = d.abonos_periodo.map(a => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 px-3 text-slate-500 text-[11px]">${a.fecha}</td>
+                            <td class="py-2 px-3 font-semibold text-slate-800">${a.cliente}</td>
+                            <td class="py-2 px-3 text-slate-600 capitalize">${a.metodo_pago}</td>
+                            <td class="py-2 px-3 text-right font-mono font-black text-emerald-700">+$${a.monto_usd.toFixed(2)}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar cobranza:", e);
+        }
+    }
+
+    function imprimirReporteActivo() {
+        const nombres = {
+            'ventas': 'Informe de Ventas y Facturación',
+            'compras': 'Informe de Compras y Reposición',
+            'inventario': 'Valoración General del Inventario',
+            'cajas': 'Consolidado de Turnos y Cajas',
+            'cobranza': 'Cartera de Créditos y Cobranzas'
+        };
+        document.getElementById('printSubtituloReporte').textContent = `${nombres[tabActiva] || 'Reporte'} (Desde: ${document.getElementById('filtroDesde').value} Hasta: ${document.getElementById('filtroHasta').value})`;
+        document.getElementById('printFechaGenerado').textContent = new Date().toLocaleString('es-VE');
+        window.print();
+    }
+
+    function exportarExcelReporteActivo() {
+        const d = cacheReporte[tabActiva];
+        if (!d) {
+            Swal.fire('Atención', 'Cargue primero el reporte para exportar', 'warning');
+            return;
+        }
+
+        let csv = '';
+        let filename = `reporte_${tabActiva}_${new Date().toISOString().slice(0,10)}.csv`;
+
+        if (tabActiva === 'ventas') {
+            csv = "REPORTE DE VENTAS PROLAGO C.A.\n";
+            csv += `Total Ventas USD,${d.totales.total_usd}\n`;
+            csv += `Total Facturas,${d.totales.cantidad_facturas}\n`;
+            csv += `Total Contado USD,${d.totales.total_contado_usd}\n`;
+            csv += `Total Credito USD,${d.totales.total_credito_usd}\n\n`;
+            csv += "TOP PRODUCTOS MAS VENDIDOS\nCodigo,Nombre,Cantidad,Total USD\n";
+            (d.top_productos || []).forEach(p => {
+                csv += `"${p.codigo}","${p.nombre.replace(/"/g, '""')}",${p.cantidad},${p.total_usd}\n`;
+            });
+        } else if (tabActiva === 'compras') {
+            csv = "REPORTE DE COMPRAS PROLAGO C.A.\nFecha,Codigo,Producto,Cantidad,Costo Unit USD,Subtotal USD\n";
+            (d.compras || []).forEach(c => {
+                csv += `"${c.fecha}","${c.codigo}","${c.nombre.replace(/"/g, '""')}",${c.cantidad},${c.costo},${c.subtotal}\n`;
+            });
+        } else if (tabActiva === 'inventario') {
+            csv = "REPORTE DE INVENTARIO PROLAGO C.A.\nCodigo,Producto,Categoria,Stock,Alerta,Costo USD,Precio USD,Total Costo USD\n";
+            (d.articulos || []).forEach(a => {
+                csv += `"${a.codigo}","${a.nombre.replace(/"/g, '""')}","${a.categoria}",${a.stock},${a.stock_alerta || 5.0},${a.costo_final},${a.precio},${a.valoracion_costo}\n`;
+            });
+        } else if (tabActiva === 'cajas') {
+            csv = "REPORTE DE CAJAS PROLAGO C.A.\nNumero,Cajero,Apertura,Cierre,Base USD,Ventas USD,Abonos USD,Esperado Ef USD,Declarado Ef USD,Diferencia USD,Estado\n";
+            (d.cajas || []).forEach(c => {
+                csv += `"${c.numero}","${c.usuario_apertura_nombre}","${c.fecha_apertura}","${c.fecha_cierre || ''}",${c.monto_apertura_usd},${c.total_ventas},${c.total_abonos},${c.total_esperado_efectivo},${c.declarado_efectivo},${c.diferencia_efectivo},"${c.estado}"\n`;
+            });
+        } else if (tabActiva === 'cobranza') {
+            csv = "REPORTE DE COBRANZA Y CUENTAS POR COBRAR\nCliente,Facturas,Vencidas,Saldo Deudor USD\n";
+            (d.clientes_deudores || []).forEach(c => {
+                csv += `"${c.cliente.replace(/"/g, '""')}",${c.facturas_count},${c.vencidas_count},${c.saldo_total}\n`;
+            });
+        }
+
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initFechas();
+        cargarReporteActivo();
+    });
 </script>
 {% endblock %}
