@@ -23,6 +23,7 @@ class ArticuloBase(BaseModel):
     sugerido: Optional[float] = 0.0
     precio: Optional[float] = 0.0
     stock: Optional[float] = 0.0
+    stock_alerta: Optional[float] = 5.0
     activo: Optional[bool] = True
 
 class ArticuloCreate(ArticuloBase):

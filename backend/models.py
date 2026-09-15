@@ -34,6 +34,7 @@ class Articulo(Base):
     
     # Inventario
     stock = Column(Float, default=0.0)
+    stock_alerta = Column(Float, default=5.0)
     activo = Column(Boolean, default=True)
 
 class Cliente(Base):

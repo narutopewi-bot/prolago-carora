@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, desc
+from sqlalchemy import func, or_, desc, text
 
 from .database import get_db, engine, Base
 from .models import Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito
@@ -21,6 +21,14 @@ from .auth import (
 
 # Inicializar tablas
 Base.metadata.create_all(bind=engine)
+
+# Auto-migración segura de columnas nuevas
+with engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE articulos ADD COLUMN stock_alerta FLOAT DEFAULT 5.0"))
+        conn.commit()
+    except Exception:
+        pass
 
 app = FastAPI(title="Prolago Carora Web", version="1.0.0")
 
@@ -128,6 +136,8 @@ def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user
     sugerido = round(costo_final + (costo_final * rent / 100.0) + (payload.mas or 0.0), 2)
     precio = payload.precio or sugerido
 
+    stock_alerta = payload.stock_alerta if payload.stock_alerta is not None else 5.0
+
     item = Articulo(
         codigo=payload.codigo,
         nombre=payload.nombre.strip().upper(),
@@ -142,6 +152,7 @@ def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user
         sugerido=sugerido,
         precio=precio,
         stock=payload.stock or 0.0,
+        stock_alerta=stock_alerta,
         activo=True
     )
     db.add(item)
@@ -171,6 +182,8 @@ def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(
     item.sugerido = sugerido
     item.precio = payload.precio or sugerido
     item.stock = payload.stock
+    if payload.stock_alerta is not None:
+        item.stock_alerta = payload.stock_alerta
     
     db.commit()
     db.refresh(item)
@@ -312,6 +325,12 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
     db.commit()
     db.refresh(factura)
 
+    cli = None
+    if payload.cliente_id:
+        cli = db.query(Cliente).filter(Cliente.id == payload.cliente_id).first()
+    if not cli and payload.cliente_nombre:
+        cli = db.query(Cliente).filter(Cliente.nombre == payload.cliente_nombre.strip().upper()).first()
+
     return {
         "status": "ok",
         "factura_id": factura.id,
@@ -320,15 +339,29 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         "total_usd": factura.total,
         "total_bs": round(factura.total * tasa_bcv, 2),
         "tasa_bcv": tasa_bcv,
+        "efectivo": factura.efectivo or 0.0,
+        "zelle": factura.zelle or 0.0,
+        "pagomovil": factura.pagomovil or 0.0,
+        "punto": factura.punto or 0.0,
+        "credito": factura.credito or 0.0,
         "saldo_pendiente": factura.saldo_pendiente,
-        "fecha_vencimiento": factura.fecha_vencimiento.strftime("%Y-%m-%d") if factura.fecha_vencimiento else ""
+        "fecha_vencimiento": factura.fecha_vencimiento.strftime("%d/%m/%Y") if factura.fecha_vencimiento else "",
+        "dias_credito": payload.dias_credito or 15,
+        "cliente_nombre": factura.cliente_nombre,
+        "cliente_cedula": cli.cedula_rif if cli else "",
+        "cliente_telefono": cli.telefono if cli else "",
+        "cliente_direccion": cli.direccion if cli else "",
+        "fecha": factura.fecha.strftime("%d/%m/%Y %I:%M %p") if factura.fecha else ""
     }
 
 @app.get("/api/facturas")
 def list_facturas(
-    limit: int = 50,
+    limit: int = 150,
     offset: int = 0,
     search: Optional[str] = None,
+    fecha_inicio: Optional[str] = None,
+    fecha_fin: Optional[str] = None,
+    condicion: Optional[str] = None,
     db: Session = Depends(get_db),
     user: Usuario = Depends(require_user)
 ):
@@ -336,6 +369,23 @@ def list_facturas(
     if search:
         s = f"%{search.strip()}%"
         query = query.filter(or_(Factura.numero.ilike(s), Factura.cliente_nombre.ilike(s)))
+    if fecha_inicio and fecha_inicio.strip():
+        try:
+            dt_inicio = datetime.strptime(fecha_inicio.strip(), "%Y-%m-%d")
+            query = query.filter(Factura.fecha >= dt_inicio)
+        except Exception:
+            pass
+    if fecha_fin and fecha_fin.strip():
+        try:
+            dt_fin = datetime.strptime(fecha_fin.strip(), "%Y-%m-%d") + timedelta(days=1)
+            query = query.filter(Factura.fecha < dt_fin)
+        except Exception:
+            pass
+    if condicion and condicion.strip():
+        c = condicion.strip().lower()
+        if c in ["contado", "credito"]:
+            query = query.filter(Factura.condicion == c)
+
     total = query.count()
     facturas = query.order_by(Factura.fecha.desc()).offset(offset).limit(limit).all()
     
@@ -348,6 +398,7 @@ def list_facturas(
             "id": f.id,
             "numero": f.numero,
             "fecha": f.fecha.isoformat() if f.fecha else "",
+            "fecha_formateada": f.fecha.strftime("%d/%m/%Y %I:%M %p") if f.fecha else "",
             "cliente_nombre": f.cliente_nombre or "CLIENTE DE CONTADO",
             "condicion": f.condicion or "contado",
             "total": f.total or 0.0,
@@ -359,7 +410,8 @@ def list_facturas(
             "credito": cred,
             "saldo_pendiente": saldo,
             "total_abonado": abonado,
-            "estado_credito": f.estado_credito or ("saldado" if saldo <= 0.009 else "pendiente")
+            "estado_credito": f.estado_credito or ("saldado" if saldo <= 0.009 else "pendiente"),
+            "fecha_vencimiento": f.fecha_vencimiento.strftime("%d/%m/%Y") if f.fecha_vencimiento else ""
         })
     return {"total": total, "items": items}
 
@@ -372,6 +424,10 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
     cred = factura.credito or 0.0
     saldo = factura.saldo_pendiente if factura.saldo_pendiente is not None else cred
     abonado = round(max(0.0, cred - saldo), 2)
+
+    cli = db.query(Cliente).filter(Cliente.id == factura.cliente_id).first() if factura.cliente_id else None
+    if not cli and factura.cliente_nombre:
+        cli = db.query(Cliente).filter(Cliente.nombre == factura.cliente_nombre).first()
     
     abonos_list = [
         {
@@ -392,8 +448,12 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
         "saldo_pendiente": saldo,
         "total_abonado": abonado,
         "estado_credito": factura.estado_credito or ("saldado" if saldo <= 0.009 else "pendiente"),
-        "fecha": factura.fecha.strftime("%Y-%m-%d %H:%M:%S") if factura.fecha else "",
+        "fecha": factura.fecha.strftime("%d/%m/%Y %I:%M %p") if factura.fecha else "",
+        "fecha_vencimiento": factura.fecha_vencimiento.strftime("%d/%m/%Y") if factura.fecha_vencimiento else "",
         "cliente_nombre": factura.cliente_nombre,
+        "cliente_cedula": cli.cedula_rif if cli else "",
+        "cliente_telefono": cli.telefono if cli else "",
+        "cliente_direccion": cli.direccion if cli else "",
         "total_usd": factura.total,
         "total_bs": round(factura.total * factura.tasa_bcv, 2),
         "tasa_bcv": factura.tasa_bcv,
@@ -696,7 +756,7 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
     # Métricas globales de inventario
     articulos = db.query(Articulo).filter(Articulo.activo == True).all()
     total_articulos = len(articulos)
-    bajo_stock = sum(1 for a in articulos if a.stock <= 5)
+    bajo_stock = sum(1 for a in articulos if a.stock <= (a.stock_alerta if a.stock_alerta is not None else 5.0))
     patrimonio_total = sum(a.stock * a.costo_final for a in articulos if a.stock > 0)
 
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
