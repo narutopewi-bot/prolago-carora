@@ -53,3 +53,11 @@ def require_admin(user: Usuario = Depends(require_user)) -> Usuario:
     if user.rol != "admin":
         raise HTTPException(status_code=403, detail="Permiso denegado. Se requiere rol de administrador.")
     return user
+
+def check_admin_password(db: Session, password: str) -> Optional[Usuario]:
+    admins = db.query(Usuario).filter(Usuario.rol == "admin", Usuario.activo == True).all()
+    for adm in admins:
+        if verify_password(password, adm.password_hash):
+            return adm
+    return None
+

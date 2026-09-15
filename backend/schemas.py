@@ -90,3 +90,54 @@ class CompraCreate(BaseModel):
     mas: Optional[float] = 0.0
     rentabilidad: Optional[float] = 20.0
     precio: float
+
+# Esquemas de Usuarios y Permisos
+class UsuarioCreate(BaseModel):
+    username: str
+    password: str
+    nombre: str
+    rol: Optional[str] = "cajero"
+    permisos: Optional[List[str]] = None
+    activo: Optional[bool] = True
+
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    password: Optional[str] = None
+    rol: Optional[str] = None
+    permisos: Optional[List[str]] = None
+    activo: Optional[bool] = None
+
+class UsuarioOut(BaseModel):
+    id: int
+    username: str
+    nombre: str
+    rol: str
+    activo: bool
+    permisos: List[str]
+    creado_en: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
+class VerificarAdminRequest(BaseModel):
+    password: str
+
+# Esquema para Modificación de Facturas
+class ItemFacturaUpdate(BaseModel):
+    codigo_articulo: int
+    cantidad: float
+    precio_unitario: float
+    descuento_pct: Optional[float] = 0.0
+
+class FacturaUpdate(BaseModel):
+    cliente_nombre: Optional[str] = None
+    cliente_id: Optional[int] = None
+    condicion: Optional[str] = None
+    efectivo: Optional[float] = None
+    zelle: Optional[float] = None
+    pagomovil: Optional[float] = None
+    punto: Optional[float] = None
+    credito: Optional[float] = None
+    dias_credito: Optional[int] = None
+    items: Optional[List[ItemFacturaUpdate]] = None
+    admin_password: Optional[str] = None
+

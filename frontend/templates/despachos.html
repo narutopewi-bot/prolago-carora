@@ -67,9 +67,9 @@
                 <input type="text" id="despachoDestino" list="destinosSugeridos" placeholder="Ej: Alejandra López, Prolago Goajiro..."
                     class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-purple-500">
                 <datalist id="destinosSugeridos">
-                    <option value="Alejandra López - Av. Bolívar, Dabajuro.">
-                    <option value="Prolago Goajiro - Calle Principal, Goajiro.">
-                    <option value="Prolago - Av. Rotaria, Carora.">
+                    <option value="Alejandra López" label="Av. Bolívar, Dabajuro.">
+                    <option value="Prolago Goajiro" label="Calle Principal, Goajiro.">
+                    <option value="Prolago Rotaria" label="Av. Rotaria, Carora.">
                 </datalist>
             </div>
 
@@ -110,6 +110,11 @@
 <script>
     let despachoItems = [];
     let siguienteDespachoNum = "1";
+    let clientesDespachoCache = {
+        "Alejandra López": "Av. Bolívar, Dabajuro.",
+        "Prolago Goajiro": "Calle Principal, Goajiro.",
+        "Prolago Rotaria": "Av. Rotaria, Carora."
+    };
 
     async function initDespachos() {
         try {
@@ -123,6 +128,66 @@
             console.error(e);
         }
         configurarBuscadorDespacho();
+        cargarClientesDespacho();
+        configurarAutocompletarDestino();
+    }
+
+    async function cargarClientesDespacho() {
+        try {
+            const res = await fetch('/api/clientes?limit=300');
+            if (res.ok) {
+                const data = await res.json();
+                const dl = document.getElementById('destinosSugeridos');
+                dl.innerHTML = '';
+                
+                (data.items || []).forEach(c => {
+                    if (c.nombre) {
+                        const nom = c.nombre.trim();
+                        clientesDespachoCache[nom] = c.direccion || '';
+                    }
+                });
+
+                for (const [nombre, dir] of Object.entries(clientesDespachoCache)) {
+                    const opt = document.createElement('option');
+                    opt.value = nombre;
+                    if (dir) opt.label = dir;
+                    dl.appendChild(opt);
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar clientes:", e);
+        }
+    }
+
+    function configurarAutocompletarDestino() {
+        const inpDestino = document.getElementById('despachoDestino');
+        const inpDireccion = document.getElementById('despachoDireccion');
+
+        function sincronizarDestino() {
+            let val = inpDestino.value;
+            if (!val) return;
+
+            // Si el usuario seleccionó o escribió con formato "Nombre - Dirección"
+            if (val.includes(" - ")) {
+                const partes = val.split(" - ");
+                const nombreLimpio = partes[0].trim();
+                const direccionLimpia = partes.slice(1).join(" - ").trim();
+                inpDestino.value = nombreLimpio;
+                if (direccionLimpia) {
+                    inpDireccion.value = direccionLimpia;
+                }
+                return;
+            }
+
+            // Si el nombre coincide con un cliente en caché
+            const nomTrim = val.trim();
+            if (clientesDespachoCache[nomTrim]) {
+                inpDireccion.value = clientesDespachoCache[nomTrim];
+            }
+        }
+
+        inpDestino.addEventListener('input', sincronizarDestino);
+        inpDestino.addEventListener('change', sincronizarDestino);
     }
 
     function configurarBuscadorDespacho() {

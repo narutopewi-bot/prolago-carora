@@ -7,15 +7,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, desc, text
+import json
 
 from .database import get_db, engine, Base
 from .models import Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito
 from .schemas import (
     LoginRequest, TasaBCVUpdate, ArticuloCreate, ArticuloOut,
-    ClienteCreate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, AbonoCreate
+    ClienteCreate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, AbonoCreate,
+    UsuarioCreate, UsuarioUpdate, UsuarioOut, VerificarAdminRequest, ItemFacturaUpdate, FacturaUpdate
 )
 from .auth import (
-    hash_password, verify_password, create_session,
+    hash_password, verify_password, create_session, check_admin_password,
     ACTIVE_SESSIONS, get_current_user, require_user, require_admin
 )
 
@@ -26,6 +28,11 @@ Base.metadata.create_all(bind=engine)
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE articulos ADD COLUMN stock_alerta FLOAT DEFAULT 5.0"))
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute(text("ALTER TABLE usuarios ADD COLUMN permisos TEXT DEFAULT '*'"))
         conn.commit()
     except Exception:
         pass
@@ -70,7 +77,16 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         max_age=86400 * 7,
         samesite="lax"
     )
-    return {"status": "ok", "user": {"id": user.id, "username": user.username, "nombre": user.nombre, "rol": user.rol}}
+    return {
+        "status": "ok",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "nombre": user.nombre,
+            "rol": user.rol,
+            "permisos": user.lista_permisos
+        }
+    }
 
 @app.post("/api/auth/logout")
 def logout(request: Request, response: Response):
@@ -82,7 +98,20 @@ def logout(request: Request, response: Response):
 
 @app.get("/api/auth/me")
 def me(user: Usuario = Depends(require_user)):
-    return {"id": user.id, "username": user.username, "nombre": user.nombre, "rol": user.rol}
+    return {
+        "id": user.id,
+        "username": user.username,
+        "nombre": user.nombre,
+        "rol": user.rol,
+        "permisos": user.lista_permisos
+    }
+
+@app.post("/api/auth/verificar_admin")
+def verificar_admin(payload: VerificarAdminRequest, db: Session = Depends(get_db)):
+    admin = check_admin_password(db, payload.password)
+    if not admin:
+        raise HTTPException(status_code=401, detail="Contraseña de administrador incorrecta")
+    return {"status": "ok", "admin_nombre": admin.nombre}
 
 # ==========================================
 # ARTÍCULOS E INVENTARIO
@@ -478,6 +507,115 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
         ]
     }
 
+@app.put("/api/facturas/{id}")
+def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    autorizado = user.tiene_permiso("modificar_facturas") or user.rol == "admin"
+    if not autorizado:
+        if payload.admin_password:
+            admin = check_admin_password(db, payload.admin_password)
+            if admin:
+                autorizado = True
+    
+    if not autorizado:
+        raise HTTPException(status_code=403, detail="Se requiere autorización de administrador para modificar facturas")
+    
+    factura = db.query(Factura).filter(Factura.id == id).first()
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+
+    tasa_bcv = factura.tasa_bcv or float(get_config_val(db, "tasa_bcv", "473.92"))
+
+    # Si se actualizan los ítems
+    if payload.items is not None:
+        if len(payload.items) == 0:
+            raise HTTPException(status_code=400, detail="La factura debe tener al menos un producto")
+        
+        # 1. Revertir stock de los ítems existentes
+        for item_antiguo in factura.items:
+            art = db.query(Articulo).filter(Articulo.codigo == item_antiguo.codigo_articulo).first()
+            if art:
+                art.stock += item_antiguo.cantidad
+        
+        # 2. Eliminar detalles anteriores
+        for item_antiguo in list(factura.items):
+            db.delete(item_antiguo)
+        db.flush()
+
+        # 3. Aplicar nuevos ítems y descontar nuevo stock
+        total_nuevo = 0.0
+        nuevos_detalles = []
+        for it in payload.items:
+            art = db.query(Articulo).filter(Articulo.codigo == it.codigo_articulo).first()
+            if not art:
+                raise HTTPException(status_code=400, detail=f"Artículo con código {it.codigo_articulo} no encontrado")
+            
+            art.stock -= it.cantidad
+            dcto = it.descuento_pct or 0.0
+            subt = round(it.cantidad * it.precio_unitario * (1 - dcto / 100), 2)
+            total_nuevo += subt
+            nuevos_detalles.append(DetalleFactura(
+                codigo_articulo=art.codigo,
+                nombre_articulo=art.nombre,
+                cantidad=it.cantidad,
+                precio_unitario=it.precio_unitario,
+                descuento_pct=dcto,
+                subtotal=subt,
+                costo_unitario=art.costo_final
+            ))
+        
+        factura.items = nuevos_detalles
+        factura.total = round(total_nuevo, 2)
+
+    # Actualizar cliente si corresponde
+    if payload.cliente_nombre is not None and payload.cliente_nombre.strip():
+        factura.cliente_nombre = payload.cliente_nombre.strip().upper()
+    if payload.cliente_id is not None:
+        factura.cliente_id = payload.cliente_id
+
+    # Actualizar condición
+    if payload.condicion:
+        factura.condicion = payload.condicion.strip().lower()
+
+    # Actualizar desglose de formas de pago
+    if payload.efectivo is not None: factura.efectivo = payload.efectivo
+    if payload.zelle is not None: factura.zelle = payload.zelle
+    if payload.pagomovil is not None: factura.pagomovil = payload.pagomovil
+    if payload.punto is not None: factura.punto = payload.punto
+    if payload.credito is not None: factura.credito = payload.credito
+
+    suma_pagos = round((factura.efectivo or 0.0) + (factura.zelle or 0.0) + (factura.pagomovil or 0.0) + (factura.punto or 0.0), 2)
+    
+    if factura.condicion == "contado":
+        factura.credito = 0.0
+        factura.saldo_pendiente = 0.0
+        factura.estado_credito = "saldado"
+        if suma_pagos == 0.0:
+            factura.efectivo = factura.total
+    else:  # Crédito
+        if payload.credito is None and (factura.credito is None or factura.credito == 0.0):
+            factura.credito = max(0.0, round(factura.total - suma_pagos, 2))
+        
+        # Considerar abonos ya realizados
+        total_abonos = sum(ab.monto_usd for ab in (factura.abonos or []))
+        credito_inicial = factura.credito or 0.0
+        factura.saldo_pendiente = max(0.0, round(credito_inicial - total_abonos, 2))
+        factura.estado_credito = "saldado" if factura.saldo_pendiente <= 0.009 else "pendiente"
+        if payload.dias_credito and payload.dias_credito > 0:
+            factura.fecha_vencimiento = factura.fecha + timedelta(days=payload.dias_credito)
+
+    db.commit()
+    db.refresh(factura)
+
+    return {
+        "status": "ok",
+        "mensaje": f"Factura #{factura.numero} modificada exitosamente",
+        "factura_id": factura.id,
+        "numero": factura.numero,
+        "total": factura.total,
+        "condicion": factura.condicion,
+        "saldo_pendiente": factura.saldo_pendiente
+    }
+
 # ==========================================
 # GESTIÓN DE CRÉDITOS Y COBRANZAS
 # ==========================================
@@ -782,8 +920,130 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
     }
 
 # ==========================================
+# GESTIÓN DE USUARIOS Y PERMISOS
+# ==========================================
+@app.get("/api/usuarios")
+def list_usuarios(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("usuarios"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para administrar usuarios")
+    usuarios = db.query(Usuario).order_by(Usuario.id.asc()).all()
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "nombre": u.nombre,
+            "rol": u.rol,
+            "activo": u.activo,
+            "permisos": u.lista_permisos,
+            "creado_en": u.creado_en.strftime("%d/%m/%Y %H:%M") if u.creado_en else ""
+        }
+        for u in usuarios
+    ]
+
+@app.post("/api/usuarios")
+def create_usuario(payload: UsuarioCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("usuarios"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para administrar usuarios")
+    
+    clean_username = payload.username.strip().lower()
+    if len(clean_username) < 3:
+        raise HTTPException(status_code=400, detail="El nombre de usuario debe tener al menos 3 caracteres")
+    if len(payload.password) < 4:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 4 caracteres")
+    
+    existe = db.query(Usuario).filter(Usuario.username == clean_username).first()
+    if existe:
+        raise HTTPException(status_code=400, detail="El nombre de usuario ya está registrado")
+    
+    permisos_str = "*"
+    if payload.permisos is not None and payload.rol != "admin":
+        permisos_str = json.dumps(payload.permisos)
+
+    nuevo = Usuario(
+        username=clean_username,
+        nombre=payload.nombre.strip(),
+        password_hash=hash_password(payload.password),
+        rol=payload.rol or "cajero",
+        activo=payload.activo if payload.activo is not None else True,
+        permisos=permisos_str
+    )
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return {"status": "ok", "id": nuevo.id, "mensaje": "Usuario creado exitosamente"}
+
+@app.put("/api/usuarios/{id}")
+def update_usuario(id: int, payload: UsuarioUpdate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("usuarios"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para administrar usuarios")
+    
+    u = db.query(Usuario).filter(Usuario.id == id).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.id == u.id and payload.activo is False:
+        raise HTTPException(status_code=400, detail="No puede desactivar su propio usuario")
+    
+    if u.rol == "admin" and (payload.rol == "cajero" or payload.activo is False):
+        total_admins = db.query(Usuario).filter(Usuario.rol == "admin", Usuario.activo == True).count()
+        if total_admins <= 1:
+            raise HTTPException(status_code=400, detail="Debe existir al menos un administrador activo en el sistema")
+
+    if payload.nombre is not None and payload.nombre.strip():
+        u.nombre = payload.nombre.strip()
+    if payload.rol is not None:
+        u.rol = payload.rol
+    if payload.activo is not None:
+        u.activo = payload.activo
+    if payload.password and len(payload.password.strip()) >= 4:
+        u.password_hash = hash_password(payload.password.strip())
+    
+    if payload.permisos is not None:
+        u.permisos = "*" if u.rol == "admin" else json.dumps(payload.permisos)
+
+    db.commit()
+    return {"status": "ok", "mensaje": "Usuario actualizado exitosamente"}
+
+@app.delete("/api/usuarios/{id}")
+def delete_usuario(id: int, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not user.tiene_permiso("usuarios"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para administrar usuarios")
+    
+    u = db.query(Usuario).filter(Usuario.id == id).first()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.id == u.id:
+        raise HTTPException(status_code=400, detail="No puede eliminar su propia cuenta")
+    if u.rol == "admin":
+        total_admins = db.query(Usuario).filter(Usuario.rol == "admin", Usuario.activo == True).count()
+        if total_admins <= 1:
+            raise HTTPException(status_code=400, detail="No se puede eliminar el único administrador activo")
+    
+    db.delete(u)
+    db.commit()
+    return {"status": "ok", "mensaje": "Usuario eliminado exitosamente"}
+
+# ==========================================
 # RUTAS DE PÁGINAS HTML (INTERFAZ WEB)
 # ==========================================
+def get_user_first_allowed_url(user: Usuario) -> str:
+    modulo_urls = [
+        ("pos", "/"),
+        ("inventario", "/inventario"),
+        ("compras", "/compras"),
+        ("despachos", "/despachos"),
+        ("creditos", "/creditos"),
+        ("historial", "/historial"),
+        ("clientes", "/clientes"),
+        ("reportes", "/reportes"),
+        ("mantenimiento", "/mantenimiento"),
+        ("usuarios", "/usuarios"),
+    ]
+    for mod, url in modulo_urls:
+        if user.tiene_permiso(mod):
+            return url
+    return "/"
+
 @app.get("/login", response_class=HTMLResponse)
 def page_login(request: Request):
     return templates.TemplateResponse(request=request, name="login.html")
@@ -792,49 +1052,73 @@ def page_login(request: Request):
 def page_pos(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("pos"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="pos.html", context={"user": user})
 
 @app.get("/inventario", response_class=HTMLResponse)
 def page_inventario(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("inventario"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="articulos.html", context={"user": user})
 
 @app.get("/compras", response_class=HTMLResponse)
 def page_compras(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("compras"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="compras.html", context={"user": user})
 
 @app.get("/despachos", response_class=HTMLResponse)
 def page_despachos(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("despachos"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="despachos.html", context={"user": user})
 
 @app.get("/historial", response_class=HTMLResponse)
 def page_historial(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("historial"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="historial.html", context={"user": user})
 
 @app.get("/clientes", response_class=HTMLResponse)
 def page_clientes(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("clientes"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="clientes.html", context={"user": user})
 
 @app.get("/reportes", response_class=HTMLResponse)
 def page_reportes(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("reportes"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="reportes.html", context={"user": user})
 
 @app.get("/creditos", response_class=HTMLResponse)
 def page_creditos(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("creditos"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="creditos.html", context={"user": user})
+
+@app.get("/usuarios", response_class=HTMLResponse)
+def page_usuarios(request: Request, user: Usuario = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
+    if not user.tiene_permiso("usuarios"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
+    return templates.TemplateResponse(request=request, name="usuarios.html", context={"user": user})
 
 # ==========================================
 # MANTENIMIENTO, DIAGNÓSTICO Y RESPALDOS
@@ -875,6 +1159,8 @@ crear_autobackup_diario()
 def page_mantenimiento(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
+    if not user.tiene_permiso("mantenimiento"):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="mantenimiento.html", context={"user": user})
 
 @app.get("/api/mantenimiento/diagnostico")

@@ -12,7 +12,31 @@ class Usuario(Base):
     nombre = Column(String(100), nullable=False)
     rol = Column(String(20), default="cajero")  # 'admin' o 'cajero'
     activo = Column(Boolean, default=True)
+    permisos = Column(Text, default="*")  # JSON lista de permisos o '*'
     creado_en = Column(DateTime, default=datetime.utcnow)
+
+    @property
+    def lista_permisos(self):
+        if self.rol == "admin":
+            return ["pos", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
+        if not self.permisos or self.permisos == "*":
+            if self.rol == "admin":
+                return ["pos", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
+            return ["pos", "historial", "clientes"]
+        try:
+            import json
+            p = json.loads(self.permisos)
+            if isinstance(p, list):
+                return p
+        except Exception:
+            return [x.strip() for x in self.permisos.split(",") if x.strip()]
+        return []
+
+    def tiene_permiso(self, perm: str) -> bool:
+        if self.rol == "admin":
+            return True
+        perms = self.lista_permisos
+        return "*" in perms or perm in perms
 
 class Articulo(Base):
     __tablename__ = "articulos"

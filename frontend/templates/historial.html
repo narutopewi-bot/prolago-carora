@@ -232,9 +232,13 @@
 
         <div class="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
             <button onclick="cerrarDetalle()" class="flex-1 py-2.5 bg-slate-100 font-bold rounded-xl text-slate-700">Cerrar</button>
+            <button type="button" onclick="intentarModificarFactura(detalleFacturaActual ? detalleFacturaActual.id : null)" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 font-bold rounded-xl text-white flex items-center justify-center space-x-1.5 shadow transition" title="Modificar esta factura">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Modificar</span>
+            </button>
             <button type="button" onclick="imprimirMediaHojaDesdeDetalle()" id="btnImprimirMediaHojaDetalle" class="hidden flex-1 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] font-bold rounded-xl text-white flex items-center justify-center space-x-1.5 shadow transition">
                 <i class="fa-solid fa-file-invoice-dollar"></i>
-                <span>Imprimir Media Hoja (A4)</span>
+                <span>Media Hoja</span>
             </button>
             <button onclick="window.print()" id="btnImprimirNormalDetalle" class="flex-1 py-2.5 bg-slate-900 font-bold rounded-xl text-white flex items-center justify-center space-x-1">
                 <i class="fa-solid fa-print"></i>
@@ -390,6 +394,171 @@
                 <span>Imprimir Media Hoja (A4)</span>
             </button>
         </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL MODIFICAR FACTURA (ADMINISTRADOR O AUTORIZADO) -->
+<!-- ======================================================== -->
+<div id="modalModificarFactura" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-5 sm:p-6 text-xs text-slate-800 max-h-[96vh] flex flex-col overflow-hidden">
+        
+        <!-- Cabecera del Modal -->
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-3 shrink-0">
+            <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm shadow-sm">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </span>
+                <div>
+                    <h3 class="font-black text-sm text-slate-900">Modificar Factura N° <span id="modFacturaNumero" class="text-amber-600"></span></h3>
+                    <p class="text-[11px] text-slate-400">Edite artículos, cantidades, precios, cliente o formas de pago</p>
+                </div>
+            </div>
+            <button onclick="cerrarModalModificarFactura()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+                <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+        </div>
+
+        <!-- Contenido con scroll -->
+        <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+            
+            <!-- Datos del Cliente y Condición -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <div class="sm:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Cliente / Razón Social *</label>
+                    <input type="text" id="modFacturaCliente" placeholder="Nombre del cliente..."
+                        class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Condición de Venta *</label>
+                    <select id="modFacturaCondicion" onchange="cambioCondicionMod()"
+                        class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <option value="contado">CONTADO</option>
+                        <option value="credito">CRÉDITO</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Buscador para Agregar Nuevos Artículos -->
+            <div class="relative">
+                <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Agregar Producto a la Factura</label>
+                <div class="relative">
+                    <i class="fa-solid fa-barcode absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="modBuscadorProducto" placeholder="Buscar por código o nombre para añadir..."
+                        class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+                <div id="modDropdownResultados" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-100"></div>
+            </div>
+
+            <!-- Tabla de Ítems de la Factura -->
+            <div class="border border-slate-200 rounded-2xl overflow-hidden">
+                <div class="bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
+                    <span>Artículos Facturados</span>
+                    <span id="modCantItemsBadge" class="px-2 py-0.5 bg-white rounded-full text-slate-700 font-bold border border-slate-200">0 ítems</span>
+                </div>
+                <div class="overflow-x-auto max-h-56 overflow-y-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-[10px] text-slate-400 uppercase font-semibold border-b border-slate-200 sticky top-0">
+                            <tr>
+                                <th class="py-1.5 px-3">Cód.</th>
+                                <th class="py-1.5 px-3">Descripción</th>
+                                <th class="py-1.5 px-2 text-center w-20">Cant.</th>
+                                <th class="py-1.5 px-2 text-right w-24">Precio ($)</th>
+                                <th class="py-1.5 px-2 text-center w-16">Dcto (%)</th>
+                                <th class="py-1.5 px-3 text-right w-24">Subtotal</th>
+                                <th class="py-1.5 px-2 text-center w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="modItemsTbody" class="divide-y divide-slate-100 font-mono">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Resumen Financiero y Formas de Pago -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <!-- Desglose de Pagos -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <div class="flex justify-between items-center pb-1 border-b border-slate-200">
+                        <span class="text-[10px] font-bold text-slate-600 uppercase">Formas de Pago ($)</span>
+                        <button type="button" onclick="cuadrarPagosMod()" class="text-[10px] text-amber-700 hover:text-amber-800 font-bold underline">
+                            Cuadrar al Total
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                            <span class="text-[10px] text-slate-500 font-semibold block">Efectivo ($):</span>
+                            <input type="number" step="0.01" min="0" id="modPagoEfectivo" oninput="recalcularTotalesMod(false)"
+                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-purple-600 font-semibold block">Zelle ($):</span>
+                            <input type="number" step="0.01" min="0" id="modPagoZelle" oninput="recalcularTotalesMod(false)"
+                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-blue-600 font-semibold block">Pago Móvil ($):</span>
+                            <input type="number" step="0.01" min="0" id="modPagoPagomovil" oninput="recalcularTotalesMod(false)"
+                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-amber-600 font-semibold block">Punto de Venta ($):</span>
+                            <input type="number" step="0.01" min="0" id="modPagoPunto" oninput="recalcularTotalesMod(false)"
+                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                        </div>
+                    </div>
+
+                    <div id="modFilaCredito" class="pt-1 border-t border-slate-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] text-rose-600 font-bold uppercase">Monto a Crédito ($):</span>
+                            <input type="number" step="0.01" min="0" id="modPagoCredito" oninput="recalcularTotalesMod(false)"
+                                class="w-24 px-2 py-1 bg-white border border-rose-300 text-rose-700 rounded-lg text-xs font-black font-mono text-right">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen Totales -->
+                <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl flex flex-col justify-between space-y-2">
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-600 text-[11px]">
+                            <span>Subtotal Factura ($):</span>
+                            <span id="modResumenSubtotal" class="font-mono font-bold">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500 text-[11px]">
+                            <span>Tasa BCV Aplicada:</span>
+                            <span id="modResumenTasa" class="font-mono">0.00 Bs./$</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-black text-amber-900 border-t border-amber-200 pt-1.5">
+                            <span>TOTAL MODIFICADO ($):</span>
+                            <span id="modResumenTotalUSD" class="font-mono text-base text-amber-700">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-xs font-bold text-slate-700">
+                            <span>Equiv. Bolívares:</span>
+                            <span id="modResumenTotalBS" class="font-mono text-slate-900">Bs. 0,00</span>
+                        </div>
+                    </div>
+
+                    <div id="modAlertaDiferencia" class="hidden text-[10px] text-rose-600 font-bold bg-white/80 p-1.5 rounded-lg border border-rose-200 text-center">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> La suma de pagos no coincide con el total.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Botones Inferiores -->
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 mt-3 shrink-0">
+            <button type="button" onclick="cerrarModalModificarFactura()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition">
+                Cancelar
+            </button>
+            <button type="button" onclick="guardarModificacionFactura()" id="btnGuardarModFactura" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black shadow-md shadow-amber-600/30 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-check"></i>
+                <span>Guardar Modificación</span>
+            </button>
+        </div>
+
     </div>
 </div>
 {% endblock %}
@@ -566,9 +735,12 @@
                 <td class="px-3 py-3 text-right font-mono">${celdaCredito}</td>
                 <td class="px-4 py-3 text-right font-mono font-black text-slate-900 text-sm">$${f.total.toFixed(2)}</td>
                 <td class="px-4 py-3 text-right font-mono text-slate-500 whitespace-nowrap">Bs. ${Number(totalBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
-                <td class="px-3 py-3 text-center whitespace-nowrap">
+                <td class="px-3 py-3 text-center whitespace-nowrap space-x-1">
                     <button onclick="verDetalleFactura(${f.id})" class="text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 p-1.5 rounded-lg transition" title="Ver detalle">
                         <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <button onclick="intentarModificarFactura(${f.id})" class="text-slate-400 hover:text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg transition" title="Modificar Factura">
+                        <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     ${btnPrintMediaHoja}
                 </td>
@@ -783,6 +955,362 @@
         setTimeout(() => {
             document.body.classList.remove('imprimiendo-media-hoja');
         }, 1000);
+    }
+
+    // ==========================================
+    // LÓGICA DE MODIFICACIÓN DE FACTURAS
+    // ==========================================
+    let facturaModActual = null;
+    let adminOverridePassword = null;
+
+    async function intentarModificarFactura(id) {
+        if (!id) return;
+        if (typeof tienePermiso === 'function' && tienePermiso('modificar_facturas')) {
+            abrirModalModificarFactura(id, null);
+        } else {
+            const { value: password } = await Swal.fire({
+                title: 'Autorización de Administrador',
+                text: 'Se requiere la clave del administrador para modificar esta factura:',
+                input: 'password',
+                inputPlaceholder: 'Contraseña del administrador...',
+                icon: 'lock',
+                showCancelButton: true,
+                confirmButtonText: 'Autorizar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d97706'
+            });
+
+            if (password) {
+                try {
+                    const res = await fetch('/api/auth/verificar_admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password })
+                    });
+                    const d = await res.json();
+                    if (res.ok && d.status === 'ok') {
+                        adminOverridePassword = password;
+                        abrirModalModificarFactura(id, password);
+                    } else {
+                        Swal.fire('No Autorizado', d.detail || 'Contraseña de administrador incorrecta.', 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('Error', 'Fallo al verificar contraseña con el servidor', 'error');
+                }
+            }
+        }
+    }
+
+    async function abrirModalModificarFactura(id, adminPassword) {
+        try {
+            const res = await fetch(`/api/facturas/${id}`);
+            if (!res.ok) {
+                Swal.fire('Error', 'No se pudo cargar la información de la factura.', 'error');
+                return;
+            }
+            const d = await res.json();
+            facturaModActual = {
+                id: d.id,
+                numero: d.numero,
+                tasa_bcv: d.tasa_bcv || TASA_BCV,
+                condicion: d.condicion || 'contado',
+                cliente_nombre: d.cliente_nombre || '',
+                cliente_id: d.cliente_id || null,
+                adminPassword: adminPassword,
+                items: (d.items || []).map(it => ({
+                    codigo: it.codigo,
+                    nombre: it.nombre,
+                    cantidad: it.cantidad,
+                    precio: it.precio,
+                    descuento: it.descuento || 0
+                }))
+            };
+
+            document.getElementById('modFacturaNumero').textContent = d.numero;
+            document.getElementById('modFacturaCliente').value = d.cliente_nombre || '';
+            document.getElementById('modFacturaCondicion').value = facturaModActual.condicion;
+
+            // Pagos
+            const pagos = d.pagos || {};
+            document.getElementById('modPagoEfectivo').value = pagos.efectivo || 0;
+            document.getElementById('modPagoZelle').value = pagos.zelle || 0;
+            document.getElementById('modPagoPagomovil').value = pagos.pagomovil || 0;
+            document.getElementById('modPagoPunto').value = pagos.punto || 0;
+            document.getElementById('modPagoCredito').value = pagos.credito || 0;
+
+            renderizarItemsMod();
+            cambioCondicionMod();
+            configurarBuscadorMod();
+
+            cerrarDetalle();
+            document.getElementById('modalModificarFactura').classList.remove('hidden');
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Fallo al abrir ventana de modificación', 'error');
+        }
+    }
+
+    function cerrarModalModificarFactura() {
+        document.getElementById('modalModificarFactura').classList.add('hidden');
+        facturaModActual = null;
+        adminOverridePassword = null;
+    }
+
+    function cambioCondicionMod() {
+        const c = document.getElementById('modFacturaCondicion').value;
+        const filaCred = document.getElementById('modFilaCredito');
+        if (c === 'credito') {
+            filaCred.classList.remove('hidden');
+        } else {
+            filaCred.classList.add('hidden');
+            document.getElementById('modPagoCredito').value = 0;
+        }
+        recalcularTotalesMod(false);
+    }
+
+    function renderizarItemsMod() {
+        if (!facturaModActual) return;
+        const tbody = document.getElementById('modItemsTbody');
+        tbody.innerHTML = '';
+
+        document.getElementById('modCantItemsBadge').textContent = `${facturaModActual.items.length} ítems`;
+
+        facturaModActual.items.forEach((it, idx) => {
+            const tr = document.createElement('tr');
+            const subt = it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
+
+            tr.innerHTML = `
+                <td class="py-2 px-3 text-slate-500 font-bold">${it.codigo}</td>
+                <td class="py-2 px-3 font-semibold text-slate-800 font-sans">${it.nombre}</td>
+                <td class="py-2 px-2 text-center">
+                    <input type="number" step="1" min="0.01" value="${it.cantidad}" oninput="actualizarItemMod(${idx}, 'cantidad', this.value)"
+                        class="w-16 px-1.5 py-1 bg-slate-50 border border-slate-300 rounded font-bold text-center text-xs">
+                </td>
+                <td class="py-2 px-2 text-right">
+                    <input type="number" step="0.01" min="0.01" value="${it.precio}" oninput="actualizarItemMod(${idx}, 'precio', this.value)"
+                        class="w-20 px-1.5 py-1 bg-slate-50 border border-slate-300 rounded font-bold text-right text-xs">
+                </td>
+                <td class="py-2 px-2 text-center">
+                    <input type="number" step="1" min="0" max="100" value="${it.descuento || 0}" oninput="actualizarItemMod(${idx}, 'descuento', this.value)"
+                        class="w-12 px-1.5 py-1 bg-slate-50 border border-slate-300 rounded font-bold text-center text-xs">
+                </td>
+                <td class="py-2 px-3 text-right font-bold text-slate-900">$${subt.toFixed(2)}</td>
+                <td class="py-2 px-2 text-center">
+                    <button type="button" onclick="eliminarItemMod(${idx})" class="text-slate-400 hover:text-red-600 p-1 transition" title="Quitar ítem">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        recalcularTotalesMod(true);
+    }
+
+    function actualizarItemMod(idx, campo, valor) {
+        if (!facturaModActual || !facturaModActual.items[idx]) return;
+        const num = parseFloat(valor);
+        if (isNaN(num)) return;
+        facturaModActual.items[idx][campo] = num;
+        renderizarItemsMod();
+    }
+
+    function eliminarItemMod(idx) {
+        if (!facturaModActual) return;
+        facturaModActual.items.splice(idx, 1);
+        renderizarItemsMod();
+    }
+
+    function recalcularTotalesMod(actualizarPagosAuto = false) {
+        if (!facturaModActual) return;
+        let totalUSD = 0;
+        facturaModActual.items.forEach(it => {
+            const subt = it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
+            totalUSD += subt;
+        });
+        totalUSD = Math.round(totalUSD * 100) / 100;
+        const tasa = facturaModActual.tasa_bcv || TASA_BCV;
+        const totalBS = Math.round(totalUSD * tasa * 100) / 100;
+
+        document.getElementById('modResumenSubtotal').textContent = `$${totalUSD.toFixed(2)}`;
+        document.getElementById('modResumenTasa').textContent = `${tasa.toFixed(2)} Bs./$`;
+        document.getElementById('modResumenTotalUSD').textContent = `$${totalUSD.toFixed(2)}`;
+        document.getElementById('modResumenTotalBS').textContent = `Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+
+        const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+        const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
+        const pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
+        const pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+        const cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
+        const sumPagos = Math.round((ef + ze + pm + pt + cr) * 100) / 100;
+
+        const diff = Math.abs(sumPagos - totalUSD);
+        const alerta = document.getElementById('modAlertaDiferencia');
+        if (diff > 0.05) {
+            alerta.classList.remove('hidden');
+        } else {
+            alerta.classList.add('hidden');
+        }
+    }
+
+    function cuadrarPagosMod() {
+        if (!facturaModActual) return;
+        let totalUSD = 0;
+        facturaModActual.items.forEach(it => {
+            totalUSD += it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
+        });
+        totalUSD = Math.round(totalUSD * 100) / 100;
+
+        const condicion = document.getElementById('modFacturaCondicion').value;
+        if (condicion === 'credito') {
+            const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+            const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
+            const pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
+            const pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+            const abono = ef + ze + pm + pt;
+            const resto = Math.max(0, Math.round((totalUSD - abono) * 100) / 100);
+            document.getElementById('modPagoCredito').value = resto;
+        } else {
+            document.getElementById('modPagoEfectivo').value = totalUSD;
+            document.getElementById('modPagoZelle').value = 0;
+            document.getElementById('modPagoPagomovil').value = 0;
+            document.getElementById('modPagoPunto').value = 0;
+            document.getElementById('modPagoCredito').value = 0;
+        }
+        recalcularTotalesMod(false);
+    }
+
+    function configurarBuscadorMod() {
+        const inp = document.getElementById('modBuscadorProducto');
+        const dropdown = document.getElementById('modDropdownResultados');
+        let timer = null;
+
+        inp.oninput = (e) => {
+            clearTimeout(timer);
+            const val = e.target.value.trim();
+            if (val.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            timer = setTimeout(async () => {
+                const res = await fetch(`/api/articulos?search=${encodeURIComponent(val)}&limit=10`);
+                if (res.ok) {
+                    const data = await res.json();
+                    dropdown.innerHTML = '';
+                    data.items.forEach(it => {
+                        const div = document.createElement('div');
+                        div.className = 'p-2.5 hover:bg-amber-50 cursor-pointer flex justify-between items-center text-xs';
+                        div.innerHTML = `
+                            <div>
+                                <strong class="text-slate-800">${it.nombre}</strong>
+                                <span class="block text-[10px] text-slate-400">Cód: ${it.codigo} | Stock: ${it.stock}</span>
+                            </div>
+                            <span class="font-bold text-amber-700 font-mono">$${(it.precio || 0).toFixed(2)}</span>
+                        `;
+                        div.onclick = () => {
+                            agregarItemAMod(it);
+                            inp.value = '';
+                            dropdown.classList.add('hidden');
+                        };
+                        dropdown.appendChild(div);
+                    });
+                    dropdown.classList.remove('hidden');
+                }
+            }, 200);
+        };
+    }
+
+    function agregarItemAMod(prod) {
+        if (!facturaModActual) return;
+        const existe = facturaModActual.items.find(x => x.codigo === prod.codigo);
+        if (existe) {
+            existe.cantidad += 1;
+        } else {
+            facturaModActual.items.push({
+                codigo: prod.codigo,
+                nombre: prod.nombre,
+                cantidad: 1,
+                precio: prod.precio || 0,
+                descuento: 0
+            });
+        }
+        renderizarItemsMod();
+    }
+
+    async function guardarModificacionFactura() {
+        if (!facturaModActual) return;
+        if (facturaModActual.items.length === 0) {
+            Swal.fire('Atención', 'La factura debe tener al menos un producto.', 'warning');
+            return;
+        }
+
+        const cliente_nombre = document.getElementById('modFacturaCliente').value.trim();
+        if (!cliente_nombre) {
+            Swal.fire('Atención', 'El cliente no puede estar vacío.', 'warning');
+            return;
+        }
+
+        const condicion = document.getElementById('modFacturaCondicion').value;
+        const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+        const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
+        const pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
+        const pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+        const cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
+
+        const itemsPayload = facturaModActual.items.map(it => ({
+            codigo_articulo: it.codigo,
+            cantidad: it.cantidad,
+            precio_unitario: it.precio,
+            descuento_pct: it.descuento || 0
+        }));
+
+        const confirm = await Swal.fire({
+            title: '¿Confirmar modificación?',
+            text: `Se actualizará la Factura #${facturaModActual.numero} y se recalculará el inventario.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, guardar cambios',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d97706'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        const payload = {
+            cliente_nombre,
+            condicion,
+            efectivo: ef,
+            zelle: ze,
+            pagomovil: pm,
+            punto: pt,
+            credito: cr,
+            items: itemsPayload,
+            admin_password: facturaModActual.adminPassword || adminOverridePassword || null
+        };
+
+        try {
+            const res = await fetch(`/api/facturas/${facturaModActual.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                cerrarModalModificarFactura();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Factura Modificada!',
+                    text: data.mensaje || 'Cambios guardados exitosamente.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                cargarFacturas();
+            } else {
+                Swal.fire('Error', data.detail || 'No se pudo modificar la factura.', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Fallo de conexión al guardar factura.', 'error');
+        }
     }
 
     document.addEventListener('DOMContentLoaded', cargarHistorial);

@@ -78,33 +78,56 @@
 
                 <!-- Links Centrales (Desktop) -->
                 <nav class="hidden lg:flex items-center space-x-0.5 xl:space-x-1 text-xs xl:text-sm font-medium shrink-0">
+                    {% if not user or user.tiene_permiso('pos') %}
                     <a href="/" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_pos %}{% endblock %}">
                         <i class="fa-solid fa-cash-register mr-1.5 text-emerald-300 shrink-0 w-4 text-center"></i><span>Ventas</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('inventario') %}
                     <a href="/inventario" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_inventario %}{% endblock %}">
                         <i class="fa-solid fa-boxes-stacked mr-1.5 text-blue-300 shrink-0 w-4 text-center"></i><span>Inventario</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('compras') %}
                     <a href="/compras" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_compras %}{% endblock %}">
                         <i class="fa-solid fa-truck-ramp-box mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Compras</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('despachos') %}
                     <a href="/despachos" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_despachos %}{% endblock %}">
                         <i class="fa-solid fa-truck-fast mr-1.5 text-purple-300 shrink-0 w-4 text-center"></i><span>Despachos</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('creditos') %}
                     <a href="/creditos" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_creditos %}{% endblock %}">
                         <i class="fa-solid fa-hand-holding-dollar mr-1.5 text-rose-300 shrink-0 w-4 text-center"></i><span>Créditos</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('historial') %}
                     <a href="/historial" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_historial %}{% endblock %}">
                         <i class="fa-solid fa-clock-rotate-left mr-1.5 text-cyan-300 shrink-0 w-4 text-center"></i><span>Historial</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('clientes') %}
                     <a href="/clientes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_clientes %}{% endblock %}">
                         <i class="fa-solid fa-users mr-1.5 text-pink-300 shrink-0 w-4 text-center"></i><span>Clientes</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('reportes') %}
                     <a href="/reportes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_reportes %}{% endblock %}">
                         <i class="fa-solid fa-chart-pie mr-1.5 text-yellow-300 shrink-0 w-4 text-center"></i><span>Caja</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('mantenimiento') %}
                     <a href="/mantenimiento" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_mantenimiento %}{% endblock %}" title="Mantenimiento y Reparación">
                         <i class="fa-solid fa-screwdriver-wrench mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Mantenimiento</span>
                     </a>
+                    {% endif %}
+                    {% if not user or user.tiene_permiso('usuarios') %}
+                    <a href="/usuarios" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_usuarios %}{% endblock %}" title="Gestión de Usuarios y Permisos">
+                        <i class="fa-solid fa-user-shield mr-1.5 text-red-300 shrink-0 w-4 text-center"></i><span>Usuarios</span>
+                    </a>
+                    {% endif %}
                 </nav>
 
                 <!-- Tasa BCV y Usuario -->
@@ -161,33 +184,56 @@
                 </div>
             </div>
 
+            {% if not user or user.tiene_permiso('pos') %}
             <a href="/" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-cash-register mr-2.5 text-emerald-300 w-5 text-center"></i><span>Punto de Venta</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('inventario') %}
             <a href="/inventario" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-boxes-stacked mr-2.5 text-blue-300 w-5 text-center"></i><span>Inventario y Precios</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('creditos') %}
             <a href="/creditos" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-hand-holding-dollar mr-2.5 text-rose-300 w-5 text-center"></i><span>Cuentas por Cobrar / Créditos</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('historial') %}
             <a href="/historial" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-clock-rotate-left mr-2.5 text-cyan-300 w-5 text-center"></i><span>Historial de Ventas</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('compras') %}
             <a href="/compras" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Recepción de Compras</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('despachos') %}
             <a href="/despachos" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-truck-fast mr-2.5 text-purple-300 w-5 text-center"></i><span>Despachos y Salidas</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('clientes') %}
             <a href="/clientes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-users mr-2.5 text-pink-300 w-5 text-center"></i><span>Directorio de Clientes</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('reportes') %}
             <a href="/reportes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-chart-pie mr-2.5 text-yellow-300 w-5 text-center"></i><span>Cierre de Caja y Reportes</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('mantenimiento') %}
             <a href="/mantenimiento" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-screwdriver-wrench mr-2.5 text-amber-300 w-5 text-center"></i><span>Mantenimiento y Recuperación</span>
             </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('usuarios') %}
+            <a href="/usuarios" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-user-shield mr-2.5 text-red-300 w-5 text-center"></i><span>Usuarios y Permisos</span>
+            </a>
+            {% endif %}
         </div>
     </header>
 
@@ -198,22 +244,30 @@
 
     <!-- BARRA DE NAVEGACIÓN INFERIOR PARA MÓVILES (Estilo App Nativa) -->
     <nav class="lg:hidden fixed bottom-0 inset-x-0 bg-gradient-to-r from-[#470506] via-[#791F21] to-[#8B1E24] text-white border-t border-white/15 z-40 flex items-center justify-around py-1.5 px-2 shadow-2xl backdrop-blur-md no-print">
+        {% if not user or user.tiene_permiso('pos') %}
         <a href="/" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_pos %}text-red-200 hover:text-white{% endblock %}">
             <i class="fa-solid fa-cash-register text-lg mb-0.5 text-emerald-300"></i>
             <span class="text-[10px] font-bold">Ventas</span>
         </a>
+        {% endif %}
+        {% if not user or user.tiene_permiso('inventario') %}
         <a href="/inventario" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_inventario %}text-red-200 hover:text-white{% endblock %}">
             <i class="fa-solid fa-boxes-stacked text-lg mb-0.5 text-blue-300"></i>
             <span class="text-[10px] font-bold">Stock</span>
         </a>
+        {% endif %}
+        {% if not user or user.tiene_permiso('creditos') %}
         <a href="/creditos" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_creditos %}text-red-200 hover:text-white{% endblock %}">
             <i class="fa-solid fa-hand-holding-dollar text-lg mb-0.5 text-rose-300"></i>
             <span class="text-[10px] font-bold">Créditos</span>
         </a>
+        {% endif %}
+        {% if not user or user.tiene_permiso('historial') %}
         <a href="/historial" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition {% block mob_nav_historial %}text-red-200 hover:text-white{% endblock %}">
             <i class="fa-solid fa-clock-rotate-left text-lg mb-0.5 text-cyan-300"></i>
             <span class="text-[10px] font-bold">Historial</span>
         </a>
+        {% endif %}
         <button onclick="toggleMenuMovil()" class="flex flex-col items-center justify-center flex-1 py-1 text-center transition text-red-200 hover:text-white">
             <i class="fa-solid fa-bars text-lg mb-0.5 text-amber-300"></i>
             <span class="text-[10px] font-bold">Más</span>
@@ -241,6 +295,14 @@
 
     <!-- SCRIPTS GLOBALES -->
     <script>
+        window.CURRENT_USER_PERMISOS = {{ (user.lista_permisos if user else []) | tojson }};
+        window.CURRENT_USER_ROL = "{{ user.rol if user else '' }}";
+        window.IS_ADMIN = {{ 'true' if (user and user.rol == 'admin') else 'false' }};
+        function tienePermiso(perm) {
+            if (window.IS_ADMIN) return true;
+            return window.CURRENT_USER_PERMISOS.includes('*') || window.CURRENT_USER_PERMISOS.includes(perm);
+        }
+
         let TASA_BCV = 473.92;
 
         async function cargarConfiguracion() {

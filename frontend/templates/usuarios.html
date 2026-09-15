@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+
+{% block title %}Administración de Usuarios | Prolago Carora 2026{% endblock %}
+{% block nav_usuarios %}bg-white/20 text-white font-bold shadow-inner{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- CABECERA -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm shadow-sm">
+                    <i class="fa-solid fa-user-shield"></i>
+                </span>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight">Administración de Usuarios y Permisos</h1>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">Control de acceso, roles y asignación de funciones específicas dentro del sistema.</p>
+        </div>
+
+        <button onclick="abrirModalNuevoUsuario()" class="flex items-center justify-center space-x-2 px-4 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl font-bold text-xs shadow-md shadow-red-900/20 transition active:scale-95 shrink-0">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Nuevo Usuario</span>
+        </button>
+    </div>
+
+    <!-- TARJETAS DE ESTADÍSTICAS -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Usuarios</span>
+                <span id="statTotalUsuarios" class="text-xl font-black text-slate-900">0</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-[#8B1E24] flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Administradores</span>
+                <span id="statAdmins" class="text-xl font-black text-slate-900">0</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-cash-register"></i>
+            </div>
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Cajeros / Op.</span>
+                <span id="statCajeros" class="text-xl font-black text-slate-900">0</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-3.5">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base shrink-0">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Activos</span>
+                <span id="statActivos" class="text-xl font-black text-emerald-700">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA DE USUARIOS -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
+            <h2 class="text-sm font-black text-slate-800 flex items-center space-x-2">
+                <i class="fa-solid fa-list-check text-slate-400"></i>
+                <span>Listado de Cuentas y Accesos</span>
+            </h2>
+            <div class="relative w-full sm:w-64">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="filtroUsuario" oninput="filtrarUsuarios()" placeholder="Buscar usuario o nombre..."
+                    class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#8B1E24] focus:outline-none">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                        <th class="px-4 py-3">Usuario</th>
+                        <th class="px-4 py-3">Nombre Completo</th>
+                        <th class="px-3 py-3 text-center">Rol</th>
+                        <th class="px-4 py-3">Funciones / Permisos Asignados</th>
+                        <th class="px-3 py-3 text-center">Estado</th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaUsuariosBody" class="divide-y divide-slate-100">
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-400">Cargando usuarios...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL REGISTRAR / EDITAR USUARIO -->
+<div id="modalUsuario" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-6 text-xs text-slate-800 max-h-[95vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+            <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 rounded-xl bg-red-100 text-[#8B1E24] flex items-center justify-center text-sm shadow-sm">
+                    <i class="fa-solid fa-user-gear"></i>
+                </span>
+                <div>
+                    <h3 id="modalUsuarioTitulo" class="font-black text-sm text-slate-900">Nuevo Usuario</h3>
+                    <p class="text-[11px] text-slate-400">Complete los datos y asigne los permisos requeridos</p>
+                </div>
+            </div>
+            <button onclick="cerrarModalUsuario()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+                <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+        </div>
+
+        <form id="formUsuario" onsubmit="guardarUsuario(event)" class="space-y-4">
+            <input type="hidden" id="usuarioId" value="">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Nombre de Usuario (Login) *</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-at absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="usuarioUsername" required placeholder="ej: maria.cajero"
+                            class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#8B1E24] focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Nombre y Apellido *</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-id-card absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="usuarioNombre" required placeholder="ej: María Pérez"
+                            class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#8B1E24] focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                        Contraseña <span id="lblPassReq" class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <i class="fa-solid fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="password" id="usuarioPassword" placeholder="Contraseña..."
+                            class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#8B1E24] focus:outline-none">
+                    </div>
+                    <span id="usuarioPassHelp" class="hidden text-[10px] text-slate-400 mt-0.5 block">Dejar en blanco si no desea cambiar la clave actual</span>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Rol en el Sistema *</label>
+                    <select id="usuarioRol" onchange="cambioRolUsuario()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-[#8B1E24] focus:outline-none">
+                        <option value="cajero">Cajero / Operador</option>
+                        <option value="admin">Administrador (Acceso Total)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-1">
+                <input type="checkbox" id="usuarioActivo" checked class="w-4 h-4 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                <label for="usuarioActivo" class="text-xs font-bold text-slate-700 cursor-pointer">
+                    Cuenta Activa (Permitir inicio de sesión)
+                </label>
+            </div>
+
+            <!-- SECCIÓN DE PERMISOS GRANULARES -->
+            <div class="border-t border-slate-200 pt-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                    <div>
+                        <span class="block text-xs font-black text-slate-900 uppercase">Funciones y Módulos Permitidos</span>
+                        <span class="text-[10px] text-slate-500">Seleccione los módulos a los que tendrá acceso este usuario:</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 shrink-0">
+                        <button type="button" onclick="presetPermisos('admin')" class="px-2 py-1 bg-red-50 hover:bg-red-100 text-[#8B1E24] font-bold text-[10px] rounded-lg transition">
+                            Todos
+                        </button>
+                        <button type="button" onclick="presetPermisos('cajero')" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] rounded-lg transition">
+                            Cajero Estándar
+                        </button>
+                        <button type="button" onclick="presetPermisos('limpiar')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] rounded-lg transition">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200 max-h-56 overflow-y-auto">
+                    <!-- POS -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="pos" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-cash-register text-emerald-600 mr-1"></i> Punto de Venta</span>
+                            <span class="text-[9px] text-slate-500">Emitir facturas y ventas</span>
+                        </div>
+                    </label>
+
+                    <!-- HISTORIAL -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="historial" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-clock-rotate-left text-cyan-600 mr-1"></i> Historial de Ventas</span>
+                            <span class="text-[9px] text-slate-500">Consultar facturas emitidas</span>
+                        </div>
+                    </label>
+
+                    <!-- MODIFICAR FACTURAS -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-amber-50/70 border border-amber-200/60 bg-white transition cursor-pointer">
+                        <input type="checkbox" value="modificar_facturas" class="chk-permiso w-4 h-4 mt-0.5 text-amber-600 rounded border-amber-300 focus:ring-amber-500">
+                        <div>
+                            <span class="font-bold text-amber-900 block text-[11px]"><i class="fa-solid fa-pen-to-square text-amber-600 mr-1"></i> Modificar Facturas</span>
+                            <span class="text-[9px] text-slate-500">Editar facturas sin clave de admin</span>
+                        </div>
+                    </label>
+
+                    <!-- CLIENTES -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="clientes" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-users text-pink-600 mr-1"></i> Clientes</span>
+                            <span class="text-[9px] text-slate-500">Directorio de clientes y registro</span>
+                        </div>
+                    </label>
+
+                    <!-- INVENTARIO -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="inventario" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-boxes-stacked text-blue-600 mr-1"></i> Inventario</span>
+                            <span class="text-[9px] text-slate-500">Ver/crear productos y precios</span>
+                        </div>
+                    </label>
+
+                    <!-- COMPRAS -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="compras" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-truck-ramp-box text-amber-600 mr-1"></i> Compras</span>
+                            <span class="text-[9px] text-slate-500">Recepción y entrada de mercancía</span>
+                        </div>
+                    </label>
+
+                    <!-- DESPACHOS -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="despachos" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-truck-fast text-purple-600 mr-1"></i> Despachos</span>
+                            <span class="text-[9px] text-slate-500">Notas de entrega y sucursales</span>
+                        </div>
+                    </label>
+
+                    <!-- CRÉDITOS -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="creditos" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-hand-holding-dollar text-rose-600 mr-1"></i> Créditos</span>
+                            <span class="text-[9px] text-slate-500">Cuentas por cobrar y abonos</span>
+                        </div>
+                    </label>
+
+                    <!-- REPORTES -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="reportes" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-chart-pie text-yellow-600 mr-1"></i> Cierre de Caja</span>
+                            <span class="text-[9px] text-slate-500">Reportes de ingresos y ventas</span>
+                        </div>
+                    </label>
+
+                    <!-- MANTENIMIENTO -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="mantenimiento" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-screwdriver-wrench text-amber-600 mr-1"></i> Mantenimiento</span>
+                            <span class="text-[9px] text-slate-500">Respaldos y diagnóstico del sistema</span>
+                        </div>
+                    </label>
+
+                    <!-- USUARIOS -->
+                    <label class="flex items-start space-x-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer">
+                        <input type="checkbox" value="usuarios" class="chk-permiso w-4 h-4 mt-0.5 text-[#8B1E24] rounded border-slate-300 focus:ring-[#8B1E24]">
+                        <div>
+                            <span class="font-bold text-slate-800 block text-[11px]"><i class="fa-solid fa-user-shield text-red-600 mr-1"></i> Administrar Usuarios</span>
+                            <span class="text-[9px] text-slate-500">Gestionar accesos y cuentas</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="cerrarModalUsuario()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition">
+                    Cancelar
+                </button>
+                <button type="submit" id="btnGuardarUsuario" class="px-5 py-2 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl font-bold shadow-md shadow-red-900/20 transition">
+                    Guardar Usuario
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let usuariosCache = [];
+
+    const MODULOS_MAP = {
+        'pos': { label: 'Ventas', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        'inventario': { label: 'Inventario', bg: 'bg-blue-50 text-blue-700 border-blue-200' },
+        'compras': { label: 'Compras', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
+        'despachos': { label: 'Despachos', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
+        'creditos': { label: 'Créditos', bg: 'bg-rose-50 text-rose-700 border-rose-200' },
+        'historial': { label: 'Historial', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+        'clientes': { label: 'Clientes', bg: 'bg-pink-50 text-pink-700 border-pink-200' },
+        'reportes': { label: 'Caja', bg: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+        'mantenimiento': { label: 'Mantenimiento', bg: 'bg-slate-100 text-slate-700 border-slate-300' },
+        'usuarios': { label: 'Usuarios', bg: 'bg-red-50 text-red-700 border-red-200' },
+        'modificar_facturas': { label: 'Modificar Facturas', bg: 'bg-amber-100 text-amber-800 border-amber-300' }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarUsuarios();
+    });
+
+    async function cargarUsuarios() {
+        try {
+            const res = await fetch('/api/usuarios');
+            if (res.ok) {
+                usuariosCache = await res.json();
+                renderizarUsuarios(usuariosCache);
+            } else if (res.status === 403) {
+                Swal.fire('Acceso Denegado', 'No tiene permisos para ver la lista de usuarios.', 'error');
+            }
+        } catch (e) {
+            console.error('Error al cargar usuarios:', e);
+        }
+    }
+
+    function renderizarUsuarios(lista) {
+        const total = lista.length;
+        const admins = lista.filter(u => u.rol === 'admin').length;
+        const cajeros = lista.filter(u => u.rol !== 'admin').length;
+        const activos = lista.filter(u => u.activo).length;
+
+        document.getElementById('statTotalUsuarios').textContent = total;
+        document.getElementById('statAdmins').textContent = admins;
+        document.getElementById('statCajeros').textContent = cajeros;
+        document.getElementById('statActivos').textContent = activos;
+
+        const tbody = document.getElementById('tablaUsuariosBody');
+        tbody.innerHTML = '';
+
+        if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">No se encontraron usuarios</td></tr>';
+            return;
+        }
+
+        lista.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/80 transition';
+
+            const esAdmin = u.rol === 'admin';
+            const badgeRol = esAdmin
+                ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-[#8B1E24] border border-red-200"><i class="fa-solid fa-crown mr-1"></i> ADMIN</span>`
+                : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200"><i class="fa-solid fa-user mr-1"></i> CAJERO</span>`;
+
+            const badgeActivo = u.activo
+                ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>Activo</span>`
+                : `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span>Inactivo</span>`;
+
+            let permsHtml = '';
+            if (esAdmin || (u.permisos && u.permisos.includes('*'))) {
+                permsHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black bg-purple-100 text-purple-700 border border-purple-200"><i class="fa-solid fa-infinity mr-1"></i> Acceso Total al Sistema</span>`;
+            } else if (!u.permisos || u.permisos.length === 0) {
+                permsHtml = `<span class="text-[11px] text-slate-400 italic">Sin funciones asignadas</span>`;
+            } else {
+                permsHtml = `<div class="flex flex-wrap gap-1">` +
+                    u.permisos.map(p => {
+                        const m = MODULOS_MAP[p] || { label: p, bg: 'bg-slate-100 text-slate-600 border-slate-200' };
+                        return `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${m.bg}">${m.label}</span>`;
+                    }).join('') +
+                    `</div>`;
+            }
+
+            tr.innerHTML = `
+                <td class="px-4 py-3">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-full ${esAdmin ? 'bg-red-100 text-[#8B1E24]' : 'bg-slate-100 text-slate-600'} flex items-center justify-center font-black text-xs">
+                            ${u.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <strong class="text-slate-900 block font-mono">@${u.username}</strong>
+                            <span class="text-[10px] text-slate-400 block">${u.creado_en || ''}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-3 font-semibold text-slate-800">${u.nombre}</td>
+                <td class="px-3 py-3 text-center">${badgeRol}</td>
+                <td class="px-4 py-3">${permsHtml}</td>
+                <td class="px-3 py-3 text-center">${badgeActivo}</td>
+                <td class="px-4 py-3 text-center whitespace-nowrap space-x-1">
+                    <button onclick="abrirModalEditarUsuario(${u.id})" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Editar datos y permisos">
+                        <i class="fa-solid fa-pen-to-square text-sm"></i>
+                    </button>
+                    <button onclick="toggleActivoUsuario(${u.id}, ${u.activo})" class="p-1.5 ${u.activo ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' : 'text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50'} rounded-lg transition" title="${u.activo ? 'Desactivar acceso' : 'Activar acceso'}">
+                        <i class="fa-solid fa-power-off text-sm"></i>
+                    </button>
+                    <button onclick="eliminarUsuario(${u.id}, '${u.username}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar usuario">
+                        <i class="fa-solid fa-trash-can text-sm"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filtrarUsuarios() {
+        const q = (document.getElementById('filtroUsuario').value || '').trim().toLowerCase();
+        if (!q) {
+            renderizarUsuarios(usuariosCache);
+            return;
+        }
+        const filtrados = usuariosCache.filter(u => 
+            u.username.toLowerCase().includes(q) || u.nombre.toLowerCase().includes(q)
+        );
+        renderizarUsuarios(filtrados);
+    }
+
+    function abrirModalNuevoUsuario() {
+        document.getElementById('usuarioId').value = '';
+        document.getElementById('modalUsuarioTitulo').textContent = 'Nuevo Usuario';
+        document.getElementById('usuarioUsername').value = '';
+        document.getElementById('usuarioUsername').disabled = false;
+        document.getElementById('usuarioNombre').value = '';
+        document.getElementById('usuarioPassword').value = '';
+        document.getElementById('usuarioPassword').required = true;
+        document.getElementById('lblPassReq').classList.remove('hidden');
+        document.getElementById('usuarioPassHelp').classList.add('hidden');
+        document.getElementById('usuarioRol').value = 'cajero';
+        document.getElementById('usuarioActivo').checked = true;
+
+        presetPermisos('cajero');
+        document.getElementById('modalUsuario').classList.remove('hidden');
+    }
+
+    function abrirModalEditarUsuario(id) {
+        const u = usuariosCache.find(x => x.id === id);
+        if (!u) return;
+
+        document.getElementById('usuarioId').value = u.id;
+        document.getElementById('modalUsuarioTitulo').textContent = `Editar Usuario: @${u.username}`;
+        document.getElementById('usuarioUsername').value = u.username;
+        document.getElementById('usuarioUsername').disabled = true;
+        document.getElementById('usuarioNombre').value = u.nombre;
+        document.getElementById('usuarioPassword').value = '';
+        document.getElementById('usuarioPassword').required = false;
+        document.getElementById('lblPassReq').classList.add('hidden');
+        document.getElementById('usuarioPassHelp').classList.remove('hidden');
+        document.getElementById('usuarioRol').value = u.rol;
+        document.getElementById('usuarioActivo').checked = u.activo;
+
+        const checkboxes = document.querySelectorAll('.chk-permiso');
+        checkboxes.forEach(chk => {
+            if (u.rol === 'admin' || (u.permisos && (u.permisos.includes('*') || u.permisos.includes(chk.value)))) {
+                chk.checked = true;
+            } else {
+                chk.checked = false;
+            }
+        });
+
+        document.getElementById('modalUsuario').classList.remove('hidden');
+    }
+
+    function cerrarModalUsuario() {
+        document.getElementById('modalUsuario').classList.add('hidden');
+    }
+
+    function cambioRolUsuario() {
+        const rol = document.getElementById('usuarioRol').value;
+        if (rol === 'admin') {
+            presetPermisos('admin');
+        } else {
+            presetPermisos('cajero');
+        }
+    }
+
+    function presetPermisos(tipo) {
+        const checkboxes = document.querySelectorAll('.chk-permiso');
+        if (tipo === 'admin') {
+            checkboxes.forEach(chk => chk.checked = true);
+        } else if (tipo === 'cajero') {
+            const permitidos = ['pos', 'historial', 'clientes'];
+            checkboxes.forEach(chk => {
+                chk.checked = permitidos.includes(chk.value);
+            });
+        } else if (tipo === 'limpiar') {
+            checkboxes.forEach(chk => chk.checked = false);
+        }
+    }
+
+    async function guardarUsuario(e) {
+        e.preventDefault();
+        const id = document.getElementById('usuarioId').value;
+        const esNuevo = !id;
+
+        const username = document.getElementById('usuarioUsername').value.trim();
+        const nombre = document.getElementById('usuarioNombre').value.trim();
+        const password = document.getElementById('usuarioPassword').value;
+        const rol = document.getElementById('usuarioRol').value;
+        const activo = document.getElementById('usuarioActivo').checked;
+
+        const permisosSeleccionados = [];
+        document.querySelectorAll('.chk-permiso:checked').forEach(chk => {
+            permisosSeleccionados.push(chk.value);
+        });
+
+        if (esNuevo && (!password || password.length < 4)) {
+            Swal.fire('Atención', 'La contraseña debe tener al menos 4 caracteres.', 'warning');
+            return;
+        }
+
+        try {
+            let res;
+            if (esNuevo) {
+                res = await fetch('/api/usuarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        nombre,
+                        password,
+                        rol,
+                        activo,
+                        permisos: permisosSeleccionados
+                    })
+                });
+            } else {
+                const body = {
+                    nombre,
+                    rol,
+                    activo,
+                    permisos: permisosSeleccionados
+                };
+                if (password && password.trim().length >= 4) {
+                    body.password = password.trim();
+                }
+                res = await fetch(`/api/usuarios/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+            }
+
+            const data = await res.json();
+            if (res.ok) {
+                cerrarModalUsuario();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Operación Exitosa!',
+                    text: data.mensaje || 'Usuario guardado correctamente.',
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+                cargarUsuarios();
+            } else {
+                Swal.fire('Error', data.detail || 'No se pudo guardar el usuario.', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Fallo de conexión con el servidor.', 'error');
+        }
+    }
+
+    async function toggleActivoUsuario(id, estadoActual) {
+        const u = usuariosCache.find(x => x.id === id);
+        if (!u) return;
+
+        const accion = estadoActual ? 'desactivar' : 'activar';
+        const confirm = await Swal.fire({
+            title: `¿${accion.charAt(0).toUpperCase() + accion.slice(1)} usuario?`,
+            text: `¿Seguro que desea ${accion} la cuenta de @${u.username}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: `Sí, ${accion}`,
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: estadoActual ? '#e11d48' : '#059669'
+        });
+
+        if (confirm.isConfirmed) {
+            try {
+                const res = await fetch(`/api/usuarios/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ activo: !estadoActual })
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    cargarUsuarios();
+                } else {
+                    Swal.fire('Error', d.detail || 'No se pudo cambiar el estado.', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Fallo de red', 'error');
+            }
+        }
+    }
+
+    async function eliminarUsuario(id, username) {
+        const confirm = await Swal.fire({
+            title: '¿Eliminar cuenta de usuario?',
+            text: `Se eliminará permanentemente al usuario @${username}. Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#e11d48'
+        });
+
+        if (confirm.isConfirmed) {
+            try {
+                const res = await fetch(`/api/usuarios/${id}`, {
+                    method: 'DELETE'
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
+                    cargarUsuarios();
+                } else {
+                    Swal.fire('Error', d.detail || 'No se pudo eliminar el usuario.', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Fallo de red', 'error');
+            }
+        }
+    }
+</script>
+{% endblock %}
