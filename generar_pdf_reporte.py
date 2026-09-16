@@ -172,7 +172,7 @@ def generar_pdf(destino_path):
     meta_data = [
         [Paragraph(f"<b>Fecha de Emisión:</b> {fecha_hoy}", style_body), Paragraph("<b>Estado:</b> <font color='#059669'><b>100% OPERATIVO / VALIDADO</b></font>", style_body)],
         [Paragraph("<b>Sistema:</b> Prolago Carora 2026 (Web & Local)", style_body), Paragraph("<b>Inversión de Servicio:</b> <font color='#8B1E24'><b>$300 USD (Pago Único)</b></font>", style_body)],
-        [Paragraph("<b>Catálogo Precargado:</b> 982 Artículos listos", style_body), Paragraph("<b>Existencias Iniciales:</b> <font color='#2563eb'><b>0.0 (Inventario Limpio para Conteo)</b></font>", style_body)]
+        [Paragraph("<b>Catálogo Precargado:</b> 982 Artículos listos", style_body), Paragraph("<b>Modalidad Operativa:</b> <font color='#2563eb'><b>Web en Nube + Windows Local</b></font>", style_body)]
     ]
     t_meta = Table(meta_data, colWidths=[260, 263])
     t_meta.setStyle(TableStyle([
@@ -242,24 +242,6 @@ def generar_pdf(destino_path):
                 "<b>Oferta Cerrada por $300 USD:</b> Presentación formal del costo único de $300 USD detallando los 6 entregables incluidos sin mensualidades forzadas.",
                 "<b>Generación de PDF con 1 Clic:</b> Botón integrado para descargar o imprimir la propuesta en formato ejecutivo A4."
             ]
-        ),
-        (
-            "6. Catálogo Comercial Preparado para Entrega Oficial (Stock en Cero)",
-            [
-                "<b>Existencias en 0.0:</b> Se reinició el stock de los <b>982 artículos</b> a exactamente cero para que el cliente realice su conteo físico o carga de compras real.",
-                "<b>Datos Comerciales Intactos:</b> Se preservaron códigos, nombres, categorías, marcas, proveedores, costos, PVP calculado y stock de alerta individual.",
-                "<b>Sincronización Total:</b> Aplicado en la base de datos principal (prolago.db) y en los paquetes locales (.exe para Windows)."
-            ]
-        ),
-        (
-            "7. Funcionalidades Previas Consolidadas",
-            [
-                "<b>Administrador de Usuarios y Permisos:</b> Roles (Admin y Cajeros) con control modular de accesos a cada pantalla del sistema.",
-                "<b>Factura Crédito A4 Media Hoja:</b> Comprobante formal con condiciones de plazo, fecha de vencimiento y casilla de firma.",
-                "<b>Modificación Protegida de Facturas:</b> Solo el administrador puede modificar o anular comprobantes emitidos mediante clave maestra.",
-                "<b>Módulo de Despachos:</b> Carga automática del nombre y dirección del cliente al buscar la factura.",
-                "<b>Operación Offline y Copias de Seguridad:</b> Funciona en red local sin internet y permite respaldar la base de datos con un clic."
-            ]
         )
     ]
 
@@ -310,18 +292,6 @@ def generar_pdf(destino_path):
             Paragraph("<b>Propuesta Comercial</b>", style_table_cell),
             Paragraph("<code>/propuesta</code>", style_table_cell),
             Paragraph("Landing page con gráficas Chart.js, calculadora ROI, dossier y PDF $300 USD", style_table_cell),
-            Paragraph("<font color='#059669'><b>100% Operativo</b></font>", style_table_cell)
-        ],
-        [
-            Paragraph("<b>Inventario (982 arts)</b>", style_table_cell),
-            Paragraph("<code>/inventario</code>", style_table_cell),
-            Paragraph("Stock reiniciado a 0.0, costos, fórmulas PVP y alertas individuales listas", style_table_cell),
-            Paragraph("<font color='#059669'><b>100% Operativo</b></font>", style_table_cell)
-        ],
-        [
-            Paragraph("<b>Mantenimiento & BD</b>", style_table_cell),
-            Paragraph("<code>/mantenimiento</code>", style_table_cell),
-            Paragraph("Respaldos descargables, restauración de datos, IP de red local", style_table_cell),
             Paragraph("<font color='#059669'><b>100% Operativo</b></font>", style_table_cell)
         ]
     ]
