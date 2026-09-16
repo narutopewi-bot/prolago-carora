@@ -56,17 +56,17 @@
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col overflow-x-hidden">
 
     <!-- BARRA SUPERIOR DE NAVEGACIÓN PROLAGO C.A. -->
-    <header class="bg-gradient-to-r from-[#470506] via-[#791F21] to-[#8B1E24] text-white shadow-xl sticky top-0 z-40 no-print border-b border-white/10">
+    <header class="bg-gradient-to-r from-[#470506] via-[#791F21] to-[#8B1E24] text-white shadow-xl sticky top-0 z-40 no-print border-b border-white/10 w-full">
         <div class="w-full px-3 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo Oficial y Nombre -->
-                <div class="flex items-center shrink-0 mr-3 lg:mr-6">
+            <div class="flex items-center justify-between h-16 gap-2">
+                <!-- Logo Oficial y Tasa BCV (Juntos en el lado izquierdo) -->
+                <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
                     <a href="/" class="flex items-center space-x-2.5 group">
                         <img src="/static/img/logo.jpg" alt="Logo Prolago C.A." class="w-10 h-10 rounded-xl object-cover border-2 border-white/30 shadow-md group-hover:scale-105 transition shrink-0">
-                        <div class="leading-tight shrink-0">
+                        <div class="leading-tight shrink-0 hidden sm:block">
                             <div class="flex items-baseline space-x-1">
                                 <span class="font-black text-lg tracking-wider text-white">PROLAGO</span>
                                 <span class="font-bold text-xs text-red-200">C.A.</span>
@@ -74,6 +74,14 @@
                             <span class="text-[9px] block text-red-200/90 font-semibold tracking-wider uppercase">Carora, Lara</span>
                         </div>
                     </a>
+
+                    <!-- Widget Tasa BCV Oficial (Destacado, elegante y accesible al lado del Logo) -->
+                    <button onclick="abrirModalTasa()" title="Click para actualizar tasa oficial BCV" class="flex items-center space-x-1.5 bg-black/35 hover:bg-black/55 text-white border border-emerald-400/50 hover:border-emerald-300 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shadow-sm group shrink-0">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                        <span class="text-emerald-300 font-extrabold text-[11px] tracking-wide">BCV:</span>
+                        <span id="tasaBCVDisplay" class="text-white font-black text-[11px] sm:text-xs font-mono">Cargando...</span>
+                        <i class="fa-solid fa-pen text-[9px] text-emerald-300/80 group-hover:text-emerald-200 ml-0.5 shrink-0"></i>
+                    </button>
                 </div>
 
                 <!-- Links Centrales (Desktop) -->
@@ -93,14 +101,9 @@
                         <i class="fa-solid fa-boxes-stacked mr-1.5 text-blue-300 shrink-0 w-4 text-center"></i><span>Inventario</span>
                     </a>
                     {% endif %}
-                    {% if not user or user.tiene_permiso('compras') %}
-                    <a href="/compras" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_compras %}{% endblock %}">
-                        <i class="fa-solid fa-truck-ramp-box mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Compras</span>
-                    </a>
-                    {% endif %}
-                    {% if not user or user.tiene_permiso('despachos') %}
-                    <a href="/despachos" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_despachos %}{% endblock %}">
-                        <i class="fa-solid fa-truck-fast mr-1.5 text-purple-300 shrink-0 w-4 text-center"></i><span>Despachos</span>
+                    {% if not user or user.tiene_permiso('reportes') %}
+                    <a href="/reportes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_reportes %}{% endblock %}">
+                        <i class="fa-solid fa-chart-pie mr-1.5 text-yellow-300 shrink-0 w-4 text-center"></i><span>Reportes</span>
                     </a>
                     {% endif %}
                     {% if not user or user.tiene_permiso('creditos') %}
@@ -113,58 +116,81 @@
                         <i class="fa-solid fa-clock-rotate-left mr-1.5 text-cyan-300 shrink-0 w-4 text-center"></i><span>Historial</span>
                     </a>
                     {% endif %}
-                    {% if not user or user.tiene_permiso('clientes') %}
-                    <a href="/clientes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_clientes %}{% endblock %}">
-                        <i class="fa-solid fa-users mr-1.5 text-pink-300 shrink-0 w-4 text-center"></i><span>Clientes</span>
-                    </a>
-                    {% endif %}
-                    {% if not user or user.tiene_permiso('reportes') %}
-                    <a href="/reportes" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_reportes %}{% endblock %}">
-                        <i class="fa-solid fa-chart-pie mr-1.5 text-yellow-300 shrink-0 w-4 text-center"></i><span>Reportes</span>
-                    </a>
-                    {% endif %}
-                    {% if not user or user.tiene_permiso('mantenimiento') %}
-                    <a href="/mantenimiento" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_mantenimiento %}{% endblock %}" title="Mantenimiento y Reparación">
-                        <i class="fa-solid fa-screwdriver-wrench mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Mantenimiento</span>
-                    </a>
-                    {% endif %}
-                    {% if not user or user.tiene_permiso('usuarios') %}
-                    <a href="/usuarios" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_usuarios %}{% endblock %}" title="Gestión de Usuarios y Permisos">
-                        <i class="fa-solid fa-user-shield mr-1.5 text-red-300 shrink-0 w-4 text-center"></i><span>Usuarios</span>
-                    </a>
-                    {% endif %}
+
+                    <!-- Menú Desplegable "Más" para Módulos Complementarios -->
+                    <div class="relative" id="dropdownMasContainer">
+                        <button type="button" onclick="toggleMenuMas(event)" id="btnDropdownMas" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center text-xs xl:text-sm font-medium {% block nav_mas %}{% endblock %}">
+                            <i class="fa-solid fa-layer-group mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i>
+                            <span>Más</span>
+                            <i class="fa-solid fa-chevron-down ml-1 text-[10px] text-red-200 transition-transform duration-200" id="iconoChevronMas"></i>
+                        </button>
+                        <div id="dropdownMasMenu" class="hidden absolute right-0 top-full mt-2 w-56 bg-gradient-to-b from-[#470506] to-[#2b0203] border border-white/20 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl divide-y divide-white/10 text-xs">
+                            <div class="py-1">
+                                {% if not user or user.tiene_permiso('compras') %}
+                                <a href="/compras" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_compras %}{% endblock %}">
+                                    <i class="fa-solid fa-truck-ramp-box text-amber-300 w-5 text-center"></i>
+                                    <span>Compras</span>
+                                </a>
+                                {% endif %}
+                                {% if not user or user.tiene_permiso('despachos') %}
+                                <a href="/despachos" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_despachos %}{% endblock %}">
+                                    <i class="fa-solid fa-truck-fast text-purple-300 w-5 text-center"></i>
+                                    <span>Despachos</span>
+                                </a>
+                                {% endif %}
+                                {% if not user or user.tiene_permiso('clientes') %}
+                                <a href="/clientes" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_clientes %}{% endblock %}">
+                                    <i class="fa-solid fa-users text-pink-300 w-5 text-center"></i>
+                                    <span>Clientes</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="py-1">
+                                {% if not user or user.tiene_permiso('mantenimiento') %}
+                                <a href="/mantenimiento" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_mantenimiento %}{% endblock %}" title="Mantenimiento y Recuperación">
+                                    <i class="fa-solid fa-screwdriver-wrench text-amber-300 w-5 text-center"></i>
+                                    <span>Mantenimiento</span>
+                                </a>
+                                {% endif %}
+                                {% if not user or user.tiene_permiso('usuarios') %}
+                                <a href="/usuarios" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_usuarios %}{% endblock %}" title="Gestión de Usuarios y Permisos">
+                                    <i class="fa-solid fa-user-shield text-red-300 w-5 text-center"></i>
+                                    <span>Usuarios y Permisos</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="pt-1">
+                                <a href="/propuesta" target="_blank" class="px-3 py-2 rounded-lg transition hover:bg-amber-500/20 text-amber-300 font-bold flex items-center space-x-2">
+                                    <i class="fa-solid fa-file-invoice-dollar text-amber-300 w-5 text-center"></i>
+                                    <span>Propuesta Comercial ($300)</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </nav>
 
-                <!-- Tasa BCV y Usuario -->
-                <div class="flex items-center space-x-1.5 sm:space-x-2 xl:space-x-2.5 shrink-0 ml-auto lg:ml-4">
-                    <!-- Widget Tasa BCV (Compacto en móviles) -->
-                    <button onclick="abrirModalTasa()" title="Click para actualizar tasa" class="flex items-center space-x-1 sm:space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-sm transition shrink-0">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                        <span class="hidden sm:inline text-red-200">BCV:</span>
-                        <span id="tasaBCVDisplay" class="text-white font-bold text-[11px] sm:text-xs">Cargando...</span>
-                        <i class="fa-solid fa-pen text-[9px] text-red-200 ml-0.5 shrink-0"></i>
-                    </button>
-
+                <!-- Utilidades y Usuario (Lado derecho limpio) -->
+                <div class="flex items-center space-x-1.5 sm:space-x-2 xl:space-x-2.5 shrink-0 ml-auto lg:ml-2">
                     <!-- Widget Formato Impresora -->
-                    <button onclick="alternarImpresoraGlobal()" title="Formato de Ticket Térmico (58mm / 80mm)" class="hidden sm:flex items-center space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shrink-0">
+                    <button onclick="alternarImpresoraGlobal()" title="Formato de Ticket Térmico (58mm / 80mm)" class="hidden sm:flex items-center space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shrink-0">
                         <i class="fa-solid fa-print text-emerald-300 text-xs shrink-0"></i>
                         <span class="text-red-200">Ticket:</span>
                         <span id="impresoraGlobalDisplay" class="text-white font-bold">58mm</span>
                     </button>
 
                     <!-- Acceso a Propuesta Comercial -->
-                    <a href="/propuesta" target="_blank" title="Ver Dossier y Propuesta Comercial del Sistema ($300 USD)" class="flex items-center space-x-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold backdrop-blur-sm transition shrink-0 shadow-sm">
+                    <a href="/propuesta" target="_blank" title="Ver Dossier y Propuesta Comercial del Sistema ($300 USD)" class="hidden xl:flex items-center space-x-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm transition shrink-0 shadow-sm">
                         <i class="fa-solid fa-file-invoice-dollar text-amber-300 text-xs"></i>
-                        <span class="hidden md:inline">Propuesta</span>
+                        <span>Propuesta</span>
                         <span class="text-amber-300 font-extrabold">$300</span>
                     </a>
 
                     <!-- Usuario -->
-                    <div class="relative hidden sm:flex items-center space-x-2 shrink-0">
+                    <div class="relative hidden sm:flex items-center space-x-1.5 shrink-0">
                         <span class="text-xs bg-black/25 border border-white/20 px-2.5 py-1 rounded-md text-white font-medium shrink-0">
                             <i class="fa-solid fa-user-circle mr-1 text-red-200 shrink-0"></i>{{ user.nombre if user else 'Usuario' }}
                         </span>
-                        <button onclick="cerrarSesion()" title="Cerrar sesión" class="p-2 text-red-200 hover:text-white transition shrink-0">
+                        <button onclick="cerrarSesion()" title="Cerrar sesión" class="p-1.5 text-red-200 hover:text-white transition shrink-0">
                             <i class="fa-solid fa-power-off shrink-0"></i>
                         </button>
                     </div>
@@ -315,6 +341,25 @@
 
     <!-- SCRIPTS GLOBALES -->
     <script>
+        function toggleMenuMas(e) {
+            if (e) e.stopPropagation();
+            const m = document.getElementById('dropdownMasMenu');
+            const c = document.getElementById('iconoChevronMas');
+            if (m) {
+                m.classList.toggle('hidden');
+                if (c) c.classList.toggle('rotate-180');
+            }
+        }
+        document.addEventListener('click', (e) => {
+            const cont = document.getElementById('dropdownMasContainer');
+            const m = document.getElementById('dropdownMasMenu');
+            const c = document.getElementById('iconoChevronMas');
+            if (cont && m && !cont.contains(e.target)) {
+                m.classList.add('hidden');
+                if (c) c.classList.remove('rotate-180');
+            }
+        });
+
         window.CURRENT_USER_PERMISOS = {{ (user.lista_permisos if user else []) | tojson }};
         window.CURRENT_USER_ROL = "{{ user.rol if user else '' }}";
         window.IS_ADMIN = {{ 'true' if (user and user.rol == 'admin') else 'false' }};

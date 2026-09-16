@@ -746,20 +746,20 @@
 
                 <!-- Totales y Saldo por Cobrar -->
                 <div class="bg-rose-50/70 border-2 border-rose-300 rounded-xl p-2.5 text-right space-y-1">
-                    <div class="flex justify-between text-xs text-slate-600">
+                    <div class="flex justify-between text-xs text-slate-700">
                         <span>Total de la Venta:</span>
-                        <strong id="mhTotalUSD" class="font-mono">$0.00</strong>
+                        <strong id="mhTotalUSD" class="font-mono text-slate-900">$0.00</strong>
                     </div>
-                    <div class="flex justify-between text-xs text-emerald-700" id="mhFilaInicial">
-                        <span>Abono / Inicial Pagada:</span>
-                        <strong id="mhInicialUSD" class="font-mono">-$0.00</strong>
+                    <div class="flex justify-between text-xs text-emerald-800 font-semibold" id="mhFilaInicial">
+                        <span>(-) Abono / Inicial Pagada:</span>
+                        <strong id="mhInicialUSD" class="font-mono text-emerald-700">-$0.00</strong>
                     </div>
                     <div class="border-t-2 border-rose-400 pt-1.5 flex justify-between items-baseline">
-                        <span class="font-black text-rose-950 uppercase text-xs">SALDO A CRÉDITO:</span>
+                        <span class="font-black text-rose-950 uppercase text-xs">SALDO A CRÉDITO (DEBE):</span>
                         <span id="mhSaldoUSD" class="text-lg font-black text-rose-700 font-mono">$0.00 USD</span>
                     </div>
                     <div class="text-[11px] font-bold text-slate-700">
-                        <span>Equiv. Bs. (BCV): </span><strong id="mhSaldoBS" class="font-mono text-slate-900">Bs. 0,00</strong>
+                        <span>Equiv. Deuda en Bs.: </span><strong id="mhSaldoBS" class="font-mono text-slate-900">Bs. 0,00</strong>
                     </div>
                 </div>
             </div>
@@ -1648,10 +1648,26 @@
         calcularRestantePago();
     }
 
+    function recalcularCreditoSiAplica(forzar = false) {
+        if (condicionVenta === 'credito' && (forzar || document.activeElement !== document.getElementById('pagoCreditoUSD'))) {
+            const totalUSD = obtenerTotalUSD();
+            const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+            const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
+            const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
+            const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
+            const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
+            const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
+            const inicialUSD = efUSD + zeUSD + pmUSD + puUSD;
+            const creditoRestante = Math.max(0, Math.round((totalUSD - inicialUSD) * 100) / 100);
+            document.getElementById('pagoCreditoUSD').value = creditoRestante.toFixed(2);
+        }
+    }
+
     function calcularDesdeBolivares(idInputBs, idLabelUSD) {
         const valBs = parseFloat(document.getElementById(idInputBs).value) || 0;
         const eqUSD = valBs > 0 ? (valBs / TASA_BCV) : 0;
         document.getElementById(idLabelUSD).textContent = `$${eqUSD.toFixed(2)} USD`;
+        recalcularCreditoSiAplica();
         calcularRestantePago();
     }
 
@@ -1660,6 +1676,7 @@
     }
 
     function calcularRestantePago() {
+        recalcularCreditoSiAplica();
         const totalUSD = obtenerTotalUSD();
 
         const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
@@ -1777,11 +1794,12 @@
         const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
 
         const totalUSD = obtenerTotalUSD();
-        const totalPagado = efUSD + zeUSD + pmUSD + puUSD + crUSD;
+        const inicialUSD = efUSD + zeUSD + pmUSD + puUSD;
 
-        // Si es a crédito y no se llenó el campo crédito pero falta por pagar, asignar la diferencia a crédito
-        if (condicionVenta === 'credito' && totalPagado < totalUSD) {
-            crUSD = totalUSD - (efUSD + zeUSD + pmUSD + puUSD);
+        // Si es a crédito: el crédito real es el total menos la inicial abonada
+        if (condicionVenta === 'credito') {
+            crUSD = Math.max(0, Math.round((totalUSD - inicialUSD) * 100) / 100);
+            document.getElementById('pagoCreditoUSD').value = crUSD.toFixed(2);
         }
 
         const payload = {
@@ -1883,8 +1901,12 @@
         const totalUSD = factData.total_usd;
         const totalBS = factData.total_bs;
         const tasa = factData.tasa_bcv;
-        const saldoUSD = (factData.saldo_pendiente !== undefined && factData.saldo_pendiente !== null) ? factData.saldo_pendiente : (factData.credito || 0);
-        const inicialUSD = Math.max(0, totalUSD - saldoUSD);
+        const pagosEfectivos = Math.round(((pagos.efectivoUSD || 0) + (pagos.zelleUSD || 0) + (pagos.pagoMovilUSD || 0) + (pagos.puntoUSD || 0)) * 100) / 100;
+        let saldoUSD = (factData.saldo_pendiente !== undefined && factData.saldo_pendiente !== null) ? factData.saldo_pendiente : (factData.credito || 0);
+        if (pagosEfectivos > 0 && Math.abs(saldoUSD - totalUSD) < 0.01) {
+            saldoUSD = Math.max(0, Math.round((totalUSD - pagosEfectivos) * 100) / 100);
+        }
+        const inicialUSD = factData.inicial_abonada !== undefined ? factData.inicial_abonada : (pagosEfectivos > 0 ? pagosEfectivos : Math.max(0, Math.round((totalUSD - saldoUSD) * 100) / 100));
         const saldoBS = saldoUSD * tasa;
 
         document.getElementById('mhTotalUSD').textContent = `$${totalUSD.toFixed(2)} USD`;

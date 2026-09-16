@@ -321,26 +321,30 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
     total_factura = round(total_factura, 2)
 
     # Validar formas de pago
-    total_pagado = round((payload.efectivo or 0.0) + (payload.zelle or 0.0) +
-                         (payload.pagomovil or 0.0) + (payload.punto or 0.0) +
-                         (payload.credito or 0.0), 2)
-    
-    # Si no se desglosó el pago, asignar automáticamente al método principal
-    efectivo = payload.efectivo or 0.0
-    zelle = payload.zelle or 0.0
-    pagomovil = payload.pagomovil or 0.0
-    punto = payload.punto or 0.0
-    credito = payload.credito or 0.0
+    efectivo = round(payload.efectivo or 0.0, 2)
+    zelle = round(payload.zelle or 0.0, 2)
+    pagomovil = round(payload.pagomovil or 0.0, 2)
+    punto = round(payload.punto or 0.0, 2)
+    inicial_abonada = round(efectivo + zelle + pagomovil + punto, 2)
 
-    if total_pagado == 0.0:
-        efectivo = total_factura
+    condicion = (payload.condicion or ("credito" if (payload.credito or 0.0) > 0 else "contado")).strip().lower()
 
-    condicion = payload.condicion or ("credito" if credito > 0 else "contado")
+    # Gestión de crédito e inicial
+    if condicion == "credito":
+        # En una venta a crédito, el crédito real adeudado es el total menos los cobros iniciales recibidos
+        credito = max(0.0, round(total_factura - inicial_abonada, 2))
+        saldo_pendiente = credito
+        estado_credito = "pendiente" if saldo_pendiente > 0.009 else "saldado"
+        fecha_venc = (datetime.now() + timedelta(days=payload.dias_credito or 15)) if saldo_pendiente > 0 else None
+    else:
+        credito = 0.0
+        saldo_pendiente = 0.0
+        estado_credito = "saldado"
+        fecha_venc = None
+        if inicial_abonada == 0.0:
+            efectivo = total_factura
+            inicial_abonada = total_factura
 
-    # Gestión de crédito
-    saldo_pendiente = credito if (credito > 0 or condicion == "credito") else 0.0
-    estado_credito = "pendiente" if saldo_pendiente > 0 else "saldado"
-    fecha_venc = (datetime.now() + timedelta(days=payload.dias_credito or 15)) if saldo_pendiente > 0 else None
     caja_activa = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
     caja_id = caja_activa.id if caja_activa else None
 
@@ -387,6 +391,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         "pagomovil": factura.pagomovil or 0.0,
         "punto": factura.punto or 0.0,
         "credito": factura.credito or 0.0,
+        "inicial_abonada": inicial_abonada,
         "saldo_pendiente": factura.saldo_pendiente,
         "fecha_vencimiento": factura.fecha_vencimiento.strftime("%d/%m/%Y") if factura.fecha_vencimiento else "",
         "dias_credito": payload.dias_credito or 15,
@@ -537,98 +542,110 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
     if not factura:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
 
-    tasa_bcv = factura.tasa_bcv or float(get_config_val(db, "tasa_bcv", "473.92"))
+    try:
+        tasa_bcv = factura.tasa_bcv or float(get_config_val(db, "tasa_bcv", "473.92"))
 
-    # Si se actualizan los ítems
-    if payload.items is not None:
-        if len(payload.items) == 0:
-            raise HTTPException(status_code=400, detail="La factura debe tener al menos un producto")
-        
-        # 1. Revertir stock de los ítems existentes
-        for item_antiguo in factura.items:
-            art = db.query(Articulo).filter(Articulo.codigo == item_antiguo.codigo_articulo).first()
-            if art:
-                art.stock += item_antiguo.cantidad
-        
-        # 2. Eliminar detalles anteriores
-        for item_antiguo in list(factura.items):
-            db.delete(item_antiguo)
-        db.flush()
-
-        # 3. Aplicar nuevos ítems y descontar nuevo stock
-        total_nuevo = 0.0
-        nuevos_detalles = []
-        for it in payload.items:
-            art = db.query(Articulo).filter(Articulo.codigo == it.codigo_articulo).first()
-            if not art:
-                raise HTTPException(status_code=400, detail=f"Artículo con código {it.codigo_articulo} no encontrado")
+        # Si se actualizan los ítems
+        if payload.items is not None:
+            if len(payload.items) == 0:
+                raise HTTPException(status_code=400, detail="La factura debe tener al menos un producto")
             
-            art.stock -= it.cantidad
-            dcto = it.descuento_pct or 0.0
-            subt = round(it.cantidad * it.precio_unitario * (1 - dcto / 100), 2)
-            total_nuevo += subt
-            nuevos_detalles.append(DetalleFactura(
-                codigo_articulo=art.codigo,
-                nombre_articulo=art.nombre,
-                cantidad=it.cantidad,
-                precio_unitario=it.precio_unitario,
-                descuento_pct=dcto,
-                subtotal=subt,
-                costo_unitario=art.costo_final
-            ))
+            # 1. Revertir stock de los ítems existentes
+            for item_antiguo in (factura.items or []):
+                art = db.query(Articulo).filter(Articulo.codigo == item_antiguo.codigo_articulo).first()
+                if art:
+                    art.stock = round(art.stock + item_antiguo.cantidad, 2)
+
+            # 2. Reemplazar items en la relación limpiamente
+            total_nuevo = 0.0
+            nuevos_detalles = []
+            for it in payload.items:
+                try:
+                    cod_num = int(it.codigo_articulo)
+                except (ValueError, TypeError):
+                    cod_num = it.codigo_articulo
+
+                art = db.query(Articulo).filter(Articulo.codigo == cod_num).first()
+                nombre_art = art.nombre if art else f"Artículo #{cod_num}"
+                costo_art = art.costo_final if art else 0.0
+                if art:
+                    art.stock = round(art.stock - it.cantidad, 2)
+                
+                dcto = max(0.0, min(100.0, it.descuento_pct or 0.0))
+                subt = round(it.cantidad * it.precio_unitario * (1.0 - dcto / 100.0), 2)
+                total_nuevo += subt
+                nuevos_detalles.append(DetalleFactura(
+                    codigo_articulo=cod_num,
+                    nombre_articulo=nombre_art,
+                    cantidad=it.cantidad,
+                    precio_unitario=it.precio_unitario,
+                    descuento_pct=dcto,
+                    subtotal=subt,
+                    costo_unitario=costo_art
+                ))
+            
+            # Asignar directamente a factura.items (cascade='all, delete-orphan' gestiona los antiguos)
+            factura.items = nuevos_detalles
+            factura.total = round(total_nuevo, 2)
+
+        # Actualizar cliente si corresponde
+        if payload.cliente_nombre is not None and payload.cliente_nombre.strip():
+            factura.cliente_nombre = payload.cliente_nombre.strip().upper()
+        if payload.cliente_id is not None:
+            factura.cliente_id = payload.cliente_id
+
+        # Actualizar condición
+        if payload.condicion:
+            factura.condicion = payload.condicion.strip().lower()
+
+        # Actualizar desglose de formas de pago
+        if payload.efectivo is not None: factura.efectivo = round(payload.efectivo, 2)
+        if payload.zelle is not None: factura.zelle = round(payload.zelle, 2)
+        if payload.pagomovil is not None: factura.pagomovil = round(payload.pagomovil, 2)
+        if payload.punto is not None: factura.punto = round(payload.punto, 2)
+        if payload.credito is not None: factura.credito = round(payload.credito, 2)
+
+        suma_pagos = round((factura.efectivo or 0.0) + (factura.zelle or 0.0) + (factura.pagomovil or 0.0) + (factura.punto or 0.0), 2)
         
-        factura.items = nuevos_detalles
-        factura.total = round(total_nuevo, 2)
+        if factura.condicion == "contado":
+            factura.credito = 0.0
+            factura.saldo_pendiente = 0.0
+            factura.estado_credito = "saldado"
+            if suma_pagos == 0.0:
+                factura.efectivo = factura.total
+        else:  # Crédito
+            if payload.credito is None or payload.credito == 0.0:
+                factura.credito = max(0.0, round(factura.total - suma_pagos, 2))
+            
+            # Considerar abonos ya realizados
+            total_abonos = sum(ab.monto_usd for ab in (factura.abonos or []))
+            credito_inicial = factura.credito or 0.0
+            factura.saldo_pendiente = max(0.0, round(credito_inicial - total_abonos, 2))
+            factura.estado_credito = "saldado" if factura.saldo_pendiente <= 0.009 else "pendiente"
+            if payload.dias_credito and payload.dias_credito > 0:
+                f_base = factura.fecha if isinstance(factura.fecha, datetime) else datetime.now()
+                factura.fecha_vencimiento = f_base + timedelta(days=payload.dias_credito)
 
-    # Actualizar cliente si corresponde
-    if payload.cliente_nombre is not None and payload.cliente_nombre.strip():
-        factura.cliente_nombre = payload.cliente_nombre.strip().upper()
-    if payload.cliente_id is not None:
-        factura.cliente_id = payload.cliente_id
+        db.commit()
+        db.refresh(factura)
 
-    # Actualizar condición
-    if payload.condicion:
-        factura.condicion = payload.condicion.strip().lower()
-
-    # Actualizar desglose de formas de pago
-    if payload.efectivo is not None: factura.efectivo = payload.efectivo
-    if payload.zelle is not None: factura.zelle = payload.zelle
-    if payload.pagomovil is not None: factura.pagomovil = payload.pagomovil
-    if payload.punto is not None: factura.punto = payload.punto
-    if payload.credito is not None: factura.credito = payload.credito
-
-    suma_pagos = round((factura.efectivo or 0.0) + (factura.zelle or 0.0) + (factura.pagomovil or 0.0) + (factura.punto or 0.0), 2)
-    
-    if factura.condicion == "contado":
-        factura.credito = 0.0
-        factura.saldo_pendiente = 0.0
-        factura.estado_credito = "saldado"
-        if suma_pagos == 0.0:
-            factura.efectivo = factura.total
-    else:  # Crédito
-        if payload.credito is None and (factura.credito is None or factura.credito == 0.0):
-            factura.credito = max(0.0, round(factura.total - suma_pagos, 2))
-        
-        # Considerar abonos ya realizados
-        total_abonos = sum(ab.monto_usd for ab in (factura.abonos or []))
-        credito_inicial = factura.credito or 0.0
-        factura.saldo_pendiente = max(0.0, round(credito_inicial - total_abonos, 2))
-        factura.estado_credito = "saldado" if factura.saldo_pendiente <= 0.009 else "pendiente"
-        if payload.dias_credito and payload.dias_credito > 0:
-            factura.fecha_vencimiento = factura.fecha + timedelta(days=payload.dias_credito)
-
-    db.commit()
-    db.refresh(factura)
-
-    return {
-        "status": "ok",
-        "mensaje": f"Factura #{factura.numero} modificada exitosamente",
-        "factura_id": factura.id,
-        "numero": factura.numero,
-        "total": factura.total,
-        "condicion": factura.condicion,
-        "saldo_pendiente": factura.saldo_pendiente
-    }
+        return {
+            "status": "ok",
+            "mensaje": f"Factura #{factura.numero} modificada exitosamente",
+            "factura_id": factura.id,
+            "numero": factura.numero,
+            "total": factura.total,
+            "condicion": factura.condicion,
+            "saldo_pendiente": factura.saldo_pendiente
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al modificar factura: {str(e)}")
 
 # ==========================================
 # GESTIÓN DE CRÉDITOS Y COBRANZAS

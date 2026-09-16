@@ -403,20 +403,20 @@
 
                 <!-- Totales y Saldo por Cobrar -->
                 <div class="bg-rose-50/70 border-2 border-rose-300 rounded-xl p-2.5 text-right space-y-1">
-                    <div class="flex justify-between text-xs text-slate-600">
+                    <div class="flex justify-between text-xs text-slate-700">
                         <span>Total de la Venta:</span>
-                        <strong id="mhTotalUSD" class="font-mono">$0.00</strong>
+                        <strong id="mhTotalUSD" class="font-mono text-slate-900">$0.00</strong>
                     </div>
-                    <div class="flex justify-between text-xs text-emerald-700" id="mhFilaInicial">
-                        <span>Abono / Inicial Pagada:</span>
-                        <strong id="mhInicialUSD" class="font-mono">-$0.00</strong>
+                    <div class="flex justify-between text-xs text-emerald-800 font-semibold" id="mhFilaInicial">
+                        <span>(-) Abono / Inicial Pagada:</span>
+                        <strong id="mhInicialUSD" class="font-mono text-emerald-700">-$0.00</strong>
                     </div>
                     <div class="border-t-2 border-rose-400 pt-1.5 flex justify-between items-baseline">
-                        <span class="font-black text-rose-950 uppercase text-xs">SALDO A CRÉDITO:</span>
+                        <span class="font-black text-rose-950 uppercase text-xs">SALDO A CRÉDITO (DEBE):</span>
                         <span id="mhSaldoUSD" class="text-lg font-black text-rose-700 font-mono">$0.00 USD</span>
                     </div>
                     <div class="text-[11px] font-bold text-slate-700">
-                        <span>Equiv. Bs. (BCV): </span><strong id="mhSaldoBS" class="font-mono text-slate-900">Bs. 0,00</strong>
+                        <span>Equiv. Deuda en Bs.: </span><strong id="mhSaldoBS" class="font-mono text-slate-900">Bs. 0,00</strong>
                     </div>
                 </div>
             </div>
@@ -959,8 +959,14 @@
         const totalUSD = d.total_usd || 0;
         const totalBS = d.total_bs || 0;
         const tasa = d.tasa_bcv || 1;
-        const saldoUSD = (d.saldo_pendiente !== undefined && d.saldo_pendiente !== null) ? d.saldo_pendiente : (d.credito_inicial || 0);
-        const inicialUSD = Math.max(0, totalUSD - saldoUSD);
+        const pagos = d.pagos || {};
+        const inicialPagos = Math.round(((pagos.efectivo || 0) + (pagos.zelle || 0) + (pagos.pagomovil || 0) + (pagos.punto || 0)) * 100) / 100;
+        let saldoUSD = (d.saldo_pendiente !== undefined && d.saldo_pendiente !== null) ? d.saldo_pendiente : (d.credito_inicial || 0);
+        // Si el saldo pendiente reportado no descuenta la inicial abonada, ajustar al restante real
+        if (inicialPagos > 0 && Math.abs(saldoUSD - totalUSD) < 0.01) {
+            saldoUSD = Math.max(0, Math.round((totalUSD - inicialPagos) * 100) / 100);
+        }
+        const inicialUSD = inicialPagos > 0 ? inicialPagos : Math.max(0, Math.round((totalUSD - saldoUSD) * 100) / 100);
         const saldoBS = saldoUSD * tasa;
 
         document.getElementById('mhTotalUSD').textContent = `$${totalUSD.toFixed(2)} USD`;
@@ -1153,7 +1159,7 @@
                     <input type="number" step="1" min="0" max="100" value="${it.descuento || 0}" oninput="actualizarItemMod(${idx}, 'descuento', this.value)"
                         class="w-12 px-1.5 py-1 bg-slate-50 border border-slate-300 rounded font-bold text-center text-xs">
                 </td>
-                <td class="py-2 px-3 text-right font-bold text-slate-900">$${subt.toFixed(2)}</td>
+                <td class="py-2 px-3 text-right font-bold text-slate-900 font-mono" id="subtotalItemMod_${idx}">$${subt.toFixed(2)}</td>
                 <td class="py-2 px-2 text-center">
                     <button type="button" onclick="eliminarItemMod(${idx})" class="text-slate-400 hover:text-red-600 p-1 transition" title="Quitar ítem">
                         <i class="fa-solid fa-trash-can"></i>
@@ -1171,7 +1177,13 @@
         const num = parseFloat(valor);
         if (isNaN(num)) return;
         facturaModActual.items[idx][campo] = num;
-        renderizarItemsMod();
+
+        const it = facturaModActual.items[idx];
+        const subt = it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
+        const cell = document.getElementById(`subtotalItemMod_${idx}`);
+        if (cell) cell.textContent = `$${subt.toFixed(2)}`;
+
+        recalcularTotalesMod(false);
     }
 
     function eliminarItemMod(idx) {
@@ -1314,7 +1326,21 @@
         const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
         const pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
         const pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
-        const cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
+        let cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
+
+        let totalMod = 0;
+        facturaModActual.items.forEach(it => {
+            totalMod += it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
+        });
+        totalMod = Math.round(totalMod * 100) / 100;
+        const inicialAbonada = ef + ze + pm + pt;
+
+        if (condicion === 'credito') {
+            if (cr === 0 || Math.abs((inicialAbonada + cr) - totalMod) > 0.05) {
+                cr = Math.max(0, Math.round((totalMod - inicialAbonada) * 100) / 100);
+                document.getElementById('modPagoCredito').value = cr;
+            }
+        }
 
         const itemsPayload = facturaModActual.items.map(it => ({
             codigo_articulo: it.codigo,
@@ -1353,7 +1379,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            const data = await res.json();
+
+            let data = {};
+            const textResp = await res.text();
+            try {
+                data = JSON.parse(textResp);
+            } catch (errParse) {
+                data = { detail: textResp || 'Error en el servidor.' };
+            }
+
             if (res.ok) {
                 cerrarModalModificarFactura();
                 Swal.fire({
@@ -1365,10 +1399,15 @@
                 });
                 cargarFacturas();
             } else {
-                Swal.fire('Error', data.detail || 'No se pudo modificar la factura.', 'error');
+                let msg = data.detail || 'No se pudo modificar la factura.';
+                if (Array.isArray(msg)) {
+                    msg = msg.map(m => (typeof m === 'string' ? m : (m.msg || JSON.stringify(m)))).join(', ');
+                }
+                Swal.fire('Error', msg, 'error');
             }
         } catch (e) {
-            Swal.fire('Error', 'Fallo de conexión al guardar factura.', 'error');
+            console.error("Error al guardar modificación de factura:", e);
+            Swal.fire('Error', 'Fallo de conexión al guardar factura: ' + (e.message || ''), 'error');
         }
     }
 

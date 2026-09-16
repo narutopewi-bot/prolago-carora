@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -123,7 +123,7 @@ class VerificarAdminRequest(BaseModel):
 
 # Esquema para Modificación de Facturas
 class ItemFacturaUpdate(BaseModel):
-    codigo_articulo: int
+    codigo_articulo: Union[int, str]
     cantidad: float
     precio_unitario: float
     descuento_pct: Optional[float] = 0.0
