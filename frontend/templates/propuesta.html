@@ -1,20 +1,41 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Propuesta Comercial y Dossier Técnico - Prolago Carora 2026</title>
+    <title>Prolago Carora 2026 &bull; Solución Comercial & Propuesta de Implementación</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+            background-color: #0f172a;
+            color: #f8fafc;
         }
         .font-mono {
             font-family: 'JetBrains Mono', monospace;
+        }
+        .gradient-wine {
+            background: linear-gradient(135deg, #2b0305 0%, #540b0e 45%, #8B1E24 100%);
+        }
+        .gradient-card {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+        }
+        .glass-header {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .text-wine {
+            color: #d94d54;
+        }
+        .bg-wine {
+            background-color: #8B1E24;
+        }
+        .border-wine {
+            border-color: rgba(139, 30, 36, 0.4);
         }
         @media print {
             .no-print {
@@ -22,8 +43,30 @@
             }
             body {
                 background: white !important;
-                color: black !important;
+                color: #0f172a !important;
                 padding: 0 !important;
+            }
+            .gradient-wine {
+                background: #8B1E24 !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .gradient-card {
+                background: white !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            .bg-slate-900, .bg-slate-800, .bg-slate-950 {
+                background: white !important;
+                color: #0f172a !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .text-white {
+                color: #0f172a !important;
+            }
+            .text-slate-300, .text-slate-400 {
+                color: #475569 !important;
             }
             .page-break {
                 page-break-before: always;
@@ -33,516 +76,801 @@
             }
             @page {
                 size: A4 portrait;
-                margin: 12mm 12mm 15mm 12mm;
+                margin: 10mm;
             }
-            .shadow-xl, .shadow-2xl, .shadow-md, .shadow-sm {
-                box-shadow: none !important;
-                border: 1px solid #cbd5e1 !important;
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
             }
         }
     </style>
 </head>
-<body class="antialiased selection:bg-[#8B1E24] selection:text-white pb-16">
+<body class="antialiased selection:bg-[#8B1E24] selection:text-white">
 
-    <!-- BARRA SUPERIOR DE ACCIONES (NO-PRINT) -->
-    <header class="bg-slate-900 text-white sticky top-0 z-50 border-b border-slate-800 shadow-md no-print">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <a href="/" class="flex items-center space-x-2 text-white hover:text-red-300 transition">
-                    <span class="w-8 h-8 rounded-lg bg-[#8B1E24] flex items-center justify-center font-black text-sm">P</span>
-                    <span class="font-extrabold text-sm tracking-tight">PROLAGO CARORA 2026</span>
+    <!-- ======================================================== -->
+    <!-- 1. BARRA DE NAVEGACIÓN FIJA (HEADER)                     -->
+    <!-- ======================================================== -->
+    <header class="glass-header sticky top-0 z-50 border-b border-slate-800 shadow-xl no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="#inicio" class="flex items-center space-x-3 group">
+                <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B1E24] to-[#540b0e] flex items-center justify-center font-black text-white text-lg shadow-lg shadow-red-950/50 group-hover:scale-105 transition">
+                    P
+                </span>
+                <div>
+                    <span class="font-extrabold text-sm sm:text-base tracking-tight text-white block leading-tight">
+                        PROLAGO CARORA
+                    </span>
+                    <span class="text-[10px] font-bold text-amber-400 tracking-wider uppercase block">
+                        Software Comercial 2026
+                    </span>
+                </div>
+            </a>
+
+            <!-- Enlaces de Navegación -->
+            <nav class="hidden md:flex items-center space-x-6 text-xs font-semibold text-slate-300">
+                <a href="#beneficios" class="hover:text-white transition">¿Qué Hace por Ti?</a>
+                <a href="#graficas" class="hover:text-white transition flex items-center space-x-1">
+                    <i class="fa-solid fa-chart-column text-emerald-400"></i>
+                    <span>Estadísticas & Gráficas</span>
                 </a>
-                <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700 hidden sm:inline">Dossier de Venta &bull; Propuesta Comercial</span>
-            </div>
+                <a href="#modulos" class="hover:text-white transition">Módulos</a>
+                <a href="#comparativa" class="hover:text-white transition">Comparativa</a>
+                <a href="#inversion" class="px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold hover:bg-amber-500/20 transition">
+                    Inversión: $300 USD
+                </a>
+            </nav>
+
+            <!-- Botones de Acción Rápida -->
             <div class="flex items-center space-x-2.5">
-                <button onclick="window.print()" class="px-4 py-2 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-red-900/30">
-                    <i class="fa-solid fa-file-pdf"></i>
-                    <span>Descargar / Imprimir en PDF</span>
+                <button onclick="window.print()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm" title="Descargar como PDF">
+                    <i class="fa-solid fa-file-pdf text-rose-400"></i>
+                    <span class="hidden sm:inline">Guardar PDF</span>
                 </button>
-                <a href="/" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center space-x-1 border border-slate-700">
-                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                    <span>Ir al Sistema</span>
+                <a href="/" class="px-4 py-2 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-lg shadow-red-950/40">
+                    <span>Probar Sistema</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
                 </a>
             </div>
         </div>
     </header>
 
-    <!-- CONTENEDOR PRINCIPAL DEL DOSSIER COMERCIAL -->
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-8 space-y-10">
+    <!-- ======================================================== -->
+    <!-- 2. HERO SECTION CON PRESENTACIÓN IMPACTANTE              -->
+    <!-- ======================================================== -->
+    <section id="inicio" class="relative pt-12 pb-20 overflow-hidden">
+        <!-- Luces de Fondo (Glow effects) -->
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-[#8B1E24]/20 blur-[130px] rounded-full pointer-events-none"></div>
+        <div class="absolute top-10 right-10 w-72 h-72 bg-amber-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
-        <!-- ======================================================== -->
-        <!-- 1. PORTADA Y PRESENTACIÓN EJECUTIVA                      -->
-        <!-- ======================================================== -->
-        <section class="bg-gradient-to-br from-[#3b0405] via-[#5c0e12] to-[#8B1E24] text-white rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden avoid-break">
-            <!-- Marca de Agua Decorativa -->
-            <div class="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10 pointer-events-none">
-                <i class="fa-solid fa-cash-register text-[280px]"></i>
-            </div>
-
-            <div class="relative z-10 max-w-3xl space-y-6">
-                <div class="inline-flex items-center space-x-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-bold tracking-wider uppercase border border-white/20 text-red-200">
-                    <i class="fa-solid fa-crown text-amber-300"></i>
-                    <span>Propuesta Comercial & Solución Tecnológica</span>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-8">
+            <div class="text-center max-w-3xl mx-auto space-y-4">
+                <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 bg-slate-800/80 border border-slate-700 rounded-full text-xs font-bold text-slate-300 backdrop-blur-md shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Versión Comercial Oficial &bull; Entrega Inmediata</span>
                 </div>
 
-                <div class="space-y-2">
-                    <h1 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-                        Sistema Integral de Gestión Comercial, Punto de Venta & Control Administrativo
-                    </h1>
-                    <p class="text-lg sm:text-xl font-medium text-red-100">
-                        Prolago Carora 2026 &bull; Medicina Veterinaria, Alimentos Concentrados y Comercio General
-                    </p>
-                </div>
+                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15]">
+                    El software que <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-emerald-400">automatiza, blinda y multiplica</span> el control de tu negocio
+                </h1>
 
-                <p class="text-sm text-red-200/90 leading-relaxed">
-                    Una solución de software moderna, intuitiva y blindada, diseñada específicamente para erradicar pérdidas por descuadre de divisas, agilizar la atención al cliente, automatizar inventarios críticos y proporcionar control financiero absoluto a la gerencia del negocio.
+                <p class="text-sm sm:text-base text-slate-300 leading-relaxed">
+                    Diseñado específicamente para la economía venezolana: <strong>cobros multimoneda ($ y Bs.), sincronización automática con la tasa oficial BCV, arqueo ciego de cajas, alertas de stock crítico por artículo</strong> y operación garantizada con o sin internet.
                 </p>
 
-                <!-- Ficha Rápida del Proveedor -->
-                <div class="pt-4 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                    <div>
-                        <span class="text-red-300 block font-medium">Modalidad:</span>
-                        <strong class="text-white">Nube Web + Local Offline</strong>
-                    </div>
-                    <div>
-                        <span class="text-red-300 block font-medium">Base de Datos:</span>
-                        <strong class="text-white">980+ Artículos Precargados</strong>
-                    </div>
-                    <div>
-                        <span class="text-red-300 block font-medium">Moneda Operativa:</span>
-                        <strong class="text-white">Multimoneda (USD $ y Bs.)</strong>
-                    </div>
-                    <div>
-                        <span class="text-red-300 block font-medium">Inversión del Servicio:</span>
-                        <strong class="text-amber-300 text-sm font-black">$300 USD (Pago Único)</strong>
-                    </div>
+                <!-- Llamado a la Acción Principal -->
+                <div class="pt-2 flex flex-wrap items-center justify-center gap-3.5">
+                    <a href="#inversion" class="px-6 py-3.5 bg-gradient-to-r from-[#8B1E24] to-[#a82229] hover:from-[#72181D] hover:to-[#8B1E24] text-white font-black text-sm rounded-2xl shadow-xl shadow-red-950/60 transition transform active:scale-95 flex items-center space-x-2">
+                        <i class="fa-solid fa-tag text-amber-300"></i>
+                        <span>Propuesta Completa: $300 USD</span>
+                    </a>
+                    <a href="#graficas" class="px-5 py-3.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm rounded-2xl transition flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                        <span>Ver Reportes & Gráficas</span>
+                    </a>
                 </div>
             </div>
-        </section>
 
-        <!-- ======================================================== -->
-        <!-- 2. ¿QUÉ HACE EL SISTEMA POR TU NEGOCIO?                  -->
-        <!-- ======================================================== -->
-        <section class="space-y-4 avoid-break">
-            <div class="text-center sm:text-left">
-                <span class="text-xs font-black text-[#8B1E24] uppercase tracking-widest block">Beneficios de Impacto Inmediato</span>
-                <h2 class="text-2xl font-black text-slate-900">¿Qué problemas resuelve y qué automatiza en tu negocio?</h2>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <!-- Beneficio 1 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-black">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                    </div>
-                    <h3 class="font-extrabold text-base text-slate-800">Cero Pérdidas Cambiarias (BCV en Tiempo Real)</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Elimina los errores manuales al convertir entre dólares y bolívares. El sistema sincroniza la tasa oficial del Banco Central de Venezuela y calcula al instante montos combinados (parte en $ y parte en Bs.) sin margen de error.
-                    </p>
+            <!-- Ficha Resumen de Métricas Clave (KPIs en Vivo) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto pt-6">
+                <div class="gradient-card p-5 rounded-2xl border border-slate-800 text-center space-y-1 shadow-lg">
+                    <span class="text-3xl sm:text-4xl font-black text-amber-400 font-mono block">982+</span>
+                    <strong class="text-xs text-white block font-bold">Artículos Precargados</strong>
+                    <span class="text-[10px] text-slate-400">Catálogo listo para vender</span>
                 </div>
-
-                <!-- Beneficio 2 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black">
-                        <i class="fa-solid fa-bolt-lightning"></i>
-                    </div>
-                    <h3 class="font-extrabold text-base text-slate-800">Atención 3x Más Rápida en Caja</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Lectura de código de barras, búsqueda predictiva de productos y navegación ágil con la tecla <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono text-[10px]">Enter</kbd> (sin usar ratón). Reduce las colas y atiende más clientes en menos tiempo.
-                    </p>
+                <div class="gradient-card p-5 rounded-2xl border border-slate-800 text-center space-y-1 shadow-lg">
+                    <span class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono block">100%</span>
+                    <strong class="text-xs text-white block font-bold">Arqueo Ciego Exacto</strong>
+                    <span class="text-[10px] text-slate-400">Sobrantes y faltantes al milímetro</span>
                 </div>
-
-                <!-- Beneficio 3 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-black">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <h3 class="font-extrabold text-base text-slate-800">Control Total del Dinero y las Cajas</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Control estricto de turnos con fondo inicial. Al cierre de turno, el cajero realiza un arqueo físico ciego y el sistema calcula exactamente si existe sobrante o faltante, imprimiendo el comprobante de auditoría.
-                    </p>
+                <div class="gradient-card p-5 rounded-2xl border border-slate-800 text-center space-y-1 shadow-lg">
+                    <span class="text-3xl sm:text-4xl font-black text-blue-400 font-mono block">6 en 1</span>
+                    <strong class="text-xs text-white block font-bold">Reportes Gerenciales</strong>
+                    <span class="text-[10px] text-slate-400">Ventas, compras, stock, cobranza</span>
                 </div>
-
-                <!-- Beneficio 4 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-black">
-                        <i class="fa-solid fa-boxes-packing"></i>
-                    </div>
-                    <h3 class="font-extrabold text-base text-slate-800">Alerta Temprana de Stock por Acabarse</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Cada artículo posee su propio umbral de alerta personalizada. El sistema te avisa antes de que se agoten los productos más vendidos y te indica exactamente cuánto dinero necesitas invertir para reponerlos.
-                    </p>
-                </div>
-
-                <!-- Beneficio 5 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-black">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
-                    </div>
-                    <h3 class="font-extrabold text-base text-slate-800">Cuentas por Cobrar y Créditos Blindados</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Identifica de inmediato a los clientes deudores, plazos de vencimiento (7, 15, 30 días) y cartera vencida. Registra abonos en cualquier forma de pago con emisión de recibos y actualización de saldo en tiempo real.
-                    </p>
-                </div>
-
-                <!-- Beneficio 6 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl font-black">
-                        <i class="fa-solid fa-network-wired"></i>
-                    </div>
-                    <h3 class="font-extrabold text-base text-slate-800">Trabaja Con o Sin Internet (Local)</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        El sistema puede operar en la nube o completamente instalado en la computadora de tu negocio, transmitiendo en red local a varias cajas o computadoras sin depender de si hay o no servicio de internet.
-                    </p>
+                <div class="gradient-card p-5 rounded-2xl border border-slate-800 text-center space-y-1 shadow-lg">
+                    <span class="text-3xl sm:text-4xl font-black text-rose-400 font-mono block">0 min</span>
+                    <strong class="text-xs text-white block font-bold">Dependencia de Internet</strong>
+                    <span class="text-[10px] text-slate-400">Versión local .exe incluida</span>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- ======================================================== -->
-        <!-- 3. DETALLE EXHAUSTIVO DE MÓDULOS DEL SISTEMA            -->
-        <!-- ======================================================== -->
-        <section class="space-y-6 page-break">
-            <div class="border-b border-slate-200 pb-3">
-                <span class="text-xs font-black text-[#8B1E24] uppercase tracking-widest block">Capacidades Funcionales</span>
-                <h2 class="text-2xl font-black text-slate-900">Módulos Incluidos en el Sistema Prolago Carora 2026</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Una plataforma integral y unificada con todos los componentes requeridos para operar.</p>
-            </div>
-
-            <div class="space-y-4">
-                
-                <!-- MÓDULO 1: PUNTO DE VENTA Y FACTURACIÓN -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm avoid-break">
-                    <div class="flex items-start space-x-3.5">
-                        <div class="w-10 h-10 rounded-xl bg-red-100 text-[#8B1E24] flex items-center justify-center text-lg font-black shrink-0 mt-0.5">
-                            <i class="fa-solid fa-cash-register"></i>
-                        </div>
-                        <div class="space-y-2 flex-1">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <h3 class="font-black text-base text-slate-900">1. Punto de Venta Inteligente (POS)</h3>
-                                <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-extrabold w-fit">Facturación Instantánea</span>
-                            </div>
-                            <p class="text-xs text-slate-600 leading-relaxed">
-                                Terminal de facturación ultrarrápido adaptado a la realidad comercial venezolana. Soporta código de barras, búsqueda por nombre o código, descuentos por ítem y cálculo bidireccional de pagos.
-                            </p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Pagos Mixtos:</strong> Efectivo $, Pago Móvil, Punto de Venta, Zelle, Crédito.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Impresión Térmica Dual:</strong> Selector integrado de tickets 58mm y 80mm.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Factura Crédito A4 Media Hoja:</strong> Con condiciones de plazo y firma.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Seguridad:</strong> Modificación de facturas protegida con clave de administrador.</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MÓDULO 2: CONTROL DE CAJAS Y TURNOS -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm avoid-break">
-                    <div class="flex items-start space-x-3.5">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-black shrink-0 mt-0.5">
-                            <i class="fa-solid fa-vault"></i>
-                        </div>
-                        <div class="space-y-2 flex-1">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <h3 class="font-black text-base text-slate-900">2. Control Autónomo de Cajas y Arqueo de Turnos</h3>
-                                <span class="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-extrabold w-fit">Auditoría Financiera</span>
-                            </div>
-                            <p class="text-xs text-slate-600 leading-relaxed">
-                                Supervisa el dinero exacto que ingresa por turno de cada cajero. Cuenta con botón directo en el punto de venta para abrir o cerrar turno y consultar métricas en tiempo real.
-                            </p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Apertura con Fondo Base:</strong> Registro de dinero inicial en dólares y bolívares.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Arqueo y Cuadre:</strong> Registro del dinero físico y cálculo automático de sobrante/faltante.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Ticket de Cierre Imprimible:</strong> Resumen financiero en impresora térmica.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Histórico Completo:</strong> Registro inmutable de cada turno realizado en el año.</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MÓDULO 3: INVENTARIO Y ALERTA INDIVIDUAL DE STOCK -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm avoid-break">
-                    <div class="flex items-start space-x-3.5">
-                        <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-black shrink-0 mt-0.5">
-                            <i class="fa-solid fa-boxes-stacked"></i>
-                        </div>
-                        <div class="space-y-2 flex-1">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <h3 class="font-black text-base text-slate-900">3. Inventario Inteligente y Alertas de Stock por Artículo</h3>
-                                <span class="px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-extrabold w-fit">980+ Productos Precargados</span>
-                            </div>
-                            <p class="text-xs text-slate-600 leading-relaxed">
-                                Catálogo clasificado por categorías, marcas y proveedores. Incluye fórmula automatizada de costo base, fletes, margen de ganancia (%) y PVP final.
-                            </p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Stock para Alerta Personalizado:</strong> Cada artículo avisa con su umbral específico (ej: 2, 10, 50).</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Valoración Patrimonial:</strong> Valor del inventario a costo de adquisición y a precio de venta.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Kardex y Movimientos:</strong> Entrada por compras y salida por facturación automática.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Recepción de Compras:</strong> Actualización masiva de stock y costos por factura de proveedor.</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MÓDULO 4: CENTRO DE REPORTES GERENCIALES 6 EN 1 -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm avoid-break">
-                    <div class="flex items-start space-x-3.5">
-                        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg font-black shrink-0 mt-0.5">
-                            <i class="fa-solid fa-chart-pie"></i>
-                        </div>
-                        <div class="space-y-2 flex-1">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <h3 class="font-black text-base text-slate-900">4. Centro de Reportes Gerenciales y Estadísticas (6 en 1)</h3>
-                                <span class="px-2.5 py-0.5 bg-purple-100 text-purple-800 rounded-full text-[10px] font-extrabold w-fit">Decisiones Estratégicas</span>
-                            </div>
-                            <p class="text-xs text-slate-600 leading-relaxed">
-                                Panel visual con filtros por calendario (Hoy, Semana, Mes, Año o personalizado), métricas financieras y botón de exportación a Excel / CSV en cada sección:
-                            </p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-chart-line text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Reporte de Ventas:</strong> Totales, ticket promedio, ventas por cajero y Top 10 productos.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-[10px]"></i>
-                                    <span><strong>Reporte Stock por Acabarse:</strong> Déficit exacto e inversión requerida para reponer.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-truck-ramp-box text-blue-600 text-[10px]"></i>
-                                    <span><strong>Reporte de Compras:</strong> Capital invertido en mercancía y unidades ingresadas.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-hand-holding-dollar text-rose-600 text-[10px]"></i>
-                                    <span><strong>Reporte de Cobranza:</strong> Cartera total, clientes deudores morosos e historial de abonos.</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MÓDULO 5: CRÉDITOS, USUARIOS Y MANTENIMIENTO -->
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm avoid-break">
-                    <div class="flex items-start space-x-3.5">
-                        <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-black shrink-0 mt-0.5">
-                            <i class="fa-solid fa-user-shield"></i>
-                        </div>
-                        <div class="space-y-2 flex-1">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <h3 class="font-black text-base text-slate-900">5. Usuarios con Permisos, Créditos y Copias de Seguridad</h3>
-                                <span class="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-full text-[10px] font-extrabold w-fit">Seguridad de Datos</span>
-                            </div>
-                            <p class="text-xs text-slate-600 leading-relaxed">
-                                Control de accesos por roles (Administrador con privilegios absolutos y Cajeros con funciones restringidas). Incluye módulo de mantenimiento con descarga de respaldos de la base de datos con 1 clic.
-                            </p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 pt-2 border-t border-slate-100">
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Permisos Granulares:</strong> El administrador decide qué módulos puede ver cada usuario.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Copias de Seguridad:</strong> Generación de archivos de respaldo .db restaurables en segundos.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Navegación con Enter:</strong> Desplazamiento fluido entre campos tipo tabulador.</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
-                                    <span><strong>Despachos:</strong> Validación de entregas con datos del cliente automáticos.</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- ======================================================== -->
-        <!-- 4. MÉTRICAS CLAVE Y RENDIMIENTO OPERATIVO               -->
-        <!-- ======================================================== -->
-        <section class="bg-slate-900 text-white rounded-3xl p-8 sm:p-10 shadow-xl space-y-6 avoid-break">
+    <!-- ======================================================== -->
+    <!-- 3. SECCIÓN DE REPORTES & GRÁFICAS GERENCIALES            -->
+    <!-- ======================================================== -->
+    <section id="graficas" class="py-16 bg-slate-950 border-y border-slate-800/80 avoid-break">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             <div class="text-center max-w-2xl mx-auto space-y-2">
-                <span class="text-xs font-black text-amber-400 uppercase tracking-widest block">Rendimiento Probado</span>
-                <h2 class="text-2xl sm:text-3xl font-black">Estadísticas de Impacto en tu Operación Diaria</h2>
-                <p class="text-xs text-slate-400">Resultados tangibles verificados tras la puesta en marcha del software.</p>
+                <span class="text-xs font-black text-emerald-400 tracking-widest uppercase block">
+                    <i class="fa-solid fa-chart-line mr-1"></i> Inteligencia de Negocios
+                </span>
+                <h2 class="text-2xl sm:text-4xl font-black text-white">
+                    Reporte Gráfico de Impacto y Rendimiento Operativo
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">
+                    Visualiza cómo este software optimiza tus números, elimina tiempos muertos y protege tu rentabilidad.
+                </p>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 text-center space-y-1">
-                    <span class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono block">+45%</span>
-                    <strong class="text-xs font-bold text-slate-200 block">Velocidad de Cobro</strong>
-                    <span class="text-[10px] text-slate-400">Reducción del tiempo por factura</span>
+            <!-- Grilla de Gráficas Interactivas (Chart.js) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <!-- GRÁFICA 1: ANTES VS DESPUÉS -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-gauge-high"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-extrabold text-sm text-white">1. Eficiencia Operativa (Antes vs. Con Software)</h3>
+                                <p class="text-[11px] text-slate-400">Medición de tiempos, precisión y control en escala 0 a 100</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-64 sm:h-72 w-full relative">
+                        <canvas id="chartComparativa"></canvas>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-800/60 text-slate-300">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                            <span>Método tradicional: <strong>Lento y con descuadres</strong></span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                            <span>Con Prolago 2026: <strong>100% Precisión y agilidad</strong></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 text-center space-y-1">
-                    <span class="text-3xl sm:text-4xl font-black text-blue-400 font-mono block">100%</span>
-                    <strong class="text-xs font-bold text-slate-200 block">Cuadre de Turnos</strong>
-                    <span class="text-[10px] text-slate-400">Arqueo físico vs sistema</span>
-                </div>
-                <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 text-center space-y-1">
-                    <span class="text-3xl sm:text-4xl font-black text-amber-400 font-mono block">980+</span>
-                    <strong class="text-xs font-bold text-slate-200 block">Artículos Listos</strong>
-                    <span class="text-[10px] text-slate-400">Catálogo precargado inicial</span>
-                </div>
-                <div class="bg-slate-800/80 p-5 rounded-2xl border border-slate-700 text-center space-y-1">
-                    <span class="text-3xl sm:text-4xl font-black text-purple-400 font-mono block">0%</span>
-                    <strong class="text-xs font-bold text-slate-200 block">Pérdida Cambiaria</strong>
-                    <span class="text-[10px] text-slate-400">Conversión BCV exacta</span>
-                </div>
-            </div>
-        </section>
 
-        <!-- ======================================================== -->
-        <!-- 5. PROPUESTA ECONÓMICA Y CONDICIONES COMERCIALES        -->
-        <!-- ======================================================== -->
-        <section class="bg-white rounded-3xl border-2 border-[#8B1E24] p-8 sm:p-12 shadow-2xl space-y-8 avoid-break">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-                <div class="space-y-2 max-w-xl">
-                    <span class="px-3 py-1 bg-red-100 text-[#8B1E24] rounded-full text-xs font-extrabold uppercase tracking-wider">
-                        Propuesta Económica Oficial
-                    </span>
-                    <h2 class="text-2xl sm:text-3xl font-black text-slate-900">
-                        Inversión Total de Implementación y Software
-                    </h2>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Accede a la solución definitiva para tu empresa sin pagos mensuales forzados ni costos ocultos por renovación de licencias básicas.
+                <!-- GRÁFICA 2: DISTRIBUCIÓN MULTIMONEDA -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-money-bill-transfer"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-extrabold text-sm text-white">2. Flujo Multimoneda Integrado (USD vs Bs.)</h3>
+                                <p class="text-[11px] text-slate-400">Registro simultáneo en 5 métodos de pago sin descuadres</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-64 sm:h-72 w-full relative">
+                        <canvas id="chartMonedas"></canvas>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-[11px] pt-2 border-t border-slate-800/60 text-slate-300 text-center">
+                        <div>
+                            <span class="text-emerald-400 font-bold block">Efectivo USD</span>
+                            <span class="text-slate-400 text-[10px]">Billete físico</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-400 font-bold block">Pago Móvil</span>
+                            <span class="text-slate-400 text-[10px]">Tasa BCV en vivo</span>
+                        </div>
+                        <div>
+                            <span class="text-amber-400 font-bold block">Punto / Zelle</span>
+                            <span class="text-slate-400 text-[10px]">Tarjetas y transferencias</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRÁFICA 3: VALORACIÓN DEL INVENTARIO -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-extrabold text-sm text-white">3. Valoración Patrimonial del Inventario</h3>
+                                <p class="text-[11px] text-slate-400">Patrimonio al Costo vs Precio Venta al Público (PVP)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-64 sm:h-72 w-full relative">
+                        <canvas id="chartInventario"></canvas>
+                    </div>
+                    <p class="text-[11px] text-slate-400 text-center pt-2 border-t border-slate-800/60">
+                        El sistema calcula automáticamente tu margen de ganancia proyectada sobre los <strong>982 artículos</strong> precargados.
                     </p>
                 </div>
 
-                <!-- Tarjeta de Precio Destacada -->
-                <div class="bg-gradient-to-br from-[#8B1E24] to-[#5c0e12] text-white p-6 rounded-2xl text-center shadow-xl md:min-w-[240px] space-y-1">
-                    <span class="text-xs font-semibold text-red-200 uppercase tracking-wider block">Costo Total del Servicio</span>
-                    <div class="text-4xl sm:text-5xl font-black font-mono text-amber-300">
+                <!-- GRÁFICA 4: SIMULADOR DE RETORNO DE INVERSIÓN (ROI) -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 shadow-xl space-y-5">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold">
+                                <i class="fa-solid fa-calculator"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-extrabold text-sm text-white">4. Calculadora de Retorno de Inversión (ROI)</h3>
+                                <p class="text-[11px] text-slate-400">¿En cuánto tiempo se pagan los $300 USD del sistema?</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controles del Simulador -->
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-300">Ventas Diarias Estimadas del Negocio:</span>
+                                <span class="text-amber-300 font-mono font-bold" id="lblVentaDiaria">$350 USD / día</span>
+                            </div>
+                            <input type="range" id="sliderVentas" min="100" max="1500" step="50" value="350" oninput="calcularROI()"
+                                class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                        </div>
+
+                        <!-- Resultados Calculados -->
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <div class="p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800 text-center space-y-1">
+                                <span class="text-[10px] uppercase font-bold text-slate-400 block">Ahorro Mensual Estimado</span>
+                                <span class="text-xl sm:text-2xl font-black text-emerald-400 font-mono block" id="lblAhorroMensual">$168 USD</span>
+                                <span class="text-[10px] text-slate-400">Evitando redondeos y fugas</span>
+                            </div>
+                            <div class="p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800 text-center space-y-1">
+                                <span class="text-[10px] uppercase font-bold text-slate-400 block">Tiempo de Recuperación</span>
+                                <span class="text-xl sm:text-2xl font-black text-amber-300 font-mono block" id="lblDiasRecuperacion">18 Días</span>
+                                <span class="text-[10px] text-slate-400">¡La inversión se paga sola!</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-200/90 flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-check text-amber-400 shrink-0"></i>
+                            <span>Tras el primer mes, todo el ahorro y optimización generada se convierte en <strong>ganancia pura y tranquilidad</strong> para tu negocio.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 4. ¿QUÉ HACE EL SISTEMA POR TU NEGOCIO? (6 PILARES)     -->
+    <!-- ======================================================== -->
+    <section id="beneficios" class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div class="text-center max-w-2xl mx-auto space-y-2">
+            <span class="text-xs font-black text-wine uppercase tracking-widest block">Solución de Problemas Reales</span>
+            <h2 class="text-2xl sm:text-4xl font-black text-white">
+                Las 6 Funciones Clave que Automatizan tu Empresa
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-400">
+                Diseñado pensando en los dolores cotidianos de las tiendas, bodegones, agropecuarias y farmacias.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 1 -->
+            <div class="gradient-card p-6 rounded-3xl border border-slate-800 hover:border-slate-700 transition space-y-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+                <h3 class="font-extrabold text-base text-white">Sincronización BCV en Tiempo Real</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Actualiza la tasa oficial con 1 clic. El punto de venta convierte automáticamente cualquier precio o forma de pago al tipo de cambio exacto, eliminando diferencias cambiarias.
+                </p>
+            </div>
+
+            <!-- 2 -->
+            <div class="gradient-card p-6 rounded-3xl border border-slate-800 hover:border-slate-700 transition space-y-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-keyboard"></i>
+                </div>
+                <h3 class="font-extrabold text-base text-white">Navegación Fluida con Tecla Enter</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    El cajero puede ingresar productos, cantidades y cobros navegando con la tecla <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded font-mono text-[10px] text-slate-300">Enter</kbd> sin tocar el ratón, agilizando la facturación y reduciendo colas.
+                </p>
+            </div>
+
+            <!-- 3 -->
+            <div class="gradient-card p-6 rounded-3xl border border-slate-800 hover:border-slate-700 transition space-y-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-vault"></i>
+                </div>
+                <h3 class="font-extrabold text-base text-white">Control y Arqueo Ciego de Cajas</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Apertura de turno con fondo inicial. Al cierre, el cajero cuenta el dinero físico y el sistema calcula automáticamente si hay sobrante o faltante, imprimiendo el comprobante de auditoría.
+                </p>
+            </div>
+
+            <!-- 4 -->
+            <div class="gradient-card p-6 rounded-3xl border border-slate-800 hover:border-slate-700 transition space-y-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-purple-500/15 text-purple-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="font-extrabold text-base text-white">Reporte: Stock por Acabarse</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Cada producto tiene su propio umbral de alerta personalizado (2, 10, 50 piezas). El reporte indica qué productos están por agotarse y cuánto dinero exacto necesitas para reponerlos.
+                </p>
+            </div>
+
+            <!-- 5 -->
+            <div class="gradient-card p-6 rounded-3xl border border-slate-800 hover:border-slate-700 transition space-y-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <h3 class="font-extrabold text-base text-white">Cuentas por Cobrar & Créditos</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Asigna plazos (7, 15, 30 días), identifica facturas vencidas y registra abonos en cualquier moneda con impresión de recibos y actualización de saldo en tiempo real.
+                </p>
+            </div>
+
+            <!-- 6 -->
+            <div class="gradient-card p-6 rounded-3xl border border-slate-800 hover:border-slate-700 transition space-y-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-teal-500/15 text-teal-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-server"></i>
+                </div>
+                <h3 class="font-extrabold text-base text-white">Instalable Local para Windows (.exe)</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Funciona de por vida en la computadora física del local en red interna sin internet, con copias de seguridad descargables con 1 clic para que tu información nunca se pierda.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 5. TOUR DETALLADO POR LOS MÓDULOS DEL SISTEMA           -->
+    <!-- ======================================================== -->
+    <section id="modulos" class="py-16 bg-slate-950/60 border-t border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="text-xs font-black text-amber-400 uppercase tracking-widest block">
+                    <i class="fa-solid fa-cubes mr-1"></i> Arquitectura Completa
+                </span>
+                <h2 class="text-2xl sm:text-4xl font-black text-white">
+                    Todos los Módulos Incluidos en tu Licencia
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">
+                    Sin cobros adicionales por módulo ni letras pequeñas. Todo viene listo y activado.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Módulo POS -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-9 h-9 rounded-xl bg-red-500/20 text-rose-400 flex items-center justify-center text-base font-bold">
+                                <i class="fa-solid fa-cash-register"></i>
+                            </span>
+                            <h3 class="font-black text-base text-white">Punto de Venta & Facturación</h3>
+                        </div>
+                        <span class="px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-full text-[10px] font-extrabold">Instantáneo</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/60">
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Búsqueda por código de barras o descripción inteligente.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Ticket térmico dual (imprime en formato 58mm y 80mm).</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Factura crédito en hoja formal A4 media hoja con acuse de recibo.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Modificación de facturas con autorización por clave de administrador.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Módulo Cajas -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base font-bold">
+                                <i class="fa-solid fa-vault"></i>
+                            </span>
+                            <h3 class="font-black text-base text-white">Control de Cajas & Arqueo de Turnos</h3>
+                        </div>
+                        <span class="px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-full text-[10px] font-extrabold">Auditoría 100%</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/60">
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Botón directo en el Punto de Venta para abrir y cerrar turno.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Apertura con fondo inicial en dólares y bolívares.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Arqueo ciego: el cajero declara lo que tiene físicamente.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Impresión de ticket de cierre de turno con sobrante o faltante.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Módulo Inventario -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-base font-bold">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                            </span>
+                            <h3 class="font-black text-base text-white">Inventario & Precios Automatizados</h3>
+                        </div>
+                        <span class="px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full text-[10px] font-extrabold">982+ Artículos</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/60">
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Fórmula de cálculo: Costo base + flete + rentabilidad = PVP.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Stock para alerta individual configurable por cada artículo.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Recepción de compras para reponer stock con costos actualizados.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Valoración patrimonial total a costo y a precio de venta.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Módulo Reportes -->
+                <div class="gradient-card p-6 rounded-3xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-base font-bold">
+                                <i class="fa-solid fa-chart-pie"></i>
+                            </span>
+                            <h3 class="font-black text-base text-white">Centro de Reportes Gerenciales (6 en 1)</h3>
+                        </div>
+                        <span class="px-2.5 py-0.5 bg-purple-500/10 border border-purple-500/30 text-purple-300 rounded-full text-[10px] font-extrabold">Exporta a CSV/Excel</span>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/60">
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Reporte de Ventas (totalizado, contado/crédito, top 10 productos).</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Reporte de Stock por Acabarse (déficit y dinero a invertir).</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Reporte de Compras, Cajas y Cuentas por Cobrar.</span></li>
+                        <li class="flex items-start space-x-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i><span>Filtros rápidos: Hoy, Esta Semana, Este Mes, Este Año.</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 6. TABLA COMPARATIVA: PROLAGO VS OTROS SISTEMAS         -->
+    <!-- ======================================================== -->
+    <section id="comparativa" class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div class="text-center max-w-2xl mx-auto space-y-2">
+            <span class="text-xs font-black text-wine uppercase tracking-widest block">Comparativa de Mercado</span>
+            <h2 class="text-2xl sm:text-4xl font-black text-white">
+                ¿Por qué Elegir Prolago Carora 2026?
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-400">
+                Comparación directa frente a sistemas tradicionales obsoletos o llevar cuentas en papel y Excel.
+            </p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs gradient-card rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
+                <thead class="bg-slate-900 text-slate-300 uppercase text-[11px] font-extrabold border-b border-slate-800">
+                    <tr>
+                        <th class="p-4 sm:p-5">Característica / Capacidad</th>
+                        <th class="p-4 sm:p-5 text-emerald-400 bg-emerald-950/30">Prolago Carora 2026</th>
+                        <th class="p-4 sm:p-5 text-slate-400">Software Tradicional</th>
+                        <th class="p-4 sm:p-5 text-rose-400">Cuadernos / Excel</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-slate-300">
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4 font-bold text-white">Modelo de Pago</td>
+                        <td class="p-4 font-extrabold text-emerald-400 bg-emerald-950/20">Pago Único ($300 USD)</td>
+                        <td class="p-4 text-slate-400">$30 a $60 mensuales para siempre</td>
+                        <td class="p-4 text-rose-400">Pérdida oculta de dinero diario</td>
+                    </tr>
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4 font-bold text-white">Tasa Oficial BCV en Tiempo Real</td>
+                        <td class="p-4 font-bold text-emerald-400 bg-emerald-950/20"><i class="fa-solid fa-circle-check mr-1.5"></i> Automática con 1 clic</td>
+                        <td class="p-4 text-slate-400">Manual o no disponible</td>
+                        <td class="p-4 text-rose-400"><i class="fa-solid fa-circle-xmark mr-1.5"></i> Cálculo manual con errores</td>
+                    </tr>
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4 font-bold text-white">Arqueo Ciego de Cajas y Turnos</td>
+                        <td class="p-4 font-bold text-emerald-400 bg-emerald-950/20"><i class="fa-solid fa-circle-check mr-1.5"></i> Sí (Sobrante/Faltante en ticket)</td>
+                        <td class="p-4 text-slate-400">Complejo o sin desglose físico</td>
+                        <td class="p-4 text-rose-400"><i class="fa-solid fa-circle-xmark mr-1.5"></i> Descuadres constantes</td>
+                    </tr>
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4 font-bold text-white">Alerta de Stock Crítico por Artículo</td>
+                        <td class="p-4 font-bold text-emerald-400 bg-emerald-950/20"><i class="fa-solid fa-circle-check mr-1.5"></i> Individualizada por producto</td>
+                        <td class="p-4 text-slate-400">Genérica o no existe</td>
+                        <td class="p-4 text-rose-400"><i class="fa-solid fa-circle-xmark mr-1.5"></i> Te enteras cuando ya se acabó</td>
+                    </tr>
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4 font-bold text-white">Operación Sin Conexión a Internet</td>
+                        <td class="p-4 font-bold text-emerald-400 bg-emerald-950/20"><i class="fa-solid fa-circle-check mr-1.5"></i> 100% Funcional (Instalador local)</td>
+                        <td class="p-4 text-slate-400">Se cae internet y se para la venta</td>
+                        <td class="p-4 text-rose-400">Sin internet pero desorganizado</td>
+                    </tr>
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-4 font-bold text-white">Navegación Ágil con Tecla Enter</td>
+                        <td class="p-4 font-bold text-emerald-400 bg-emerald-950/20"><i class="fa-solid fa-circle-check mr-1.5"></i> Sí (Máxima velocidad de cobro)</td>
+                        <td class="p-4 text-slate-400">Requiere ratón en cada campo</td>
+                        <td class="p-4 text-rose-400">Lento</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 7. PROPUESTA ECONÓMICA FORMAL ($300 USD)                -->
+    <!-- ======================================================== -->
+    <section id="inversion" class="py-16 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 avoid-break">
+        <div class="gradient-wine rounded-3xl p-8 sm:p-12 border-2 border-red-500/40 shadow-2xl space-y-8 relative overflow-hidden">
+            <!-- Marca de Agua de Fondo -->
+            <div class="absolute right-0 bottom-0 opacity-10 translate-x-12 translate-y-12 pointer-events-none">
+                <i class="fa-solid fa-award text-[280px]"></i>
+            </div>
+
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/20">
+                <div class="space-y-2 max-w-xl">
+                    <span class="inline-flex items-center space-x-1.5 px-3 py-1 bg-amber-400/20 border border-amber-300/40 text-amber-200 rounded-full text-xs font-black uppercase tracking-wider">
+                        <i class="fa-solid fa-crown text-amber-300"></i>
+                        <span>Propuesta Económica Cerrada</span>
+                    </span>
+                    <h2 class="text-2xl sm:text-4xl font-black text-white leading-tight">
+                        Inversión Total de Implementación del Software
+                    </h2>
+                    <p class="text-xs sm:text-sm text-red-100/90 leading-relaxed">
+                        Un único pago que te otorga posesión completa del sistema, base de datos precargada, instalador para Windows, capacitación y garantía técnica.
+                    </p>
+                </div>
+
+                <!-- Tarjeta Destacada de Precio -->
+                <div class="bg-black/40 backdrop-blur-md border border-white/25 p-6 rounded-2xl text-center shadow-2xl md:min-w-[240px] space-y-1">
+                    <span class="text-[11px] font-bold text-amber-300 uppercase tracking-widest block">Precio Oficial</span>
+                    <div class="text-4xl sm:text-5xl font-black font-mono text-white">
                         $300
                     </div>
-                    <span class="text-xs text-red-100 font-medium block">Dólares Americanos (USD)</span>
+                    <span class="text-xs text-red-200 font-semibold block">Dólares Americanos (USD)</span>
                     <div class="pt-2">
-                        <span class="inline-block px-2.5 py-0.5 bg-white/20 rounded-md text-[10px] font-bold text-white uppercase tracking-wider">
-                            Pago Único de Entrega
+                        <span class="inline-block px-3 py-1 bg-emerald-500/20 border border-emerald-400/40 rounded-full text-[10px] font-extrabold text-emerald-300 uppercase tracking-wider">
+                            Pago Único &bull; Sin Mensualidades
                         </span>
                     </div>
                 </div>
             </div>
 
-            <!-- Qué incluye el servicio -->
-            <div class="space-y-4">
-                <h3 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-                    <i class="fa-solid fa-box-open text-[#8B1E24]"></i>
-                    <span>¿Qué incluye exactamente este servicio por los $300 USD?</span>
+            <!-- Desglose de Entregables -->
+            <div class="relative z-10 space-y-4">
+                <h3 class="font-extrabold text-sm text-white uppercase tracking-wider flex items-center space-x-2">
+                    <i class="fa-solid fa-box-open text-amber-300"></i>
+                    <span>¿Qué incluye exactamente esta inversión de $300 USD?</span>
                 </h3>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-slate-700">
-                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start space-x-3">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-red-50">
+                    <div class="p-3.5 bg-black/30 rounded-xl border border-white/10 flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5 shrink-0"></i>
                         <div>
-                            <strong class="text-slate-900 block font-bold">1. Software Completo Prolago Carora 2026:</strong>
-                            <span class="text-slate-600">Acceso a todos los módulos descritos (Ventas, Cajas, Inventario, Créditos, Reportes, Usuarios, Despachos).</span>
+                            <strong class="text-white block font-bold">1. Software Completo Prolago Carora 2026:</strong>
+                            <span class="text-red-100/80">Acceso a todos los módulos: POS, Cajas, Inventario, Créditos, Reportes, Usuarios y Despachos.</span>
                         </div>
                     </div>
 
-                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start space-x-3">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                    <div class="p-3.5 bg-black/30 rounded-xl border border-white/10 flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5 shrink-0"></i>
                         <div>
-                            <strong class="text-slate-900 block font-bold">2. Base de Datos Inicial Precargada:</strong>
-                            <span class="text-slate-600">Catálogo listo con más de 980 artículos, categorías, costos, precios y stock inicial.</span>
+                            <strong class="text-white block font-bold">2. Base de Datos Inicial con 982 Artículos:</strong>
+                            <span class="text-red-100/80">Catálogo precargado con categorías, costos, PVP calculado y stock para alerta listo para facturar.</span>
                         </div>
                     </div>
 
-                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start space-x-3">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                    <div class="p-3.5 bg-black/30 rounded-xl border border-white/10 flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5 shrink-0"></i>
                         <div>
-                            <strong class="text-slate-900 block font-bold">3. Instalador Local para Windows (.exe):</strong>
-                            <span class="text-slate-600">Programa instalable para que funcione de por vida en la computadora del negocio sin internet.</span>
+                            <strong class="text-white block font-bold">3. Instalador Local para Windows (.exe):</strong>
+                            <span class="text-red-100/80">Instalación en la computadora del local comercial para funcionar de por vida sin necesidad de internet.</span>
                         </div>
                     </div>
 
-                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start space-x-3">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                    <div class="p-3.5 bg-black/30 rounded-xl border border-white/10 flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5 shrink-0"></i>
                         <div>
-                            <strong class="text-slate-900 block font-bold">4. Despliegue en la Nube Web Activo:</strong>
-                            <span class="text-slate-600">Versión web para consultar reportes y supervisar la operación desde cualquier lugar.</span>
+                            <strong class="text-white block font-bold">4. Acceso en la Nube Web:</strong>
+                            <span class="text-red-100/80">Para consultar ventas, inventarios y reportes gerenciales desde el teléfono o cualquier lugar.</span>
                         </div>
                     </div>
 
-                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start space-x-3">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                    <div class="p-3.5 bg-black/30 rounded-xl border border-white/10 flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5 shrink-0"></i>
                         <div>
-                            <strong class="text-slate-900 block font-bold">5. Módulo de Respaldos y Recuperación:</strong>
-                            <span class="text-slate-600">Herramienta para descargar copias de seguridad de la base de datos y restaurarla ante imprevistos.</span>
+                            <strong class="text-white block font-bold">5. Módulo de Copias de Seguridad y Recuperación:</strong>
+                            <span class="text-red-100/80">Descarga de respaldos de la base de datos con un clic y herramienta de restauración ante contingencias.</span>
                         </div>
                     </div>
 
-                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-start space-x-3">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                    <div class="p-3.5 bg-black/30 rounded-xl border border-white/10 flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5 shrink-0"></i>
                         <div>
-                            <strong class="text-slate-900 block font-bold">6. Capacitación y Garantía de Puesta en Marcha:</strong>
-                            <span class="text-slate-600">Instrucción para el personal cajero y administrador, asegurando un inicio de operaciones sin tropiezos.</span>
+                            <strong class="text-white block font-bold">6. Capacitación y Garantía de Puesta en Marcha:</strong>
+                            <span class="text-red-100/80">Inducción operativa para administradores y cajeros, con soporte inicial de acompañamiento.</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Botones Finales de Acción (No Print) -->
-            <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
-                <div class="text-xs text-slate-500 text-center sm:text-left">
-                    <span class="font-bold text-slate-700 block">¿Listo para comenzar a trabajar?</span>
-                    <span>El sistema se entrega configurado y listo para operar desde el primer día.</span>
+            <div class="relative z-10 pt-6 border-t border-white/20 flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
+                <div class="text-xs text-red-200 text-center sm:text-left">
+                    <span class="font-bold text-white block">¿Listo para comenzar a operar?</span>
+                    <span>El sistema se entrega configurado y listo para facturar desde el primer día.</span>
                 </div>
                 <div class="flex items-center space-x-3 w-full sm:w-auto">
                     <button onclick="window.print()" class="flex-1 sm:flex-initial px-5 py-3 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 shadow-sm">
-                        <i class="fa-solid fa-print"></i>
-                        <span>Imprimir Propuesta</span>
+                        <i class="fa-solid fa-file-pdf text-rose-400"></i>
+                        <span>Imprimir / Guardar PDF</span>
                     </button>
-                    <a href="/" class="flex-1 sm:flex-initial px-6 py-3 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 shadow-lg shadow-red-900/30">
-                        <span>Ver Demo en Vivo</span>
-                        <i class="fa-solid fa-arrow-right"></i>
+                    <a href="/" class="flex-1 sm:flex-initial px-6 py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-950/40">
+                        <span>Iniciar en el Sistema</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- PIE DE PÁGINA COMERCIAL -->
-        <footer class="text-center text-xs text-slate-400 pt-6 space-y-1 avoid-break">
-            <p class="font-bold text-slate-600">PROLAGO C.A. &bull; RIF: J-50493821-0 &bull; Carora, Estado Lara</p>
-            <p>Documento de Especificación Comercial &bull; Todos los derechos reservados &bull; 2026</p>
-        </footer>
+    <!-- PIE DE PÁGINA -->
+    <footer class="text-center text-xs text-slate-500 py-10 space-y-1 border-t border-slate-800/80">
+        <p class="font-bold text-slate-400">PROLAGO C.A. &bull; RIF: J-50493821-0 &bull; Carora, Estado Lara</p>
+        <p>Documento de Especificación Comercial y Propuesta Técnica de Software &bull; 2026</p>
+    </footer>
 
-    </main>
+    <!-- ======================================================== -->
+    <!-- 8. SCRIPTS DE GRÁFICAS Y CALCULADORA (CHART.JS)          -->
+    <!-- ======================================================== -->
+    <script>
+        // Inicializar Gráficas al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            initChartComparativa();
+            initChartMonedas();
+            initChartInventario();
+            calcularROI();
+        });
+
+        // 1. Gráfica Comparativa (Antes vs Con Prolago)
+        function initChartComparativa() {
+            const ctx = document.getElementById('chartComparativa').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Velocidad de Cobro', 'Exactitud Arqueo', 'Control de Stock', 'Recuperación Créditos'],
+                    datasets: [
+                        {
+                            label: 'Método Tradicional (Antes)',
+                            data: [30, 25, 40, 35],
+                            backgroundColor: 'rgba(244, 63, 94, 0.75)',
+                            borderColor: '#f43f5e',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Con Prolago Carora 2026',
+                            data: [95, 100, 95, 90],
+                            backgroundColor: 'rgba(52, 211, 153, 0.85)',
+                            borderColor: '#34d399',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#94a3b8', font: { size: 10 } },
+                            grid: { color: 'rgba(51, 65, 85, 0.4)' }
+                        },
+                        x: {
+                            ticks: { color: '#cbd5e1', font: { size: 10, weight: 'bold' } },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#f8fafc', font: { size: 11, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Gráfica de Distribución Multimoneda (Doughnut)
+        function initChartMonedas() {
+            const ctx = document.getElementById('chartMonedas').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Efectivo USD ($)', 'Pago Móvil (Bs)', 'Punto de Venta (Bs)', 'Zelle ($)', 'Créditos ($)'],
+                    datasets: [{
+                        data: [35, 30, 20, 10, 5],
+                        backgroundColor: [
+                            '#10b981', // Verde Efectivo
+                            '#3b82f6', // Azul Pago Móvil
+                            '#f59e0b', // Ámbar Punto
+                            '#8b5cf6', // Morado Zelle
+                            '#f43f5e'  // Rosa Crédito
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#0f172a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#cbd5e1', font: { size: 10 }, boxWidth: 12 }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        // 3. Gráfica de Valoración de Inventario (Barras)
+        function initChartInventario() {
+            const ctx = document.getElementById('chartInventario').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Costo Adquisición ($)', 'Venta Proyectada PVP ($)', 'Margen Ganancia ($)'],
+                    datasets: [{
+                        label: 'Valoración Catálogo (982 Artículos)',
+                        data: [185144, 230500, 45356],
+                        backgroundColor: [
+                            'rgba(148, 163, 184, 0.8)',
+                            'rgba(16, 185, 129, 0.85)',
+                            'rgba(168, 85, 247, 0.85)'
+                        ],
+                        borderColor: ['#94a3b8', '#10b981', '#a855f7'],
+                        borderWidth: 1.5,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 10 },
+                                callback: function(value) { return '$' + (value / 1000) + 'k'; }
+                            },
+                            grid: { color: 'rgba(51, 65, 85, 0.4)' }
+                        },
+                        x: {
+                            ticks: { color: '#cbd5e1', font: { size: 10, weight: 'bold' } },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // 4. Calculadora de Retorno de Inversión (ROI)
+        function calcularROI() {
+            const ventaDiaria = parseFloat(document.getElementById('sliderVentas').value) || 350;
+            document.getElementById('lblVentaDiaria').textContent = `$${ventaDiaria.toLocaleString()} USD / día`;
+
+            // Estimación de pérdidas evitadas: ~1.6% en redondeos cambiarios y fugas menores
+            const ahorroDiario = ventaDiaria * 0.016;
+            const ahorroMensual = ahorroDiario * 30;
+            const diasRecuperacion = Math.max(7, Math.round(300 / (ahorroDiario || 1)));
+
+            document.getElementById('lblAhorroMensual').textContent = `$${Math.round(ahorroMensual)} USD`;
+            document.getElementById('lblDiasRecuperacion').textContent = `${diasRecuperacion} Días`;
+        }
+    </script>
 
 </body>
 </html>
