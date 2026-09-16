@@ -1678,11 +1678,6 @@ def get_user_first_allowed_url(user: Usuario) -> str:
 def page_login(request: Request):
     return templates.TemplateResponse(request=request, name="login.html")
 
-@app.get("/propuesta", response_class=HTMLResponse)
-@app.get("/presentacion", response_class=HTMLResponse)
-def page_propuesta_comercial(request: Request, user: Optional[Usuario] = Depends(get_current_user)):
-    return templates.TemplateResponse(request=request, name="propuesta.html", context={"user": user})
-
 @app.get("/descargar-informe-pdf")
 @app.get("/informe-actualizaciones.pdf")
 def descargar_informe_actualizaciones_pdf():
