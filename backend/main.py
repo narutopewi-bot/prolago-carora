@@ -165,7 +165,9 @@ def get_articulo(codigo: int, db: Session = Depends(get_db), user: Usuario = Dep
     return item
 
 @app.post("/api/articulos")
-def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_admin)):
+def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not (user.rol == "admin" or user.tiene_permiso("inventario") or user.tiene_permiso("compras")):
+        raise HTTPException(status_code=403, detail="Permiso denegado para registrar artículos.")
     exists = db.query(Articulo).filter(Articulo.codigo == payload.codigo).first()
     if exists:
         raise HTTPException(status_code=400, detail=f"Ya existe un artículo con el código {payload.codigo}")

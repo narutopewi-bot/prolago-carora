@@ -986,7 +986,6 @@
         const desgloseEl = document.getElementById('mhDesgloseInicial');
         desgloseEl.innerHTML = '';
         let huboInicial = false;
-        const pagos = d.pagos || {};
         if (pagos.efectivo > 0) {
             huboInicial = true;
             desgloseEl.innerHTML += `<div class="flex justify-between"><span>Efectivo:</span><strong class="font-mono text-slate-800">$${pagos.efectivo.toFixed(2)}</strong></div>`;
@@ -1397,7 +1396,7 @@
                     timer: 2000,
                     showConfirmButton: false
                 });
-                cargarFacturas();
+                cargarHistorial();
             } else {
                 let msg = data.detail || 'No se pudo modificar la factura.';
                 if (Array.isArray(msg)) {

@@ -6,9 +6,17 @@
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
 
-    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-        <h1 class="text-xl font-extrabold text-slate-800">Recepción de Mercancía / Compras</h1>
-        <p class="text-xs text-slate-500">Registra entradas de productos, actualiza los costos y calcula automáticamente el nuevo precio de venta</p>
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-800">Recepción de Mercancía / Compras</h1>
+            <p class="text-xs text-slate-500">Registra entradas de productos, actualiza los costos y calcula automáticamente el nuevo precio de venta</p>
+        </div>
+        <div class="flex items-center space-x-2 shrink-0">
+            <button type="button" onclick="abrirModalNuevoArticuloCompra()" class="px-4 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center space-x-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>Nuevo Artículo</span>
+            </button>
+        </div>
     </div>
 
     <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
@@ -16,7 +24,13 @@
 
             <!-- Selección de Producto -->
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Producto a Ingresar</label>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Producto a Ingresar</label>
+                    <button type="button" onclick="abrirModalNuevoArticuloCompra()" class="text-xs font-bold text-[#8B1E24] hover:underline flex items-center space-x-1">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Añadir Artículo</span>
+                    </button>
+                </div>
                 <div class="relative">
                     <input type="text" id="compraBuscarArticulo" autocomplete="off" required
                         placeholder="Escriba código o nombre del producto existente..."
@@ -103,6 +117,124 @@
         </form>
     </div>
 </div>
+
+<!-- MODAL NUEVO ARTÍCULO DESDE COMPRAS -->
+<div id="modalArticuloCompra" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-6 sm:p-7 overflow-y-auto max-h-[92vh]">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-xl bg-rose-100 text-[#8B1E24] flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-800" id="tituloModalArticuloCompra">Registrar Nuevo Artículo</h3>
+                    <p class="text-[11px] text-slate-400">El producto se registrará en el catálogo y quedará listo para ingresar su compra</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModalArticuloCompra()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form id="formArticuloCompra" onsubmit="guardarArticuloCompra(event)" class="space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Código</label>
+                    <input type="number" id="artCodigoCompra" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold" placeholder="Ej: 1050">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">Descripción / Nombre</label>
+                    <input type="text" id="artNombreCompra" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none uppercase font-semibold" placeholder="Nombre completo del producto">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Categoría</label>
+                    <input type="text" id="artCategoriaCompra" value="GENERAL" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 uppercase">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Marca</label>
+                    <input type="text" id="artMarcaCompra" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 uppercase" placeholder="Opcional">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Proveedor</label>
+                    <input type="text" id="artProveedorCompra" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 uppercase" placeholder="Opcional">
+                </div>
+            </div>
+
+            <!-- Precios y Costos -->
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <p class="font-bold text-slate-700 uppercase tracking-wider text-[11px]">Estructura de Precios ($ USD)</p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div>
+                        <label class="block text-slate-500 mb-1">Costo Base ($)</label>
+                        <input type="number" step="any" min="0" id="artCostoCompra" oninput="recalcularModalPreciosCompra()" value="0.00" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-slate-500 mb-1">Flete ($)</label>
+                        <input type="number" step="any" min="0" id="artFleteCompra" oninput="recalcularModalPreciosCompra()" value="0.00" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-slate-500 mb-1">Recargo Extra (más)</label>
+                        <input type="number" step="any" min="0" id="artMasCompra" oninput="recalcularModalPreciosCompra()" value="0.00" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-slate-500 mb-1">Rentabilidad (%)</label>
+                        <input type="number" step="any" id="artRentCompra" oninput="recalcularModalPreciosCompra()" value="20" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                    <div>
+                        <span class="text-slate-500 block">Costo Final Calculado:</span>
+                        <span id="lblCostoFinalModalCompra" class="font-bold text-slate-800 text-sm">$0.00</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Precio Sugerido Calculado:</span>
+                        <span id="lblSugeridoModalCompra" class="font-bold text-blue-600 text-sm">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200">
+                    <label class="block font-bold text-slate-800 mb-1">Precio de Venta Definitivo ($ USD)</label>
+                    <input type="number" step="any" min="0" id="artPrecioCompra" required class="w-full px-3 py-2 bg-white border border-emerald-400 rounded-xl text-base font-black text-emerald-700 text-center focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+
+            <!-- Control de Existencias y Alerta Crítica Personalizada -->
+            <div class="p-4 bg-amber-50/50 rounded-2xl border border-amber-200 space-y-3">
+                <div class="flex items-center justify-between">
+                    <p class="font-bold text-slate-800 uppercase tracking-wider text-[11px] flex items-center">
+                        <i class="fa-solid fa-boxes-stacked text-amber-600 mr-1.5"></i>
+                        Control de Existencias y Alertas
+                    </p>
+                    <span class="text-[10px] text-slate-500 font-semibold">Configuración inicial</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Stock Inicial</label>
+                        <input type="number" step="any" min="0" id="artStockCompra" value="0" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 font-bold text-slate-800">
+                        <p class="text-[10px] text-slate-400 mt-1">Unidades físicas actuales (la compra sumará a esto).</p>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-amber-900 mb-1 flex items-center">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1.5"></i>
+                            <span>Alerta Stock Crítico</span>
+                        </label>
+                        <input type="number" step="any" min="0" id="artStockAlertaCompra" value="5" placeholder="Ej: 2, 20, 50..."
+                            class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 font-bold text-amber-950">
+                        <p class="text-[10px] text-amber-700 mt-1">Avisar en reportes cuando queden &le; a este número.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 flex space-x-2">
+                <button type="button" onclick="cerrarModalArticuloCompra()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Cancelar</button>
+                <button type="submit" class="flex-1 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white font-bold rounded-xl shadow transition">Guardar y Seleccionar</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -127,7 +259,15 @@
                     const data = await res.json();
                     dropdown.innerHTML = '';
                     if (data.items.length === 0) {
-                        dropdown.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">No se encontraron productos</div>';
+                        dropdown.innerHTML = `
+                            <div class="p-4 text-xs text-slate-500 text-center space-y-2">
+                                <p>No se encontraron productos con "<strong>${val}</strong>".</p>
+                                <button type="button" onclick="abrirModalNuevoArticuloCompra('${val.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-[#8B1E24] text-white rounded-lg font-bold text-xs shadow hover:bg-[#72181D] inline-flex items-center space-x-1.5 transition">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>Crear este Artículo</span>
+                                </button>
+                            </div>
+                        `;
                     } else {
                         data.items.forEach(it => {
                             const d = document.createElement('div');
@@ -227,6 +367,105 @@
             }
         } catch (e) {
             Swal.fire('Error', 'Fallo de conexión', 'error');
+        }
+    }
+
+    function abrirModalNuevoArticuloCompra(sugerencia = '') {
+        document.getElementById('formArticuloCompra').reset();
+        document.getElementById('artStockAlertaCompra').value = 5;
+        document.getElementById('artRentCompra').value = 20;
+        document.getElementById('artStockCompra').value = 0;
+        document.getElementById('artCategoriaCompra').value = 'GENERAL';
+
+        if (sugerencia) {
+            const num = parseInt(sugerencia);
+            if (!isNaN(num) && /^\d+$/.test(sugerencia.trim())) {
+                document.getElementById('artCodigoCompra').value = num;
+            } else {
+                document.getElementById('artNombreCompra').value = sugerencia.trim().toUpperCase();
+            }
+        }
+
+        recalcularModalPreciosCompra();
+        document.getElementById('modalArticuloCompra').classList.remove('hidden');
+    }
+
+    function cerrarModalArticuloCompra() {
+        document.getElementById('modalArticuloCompra').classList.add('hidden');
+    }
+
+    function recalcularModalPreciosCompra() {
+        const costo = parseFloat(document.getElementById('artCostoCompra').value) || 0;
+        const flete = parseFloat(document.getElementById('artFleteCompra').value) || 0;
+        const mas = parseFloat(document.getElementById('artMasCompra').value) || 0;
+        const rent = parseFloat(document.getElementById('artRentCompra').value) || 0;
+
+        const costoFinal = costo + flete;
+        const sugerido = costoFinal + (costoFinal * rent / 100) + mas;
+
+        document.getElementById('lblCostoFinalModalCompra').textContent = `$${costoFinal.toFixed(2)}`;
+        document.getElementById('lblSugeridoModalCompra').textContent = `$${sugerido.toFixed(2)}`;
+
+        const actualPrecio = parseFloat(document.getElementById('artPrecioCompra').value) || 0;
+        if (actualPrecio === 0) {
+            document.getElementById('artPrecioCompra').value = sugerido.toFixed(2);
+        }
+    }
+
+    async function guardarArticuloCompra(e) {
+        e.preventDefault();
+        const codigo = parseInt(document.getElementById('artCodigoCompra').value);
+        if (isNaN(codigo) || codigo <= 0) {
+            Swal.fire('Atención', 'El código del artículo debe ser un número entero positivo', 'warning');
+            return;
+        }
+
+        const payload = {
+            codigo: codigo,
+            nombre: document.getElementById('artNombreCompra').value.trim(),
+            categoria: document.getElementById('artCategoriaCompra').value.trim() || 'GENERAL',
+            marca: document.getElementById('artMarcaCompra').value.trim(),
+            proveedor: document.getElementById('artProveedorCompra').value.trim(),
+            costo: parseFloat(document.getElementById('artCostoCompra').value) || 0,
+            flete: parseFloat(document.getElementById('artFleteCompra').value) || 0,
+            mas: parseFloat(document.getElementById('artMasCompra').value) || 0,
+            rentabilidad: parseFloat(document.getElementById('artRentCompra').value) || 20,
+            precio: parseFloat(document.getElementById('artPrecioCompra').value) || 0,
+            stock: parseFloat(document.getElementById('artStockCompra').value) || 0,
+            stock_alerta: parseFloat(document.getElementById('artStockAlertaCompra').value) || 5
+        };
+
+        try {
+            const res = await fetch('/api/articulos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const nuevo = await res.json();
+                cerrarModalArticuloCompra();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Artículo registrado!',
+                    text: `El producto #${nuevo.codigo} - ${nuevo.nombre} ha sido creado e ingresado a la compra.`,
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+
+                // Seleccionar automáticamente en la pantalla de compras
+                seleccionarArticulo(nuevo);
+                if (payload.costo > 0) document.getElementById('compraCosto').value = payload.costo;
+                if (payload.flete > 0) document.getElementById('compraFlete').value = payload.flete;
+                if (payload.mas > 0) document.getElementById('compraMas').value = payload.mas;
+                if (payload.rentabilidad > 0) document.getElementById('compraRent').value = payload.rentabilidad;
+                calcularCompra();
+            } else {
+                const err = await res.json();
+                Swal.fire('Error', err.detail || 'No se pudo registrar el artículo', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Fallo de conexión al registrar el artículo', 'error');
         }
     }
 
