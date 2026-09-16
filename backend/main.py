@@ -1664,6 +1664,22 @@ def page_login(request: Request):
 def page_propuesta_comercial(request: Request, user: Optional[Usuario] = Depends(get_current_user)):
     return templates.TemplateResponse(request=request, name="propuesta.html", context={"user": user})
 
+@app.get("/descargar-informe-pdf")
+@app.get("/informe-actualizaciones.pdf")
+def descargar_informe_actualizaciones_pdf():
+    pdf_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Informe_Actualizaciones_Prolago_2026.pdf")
+    if not os.path.exists(pdf_path):
+        try:
+            from generar_pdf_reporte import generar_pdf
+            generar_pdf(pdf_path)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"No se pudo generar el PDF: {e}")
+    return FileResponse(
+        path=pdf_path,
+        filename="Informe_Actualizaciones_Prolago_2026.pdf",
+        media_type="application/pdf"
+    )
+
 @app.get("/", response_class=HTMLResponse)
 def page_pos(request: Request, user: Usuario = Depends(get_current_user)):
     if not user:
