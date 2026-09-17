@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+
+{% block title %}Verificador y Consultador de Precios — Prolago Carora 2026{% endblock %}
+{% block nav_precios %}bg-white/20 text-white font-bold{% endblock %}
+
+{% block extra_head %}
+<!-- JsBarcode para renderizar códigos de barras en alta definición -->
+<script src="/static/js/JsBarcode.all.min.js"></script>
+<style>
+    .kiosk-glow {
+        box-shadow: 0 0 35px -5px rgba(139, 30, 36, 0.25);
+    }
+    .price-card-usd {
+        background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+    }
+    .price-card-bs {
+        background: linear-gradient(135deg, #4c0519 0%, #881337 50%, #9f1239 100%);
+    }
+    @keyframes scanline {
+        0% { transform: translateY(-100%); opacity: 0.8; }
+        50% { opacity: 1; }
+        100% { transform: translateY(1000%); opacity: 0; }
+    }
+    .scan-beam {
+        animation: scanline 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-5">
+
+    <!-- ENCABEZADO DEL MÓDULO / BANNER KIOSCO -->
+    <div class="bg-gradient-to-r from-[#470506] via-[#791F21] to-[#8B1E24] text-white p-5 sm:p-6 rounded-3xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/10 relative overflow-hidden">
+        <!-- Decoración óptica de fondo -->
+        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="flex items-center space-x-3 sm:space-x-4 relative z-10">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 text-2xl sm:text-3xl shadow-inner shrink-0">
+                <i class="fa-solid fa-tags"></i>
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white">Consultador de Precios</h1>
+                    <span class="bg-amber-400 text-slate-950 font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full uppercase tracking-wider">Mostrador & Kiosco</span>
+                </div>
+                <p class="text-xs sm:text-sm text-red-200 mt-0.5">Escanee el código de barras o busque por nombre para ver el precio en $ y Bs.</p>
+            </div>
+        </div>
+
+        <!-- Acciones Rápidas: Tasa BCV + Pantalla Completa + Audio -->
+        <div class="flex items-center space-x-2 relative z-10 shrink-0">
+            <!-- Tasa Oficial en Vivo -->
+            <div class="bg-black/30 border border-emerald-400/40 px-3 py-1.5 rounded-2xl flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-[11px] font-extrabold text-emerald-300 uppercase">Tasa BCV:</span>
+                <span id="kioskBCVDisplay" class="font-mono font-black text-xs sm:text-sm text-white">-- Bs.</span>
+            </div>
+
+            <!-- Sonido de Confirmación Toggle -->
+            <button id="btnToggleAudio" onclick="toggleSonido()" title="Activar/Desactivar sonido al escanear" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition">
+                <i class="fa-solid fa-volume-high" id="iconoAudio"></i>
+            </button>
+
+            <!-- Modo Pantalla Completa (Kiosco) -->
+            <button onclick="togglePantallaCompleta()" title="Alternar modo pantalla completa / kiosco" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center space-x-1.5 border border-white/15">
+                <i class="fa-solid fa-expand" id="iconoFullscreen"></i>
+                <span class="hidden sm:inline">Pantalla Completa</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- CAJA DE ESCANEO / BÚSQUEDA GIGANTE -->
+    <div class="bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-200 kiosk-glow">
+        <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400">
+                <i class="fa-solid fa-barcode text-2xl sm:text-3xl text-emerald-600"></i>
+            </span>
+            <input type="text" id="kioskInputBusqueda" autocomplete="off" autofocus
+                placeholder="Escanee con la pistola o escriba código / nombre (ej: 499, COLACA, HARINA)..."
+                class="w-full pl-14 sm:pl-16 pr-28 sm:pr-32 py-4 sm:py-5 bg-slate-50 border-2 border-slate-300 rounded-2xl text-slate-800 text-base sm:text-xl font-bold focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-600 focus:bg-white focus:outline-none transition shadow-inner">
+            
+            <div class="absolute inset-y-2 right-2 flex items-center space-x-1.5">
+                <button onclick="limpiarKiosco()" title="Limpiar búsqueda (ESC)" class="h-full px-3 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition text-sm font-semibold flex items-center">
+                    <i class="fa-solid fa-xmark mr-1"></i>
+                    <span class="hidden sm:inline text-xs font-mono">ESC</span>
+                </button>
+                <button onclick="ejecutarBusquedaKiosco()" class="h-full px-4 sm:px-5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Consultar</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Indicaciones y Atajos Rápidos -->
+        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 px-1">
+            <span class="flex items-center space-x-1">
+                <i class="fa-solid fa-circle-info text-emerald-600"></i>
+                <span>La pistola de código de barras funciona automáticamente sin necesidad de dar clic.</span>
+            </span>
+            <span class="hidden sm:inline font-mono">Presione <kbd class="bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded text-slate-600">ESC</kbd> para limpiar</span>
+        </div>
+    </div>
+
+    <!-- ÁREA PRINCIPAL: ESTADO DE ESPERA O FICHA DEL PRODUCTO -->
+    <div id="contenedorResultado">
+        <!-- ESTADO DE ESPERA / IDLE KIOSK -->
+        <div id="estadoEspera" class="bg-white rounded-3xl border-2 border-dashed border-slate-300 p-8 sm:p-14 text-center space-y-4">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl bg-red-50 text-[#8B1E24] flex items-center justify-center text-4xl sm:text-5xl shadow-sm relative overflow-hidden">
+                <i class="fa-solid fa-barcode"></i>
+                <div class="absolute inset-x-0 h-1 bg-red-500 scan-beam pointer-events-none"></div>
+            </div>
+            <div class="max-w-md mx-auto space-y-1">
+                <h3 class="text-lg sm:text-xl font-black text-slate-800">Listo para Consultar Precios</h3>
+                <p class="text-xs sm:text-sm text-slate-500">Pase el producto frente al lector de código de barras o escriba su nombre en la barra superior.</p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs">
+                <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Búsqueda en tiempo real</span>
+                <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium"><i class="fa-solid fa-dollar-sign text-emerald-600 mr-1"></i> Dólares y Bolívares oficiales</span>
+                <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium"><i class="fa-solid fa-cubes text-blue-600 mr-1"></i> Disponibilidad en Inventario</span>
+            </div>
+        </div>
+
+        <!-- FICHA GIGANTE DEL ARTÍCULO (Oculta al inicio) -->
+        <div id="tarjetaArticulo" class="hidden bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden space-y-0 transition-all duration-300">
+            <!-- Barra Superior de la Ficha -->
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Código de Artículo:</span>
+                    <span id="artCodigoBadge" class="bg-slate-900 text-white font-mono font-black text-sm px-3 py-1 rounded-xl shadow-sm">CÓD: ---</span>
+                    <button onclick="copiarCodigo()" title="Copiar código" class="text-slate-400 hover:text-slate-600 text-xs p-1">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-2" id="artBadgesCategorias">
+                    <span id="artCategoriaBadge" class="bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-0.5 rounded-full uppercase">GENERAL</span>
+                    <span id="artMarcaBadge" class="bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold px-3 py-0.5 rounded-full uppercase">MARCA</span>
+                </div>
+            </div>
+
+            <!-- Contenido Principal: Nombre y Precios -->
+            <div class="p-6 sm:p-8 space-y-6">
+                <!-- Nombre del Artículo en Grande -->
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Descripción del Producto</span>
+                    <h2 id="artNombreDisplay" class="text-2xl sm:text-4xl font-black text-slate-900 leading-tight">
+                        NOMBRE DEL ARTICULO
+                    </h2>
+                </div>
+
+                <!-- DUAL PRICE CARDS (USD & BS) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <!-- PRECIO EN DÓLARES ($ USD) -->
+                    <div class="price-card-usd rounded-3xl p-6 sm:p-7 text-white shadow-lg relative overflow-hidden flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-emerald-200 flex items-center">
+                                <i class="fa-solid fa-dollar-sign mr-1.5 text-emerald-300"></i> Precio en Dólares
+                            </span>
+                            <span class="bg-white/20 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">USD</span>
+                        </div>
+                        <div class="flex items-baseline space-x-2 my-2">
+                            <span class="text-3xl sm:text-4xl font-black text-emerald-200">$</span>
+                            <span id="artPrecioUSDDisplay" class="text-4xl sm:text-6xl font-black tracking-tight text-white font-mono">0.00</span>
+                        </div>
+                        <span class="text-[11px] text-emerald-100/80 font-medium">Precio oficial sin recargos ocultos</span>
+                    </div>
+
+                    <!-- PRECIO EN BOLÍVARES (BS. BCV) -->
+                    <div class="price-card-bs rounded-3xl p-6 sm:p-7 text-white shadow-lg relative overflow-hidden flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-rose-200 flex items-center">
+                                <i class="fa-solid fa-coins mr-1.5 text-rose-300"></i> Precio en Bolívares
+                            </span>
+                            <span class="bg-white/20 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">BCV</span>
+                        </div>
+                        <div class="flex items-baseline space-x-2 my-2">
+                            <span class="text-2xl sm:text-3xl font-black text-rose-200">Bs.</span>
+                            <span id="artPrecioBsDisplay" class="text-4xl sm:text-6xl font-black tracking-tight text-white font-mono">0.00</span>
+                        </div>
+                        <span id="artTasaNota" class="text-[11px] text-rose-100/80 font-medium">Calculado a tasa oficial BCV</span>
+                    </div>
+                </div>
+
+                <!-- STOCK Y CÓDIGO DE BARRAS -->
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <!-- Stock Disponible -->
+                    <div class="flex items-center space-x-3">
+                        <div id="artStockIcono" class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl shrink-0">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Existencia en Almacén</span>
+                            <div class="flex items-center space-x-2">
+                                <span id="artStockCantidad" class="text-2xl font-black text-slate-800 font-mono">0</span>
+                                <span id="artStockEstado" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Disponible</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico Código de Barras Óptico -->
+                    <div class="flex flex-col items-center bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                        <svg id="artBarcodeSvg" class="max-h-12 w-auto"></svg>
+                    </div>
+                </div>
+
+                <!-- BOTONES DE ACCIÓN DE LA FICHA -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <button onclick="limpiarKiosco()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        <span>Consultar Otro Artículo (ESC)</span>
+                    </button>
+
+                    <div class="flex items-center space-x-2">
+                        {% if not user or user.tiene_permiso('pos') %}
+                        <a href="/" id="btnIrPOS" class="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center space-x-2">
+                            <i class="fa-solid fa-cash-register"></i>
+                            <span>Ir al Punto de Venta</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LISTA DE COINCIDENCIAS MÚLTIPLES (Si buscó por texto) -->
+        <div id="listaCoincidencias" class="hidden bg-white rounded-3xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <h3 class="font-bold text-slate-800 text-sm">Coincidencias encontradas:</h3>
+                </div>
+                <span id="cantCoincidenciasBadge" class="text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-0.5 rounded-full">0 artículos</span>
+            </div>
+            
+            <div id="coincidenciasItems" class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+
+        <!-- MENSAJE DE NO ENCONTRADO -->
+        <div id="mensajeNoEncontrado" class="hidden bg-white rounded-3xl border border-rose-200 p-8 sm:p-12 text-center space-y-3 shadow-sm">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-3xl">
+                <i class="fa-solid fa-magnifying-glass-chart"></i>
+            </div>
+            <h3 class="text-lg font-black text-slate-800">Artículo No Encontrado</h3>
+            <p class="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">No encontramos ningún producto que coincida con "<span id="terminoNoEncontrado" class="font-bold text-slate-800"></span>". Verifique el código o nombre e intente nuevamente.</p>
+            <button onclick="limpiarKiosco()" class="mt-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+                Limpiar y reintentar
+            </button>
+        </div>
+    </div>
+
+    <!-- HISTORIAL DE CONSULTAS RECIENTES EN ESTA SESIÓN -->
+    <div id="seccionRecientes" class="hidden bg-white rounded-3xl shadow-sm border border-slate-200 p-5 space-y-3">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center">
+                <i class="fa-solid fa-clock-rotate-left mr-1.5 text-amber-500"></i> Consultas Recientes de la Sesión
+            </span>
+            <button onclick="limpiarHistorialRecientes()" class="text-[11px] text-slate-400 hover:text-red-500 font-medium transition">
+                Borrar historial
+            </button>
+        </div>
+        <div id="contenedorPillsRecientes" class="flex flex-wrap gap-2">
+            <!-- Pills generados dinámicamente -->
+        </div>
+    </div>
+
+</div>
+
+<!-- SCRIPT DEL VERIFICADOR DE PRECIOS -->
+<script>
+    let SONIDO_ACTIVO = localStorage.getItem('prolago_sonido_kiosk') !== 'false';
+    let TASA_BCV_ACTUAL = 473.92;
+    let HISTORIAL_CONSULTAS = [];
+    let timeoutBusqueda = null;
+
+    // Sintetizador Web Audio API para chime elegante al escanear (sin archivos mp3 externos)
+    function reproducirChimeEscaneo() {
+        if (!SONIDO_ACTIVO) return;
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime); // Nota A5
+            osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12); // Nota E6
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+        } catch (e) {
+            // Audio no soportado o bloqueado
+        }
+    }
+
+    function toggleSonido() {
+        SONIDO_ACTIVO = !SONIDO_ACTIVO;
+        localStorage.setItem('prolago_sonido_kiosk', SONIDO_ACTIVO ? 'true' : 'false');
+        actualizarIconoAudio();
+    }
+
+    function actualizarIconoAudio() {
+        const ico = document.getElementById('iconoAudio');
+        if (ico) {
+            ico.className = SONIDO_ACTIVO ? 'fa-solid fa-volume-high text-emerald-300' : 'fa-solid fa-volume-xmark text-slate-400';
+        }
+    }
+
+    function togglePantallaCompleta() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error("Error al entrar a pantalla completa:", err);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        const ico = document.getElementById('iconoFullscreen');
+        if (ico) {
+            ico.className = document.fullscreenElement ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+        }
+    });
+
+    async function cargarTasaKiosco() {
+        try {
+            const res = await fetch('/api/configuracion');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.tasa_bcv) {
+                    TASA_BCV_ACTUAL = parseFloat(data.tasa_bcv);
+                    document.getElementById('kioskBCVDisplay').textContent = `${TASA_BCV_ACTUAL.toFixed(2)} Bs.`;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // Manejo de eventos del input de búsqueda
+    const inputKiosk = document.getElementById('kioskInputBusqueda');
+
+    inputKiosk.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            ejecutarBusquedaKiosco();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            limpiarKiosco();
+        }
+    });
+
+    inputKiosk.addEventListener('input', () => {
+        clearTimeout(timeoutBusqueda);
+        const val = inputKiosk.value.trim();
+        if (val.length >= 3) {
+            // Búsqueda en vivo tras pausa de tipeo (350ms)
+            timeoutBusqueda = setTimeout(() => {
+                ejecutarBusquedaKiosco();
+            }, 350);
+        }
+    });
+
+    // Atajo global: si el usuario presiona cualquier tecla mientras está en la página, enfocar el buscador
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            limpiarKiosco();
+            return;
+        }
+        if (e.key === 'F2') {
+            e.preventDefault();
+            inputKiosk.focus();
+            inputKiosk.select();
+            return;
+        }
+        if (document.activeElement !== inputKiosk && !['input', 'textarea', 'select'].includes(document.activeElement.tagName.toLowerCase())) {
+            if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                inputKiosk.focus();
+            }
+        }
+    });
+
+    async function ejecutarBusquedaKiosco() {
+        const q = inputKiosk.value.trim();
+        if (!q) {
+            limpiarKiosco();
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/precios/consultar?q=${encodeURIComponent(q)}`);
+            if (!res.ok) throw new Error("Error en consulta");
+            const data = await res.json();
+
+            if (data.tasa_bcv) {
+                TASA_BCV_ACTUAL = data.tasa_bcv;
+                document.getElementById('kioskBCVDisplay').textContent = `${TASA_BCV_ACTUAL.toFixed(2)} Bs.`;
+            }
+
+            if (data.exacto) {
+                mostrarFichaArticulo(data.exacto);
+                reproducirChimeEscaneo();
+            } else if (data.coincidencias && data.coincidencias.length > 0) {
+                mostrarListaCoincidencias(data.coincidencias);
+            } else {
+                mostrarNoEncontrado(q);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function mostrarFichaArticulo(art) {
+        document.getElementById('estadoEspera').classList.add('hidden');
+        document.getElementById('listaCoincidencias').classList.add('hidden');
+        document.getElementById('mensajeNoEncontrado').classList.add('hidden');
+        
+        const card = document.getElementById('tarjetaArticulo');
+        card.classList.remove('hidden');
+
+        // Datos del artículo
+        document.getElementById('artCodigoBadge').textContent = `CÓD: ${art.codigo}`;
+        document.getElementById('artCategoriaBadge').textContent = art.categoria || 'GENERAL';
+        
+        const marcaBadge = document.getElementById('artMarcaBadge');
+        if (art.marca) {
+            marcaBadge.textContent = art.marca;
+            marcaBadge.classList.remove('hidden');
+        } else {
+            marcaBadge.classList.add('hidden');
+        }
+
+        document.getElementById('artNombreDisplay').textContent = art.nombre;
+        document.getElementById('artPrecioUSDDisplay').textContent = art.precio_usd.toFixed(2);
+        document.getElementById('artPrecioBsDisplay').textContent = art.precio_bs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('artTasaNota').textContent = `Calculado a tasa oficial BCV: ${TASA_BCV_ACTUAL.toFixed(2)} Bs./$`;
+
+        // Stock
+        const stockCant = document.getElementById('artStockCantidad');
+        const stockEstado = document.getElementById('artStockEstado');
+        const stockIco = document.getElementById('artStockIcono');
+        stockCant.textContent = art.stock;
+
+        if (art.stock > (art.stock_alerta || 5)) {
+            stockEstado.textContent = "Disponible";
+            stockEstado.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800";
+            stockIco.className = "w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl shrink-0";
+        } else if (art.stock > 0) {
+            stockEstado.textContent = "Stock Bajo";
+            stockEstado.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800";
+            stockIco.className = "w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl shrink-0";
+        } else {
+            stockEstado.textContent = "Agotado";
+            stockEstado.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800";
+            stockIco.className = "w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-2xl shrink-0";
+        }
+
+        // Renderizar Código de Barras SVG con JsBarcode
+        try {
+            if (typeof JsBarcode === 'function') {
+                JsBarcode("#artBarcodeSvg", String(art.codigo), {
+                    format: "CODE128",
+                    lineColor: "#0f172a",
+                    width: 2,
+                    height: 40,
+                    displayValue: true,
+                    fontSize: 12,
+                    margin: 4
+                });
+            }
+        } catch (e) {
+            console.warn("JsBarcode error:", e);
+        }
+
+        // Registrar en historial reciente
+        agregarHistorialRecientes(art);
+
+        // Seleccionar texto del input para que el siguiente escaneo sobreescriba de inmediato
+        inputKiosk.select();
+    }
+
+    function mostrarListaCoincidencias(items) {
+        document.getElementById('estadoEspera').classList.add('hidden');
+        document.getElementById('tarjetaArticulo').classList.add('hidden');
+        document.getElementById('mensajeNoEncontrado').classList.add('hidden');
+
+        const contenedor = document.getElementById('listaCoincidencias');
+        contenedor.classList.remove('hidden');
+
+        document.getElementById('cantCoincidenciasBadge').textContent = `${items.length} artículos`;
+
+        const divItems = document.getElementById('coincidenciasItems');
+        divItems.innerHTML = items.map(it => `
+            <div onclick="seleccionarCoincidencia(${JSON.stringify(it).replace(/"/g, '&quot;')})" 
+                 class="py-3 px-3 hover:bg-slate-50 rounded-xl cursor-pointer transition flex items-center justify-between gap-3 group">
+                <div class="flex items-center space-x-3">
+                    <span class="font-mono text-xs font-black text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">#${it.codigo}</span>
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-800 group-hover:text-[#8B1E24] transition">${it.nombre}</h4>
+                        <span class="text-[11px] text-slate-400 font-medium">${it.categoria} • Stock: ${it.stock}</span>
+                    </div>
+                </div>
+                <div class="text-right shrink-0">
+                    <span class="block font-mono font-black text-emerald-700 text-base">$${it.precio_usd.toFixed(2)}</span>
+                    <span class="block font-mono text-[11px] text-slate-500 font-bold">${it.precio_bs.toFixed(2)} Bs.</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function seleccionarCoincidencia(art) {
+        mostrarFichaArticulo(art);
+        reproducirChimeEscaneo();
+    }
+
+    function mostrarNoEncontrado(termino) {
+        document.getElementById('estadoEspera').classList.add('hidden');
+        document.getElementById('tarjetaArticulo').classList.add('hidden');
+        document.getElementById('listaCoincidencias').classList.add('hidden');
+
+        const msg = document.getElementById('mensajeNoEncontrado');
+        msg.classList.remove('hidden');
+        document.getElementById('terminoNoEncontrado').textContent = termino;
+    }
+
+    function limpiarKiosco() {
+        inputKiosk.value = '';
+        document.getElementById('estadoEspera').classList.remove('hidden');
+        document.getElementById('tarjetaArticulo').classList.add('hidden');
+        document.getElementById('listaCoincidencias').classList.add('hidden');
+        document.getElementById('mensajeNoEncontrado').classList.add('hidden');
+        inputKiosk.focus();
+    }
+
+    function copiarCodigo() {
+        const codigo = document.getElementById('artCodigoBadge').textContent.replace('CÓD: ', '').trim();
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(codigo);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `Código ${codigo} copiado`,
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+    }
+
+    function agregarHistorialRecientes(art) {
+        HISTORIAL_CONSULTAS = HISTORIAL_CONSULTAS.filter(x => x.codigo !== art.codigo);
+        HISTORIAL_CONSULTAS.unshift(art);
+        if (HISTORIAL_CONSULTAS.length > 8) HISTORIAL_CONSULTAS.pop();
+        renderizarHistorialRecientes();
+    }
+
+    function renderizarHistorialRecientes() {
+        const sec = document.getElementById('seccionRecientes');
+        const cont = document.getElementById('contenedorPillsRecientes');
+        if (HISTORIAL_CONSULTAS.length === 0) {
+            sec.classList.add('hidden');
+            return;
+        }
+        sec.classList.remove('hidden');
+        cont.innerHTML = HISTORIAL_CONSULTAS.map(x => `
+            <button onclick="seleccionarCoincidencia(${JSON.stringify(x).replace(/"/g, '&quot;')})" 
+                class="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition shadow-sm">
+                <span class="font-mono text-[10px] text-slate-400">#${x.codigo}</span>
+                <span class="truncate max-w-[150px] font-bold">${x.nombre}</span>
+                <span class="font-mono text-emerald-700 font-black">$${x.precio_usd.toFixed(2)}</span>
+            </button>
+        `).join('');
+    }
+
+    function limpiarHistorialRecientes() {
+        HISTORIAL_CONSULTAS = [];
+        renderizarHistorialRecientes();
+    }
+
+    // Inicialización al cargar página
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarTasaKiosco();
+        actualizarIconoAudio();
+        setTimeout(() => {
+            inputKiosk.focus();
+        }, 150);
+    });
+</script>
+{% endblock %}

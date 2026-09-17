@@ -181,8 +181,18 @@
     <!-- COLUMNA IZQUIERDA: BÚSQUEDA Y CARRITO DE PRODUCTOS (8 cols) -->
     <div class="lg:col-span-8 flex flex-col space-y-4">
         
-        <!-- BARRA DE BÚSQUEDA DE PRODUCTOS -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <!-- BARRA DE BÚSQUEDA DE PRODUCTOS Y CONSULTA RÁPIDA -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-cart-arrow-down mr-1.5 text-emerald-600"></i> Facturar Artículo
+                </span>
+                <button type="button" onclick="abrirConsultorPrecios()" class="text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-tags text-amber-600"></i>
+                    <span>Consultar Precio</span>
+                    <span class="bg-amber-200/80 text-amber-900 text-[10px] px-1 rounded font-mono font-bold">F2</span>
+                </button>
+            </div>
             <div class="relative">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                     <i class="fa-solid fa-barcode text-lg text-emerald-600 shrink-0"></i>

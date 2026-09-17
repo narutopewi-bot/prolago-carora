@@ -116,6 +116,9 @@
                         <i class="fa-solid fa-clock-rotate-left mr-1.5 text-cyan-300 shrink-0 w-4 text-center"></i><span>Historial</span>
                     </a>
                     {% endif %}
+                    <a href="/precios" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_precios %}{% endblock %}">
+                        <i class="fa-solid fa-tags mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Precios</span>
+                    </a>
 
                     <!-- Menú Desplegable "Más" para Módulos Complementarios -->
                     <div class="relative" id="dropdownMasContainer">
@@ -146,6 +149,10 @@
                                 {% endif %}
                             </div>
                             <div class="py-1">
+                                <a href="/precios" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2">
+                                    <i class="fa-solid fa-tags text-amber-300 w-5 text-center"></i>
+                                    <span>Verificador de Precios (F2)</span>
+                                </a>
                                 {% if not user or user.tiene_permiso('mantenimiento') %}
                                 <a href="/mantenimiento" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_mantenimiento %}{% endblock %}" title="Mantenimiento y Recuperación">
                                     <i class="fa-solid fa-screwdriver-wrench text-amber-300 w-5 text-center"></i>
@@ -165,6 +172,13 @@
 
                 <!-- Utilidades y Usuario (Lado derecho limpio) -->
                 <div class="flex items-center space-x-1.5 sm:space-x-2 xl:space-x-2.5 shrink-0 ml-auto lg:ml-2">
+                    <!-- Botón Rápido Consultar Precios (Global F2) -->
+                    <button onclick="abrirConsultorPrecios()" title="Consultar Precios de Artículos (Atajo: F2)" class="flex items-center space-x-1.5 bg-amber-500/25 hover:bg-amber-500/40 text-amber-200 hover:text-white border border-amber-400/50 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shadow-sm group shrink-0">
+                        <i class="fa-solid fa-tags text-amber-300 text-xs shrink-0 group-hover:scale-110 transition-transform"></i>
+                        <span class="hidden sm:inline font-bold">Precios</span>
+                        <span class="bg-black/35 text-[10px] text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">F2</span>
+                    </button>
+
                     <!-- Widget Formato Impresora -->
                     <button onclick="alternarImpresoraGlobal()" title="Formato de Ticket Térmico (58mm / 80mm)" class="hidden sm:flex items-center space-x-1.5 bg-black/25 hover:bg-black/40 text-white border border-white/20 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition shrink-0">
                         <i class="fa-solid fa-print text-emerald-300 text-xs shrink-0"></i>
@@ -229,6 +243,9 @@
                 <i class="fa-solid fa-clock-rotate-left mr-2.5 text-cyan-300 w-5 text-center"></i><span>Historial de Ventas</span>
             </a>
             {% endif %}
+            <a href="/precios" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-tags mr-2.5 text-amber-300 w-5 text-center"></i><span>Verificador de Precios (F2)</span>
+            </a>
             {% if not user or user.tiene_permiso('compras') %}
             <a href="/compras" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Recepción de Compras</span>
@@ -319,6 +336,130 @@
             <div class="flex space-x-2">
                 <button onclick="cerrarModalTasa()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition">Cancelar</button>
                 <button onclick="guardarTasaBCV()" class="flex-1 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl font-bold text-sm shadow transition">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- MODAL GLOBAL CONSULTADOR DE PRECIOS RÁPIDO (F2)          -->
+    <!-- ======================================================== -->
+    <div id="modalConsultorPrecios" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+            <!-- Encabezado del Modal -->
+            <div class="bg-gradient-to-r from-[#470506] via-[#791F21] to-[#8B1E24] text-white px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 text-lg shadow-inner">
+                        <i class="fa-solid fa-tags"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-base sm:text-lg text-white leading-tight">Consulta Rápida de Precios</h3>
+                        <span class="text-[11px] text-red-200">Tasa Oficial BCV: <b class="font-mono text-white" id="modalPrecioTasaDisplay">-- Bs.</b></span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <a href="/precios" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center space-x-1" title="Abrir en pantalla completa / modo kiosco">
+                        <i class="fa-solid fa-expand text-[10px]"></i>
+                        <span class="hidden sm:inline">Kiosco</span>
+                    </a>
+                    <button onclick="cerrarConsultorPrecios()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cuerpo del Modal -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4">
+                <!-- Buscador / Input de Código de Barras -->
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-barcode text-xl text-emerald-600"></i>
+                    </span>
+                    <input type="text" id="modalInputPrecio" autocomplete="off"
+                        placeholder="Escanee con lectora o escriba código / nombre..."
+                        class="w-full pl-12 pr-24 py-3.5 bg-slate-50 border-2 border-slate-300 rounded-2xl text-slate-800 text-base font-bold focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-600 focus:bg-white focus:outline-none transition shadow-inner">
+                    <button onclick="ejecutarBusquedaModalPrecio()" class="absolute inset-y-1.5 right-1.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center space-x-1">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Buscar</span>
+                    </button>
+                </div>
+
+                <!-- Estado Inicial / Espera -->
+                <div id="modalPrecioEstadoVacio" class="py-8 text-center text-slate-400 space-y-2 border-2 border-dashed border-slate-200 rounded-2xl">
+                    <i class="fa-solid fa-barcode text-3xl text-slate-300"></i>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-600">Listo para escanear o buscar artículo</p>
+                    <p class="text-[11px] text-slate-400">Presione ESC para cerrar el consultor en cualquier momento.</p>
+                </div>
+
+                <!-- Tarjeta de Resultado Exacto -->
+                <div id="modalPrecioTarjeta" class="hidden bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+                    <div class="flex items-start justify-between gap-2 border-b border-slate-200 pb-3">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span id="modalArtCodigo" class="bg-slate-900 text-white font-mono font-black text-xs px-2 py-0.5 rounded-md">CÓD: ---</span>
+                                <span id="modalArtCategoria" class="bg-blue-100 text-blue-800 font-bold text-[10px] px-2 py-0.5 rounded-full uppercase">GENERAL</span>
+                            </div>
+                            <h4 id="modalArtNombre" class="text-base sm:text-lg font-black text-slate-900 leading-tight">Nombre del Artículo</h4>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span id="modalArtStockBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                                Stock: 0
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Cuadros de Precios Dólar y Bolívares -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="bg-emerald-700 text-white p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[10px] uppercase font-extrabold text-emerald-200 tracking-wider">Precio en Dólares</span>
+                            <div class="flex items-baseline space-x-1 my-1">
+                                <span class="text-xl font-black text-emerald-200">$</span>
+                                <span id="modalArtPrecioUSD" class="text-3xl sm:text-4xl font-black font-mono">0.00</span>
+                                <span class="text-xs text-emerald-200 font-bold">USD</span>
+                            </div>
+                            <span class="text-[10px] text-emerald-100">Al cambio oficial</span>
+                        </div>
+
+                        <div class="bg-[#8B1E24] text-white p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[10px] uppercase font-extrabold text-red-200 tracking-wider">Precio en Bolívares</span>
+                            <div class="flex items-baseline space-x-1 my-1">
+                                <span class="text-lg font-black text-red-200">Bs.</span>
+                                <span id="modalArtPrecioBs" class="text-3xl sm:text-4xl font-black font-mono">0.00</span>
+                            </div>
+                            <span id="modalArtNotaTasa" class="text-[10px] text-red-100">Calculado a tasa BCV</span>
+                        </div>
+                    </div>
+
+                    <!-- Acciones del Artículo -->
+                    <div class="flex items-center justify-between pt-1">
+                        <button onclick="limpiarModalPrecio()" class="text-xs font-bold text-slate-500 hover:text-slate-800 transition">
+                            <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Consultar otro
+                        </button>
+                        <button id="modalBtnAgregarPOS" onclick="agregarDesdeModalPOS()" class="hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Agregar a la Venta</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Coincidencias Múltiples en Modal -->
+                <div id="modalPrecioCoincidencias" class="hidden space-y-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">Coincidencias encontradas:</span>
+                    <div id="modalPrecioListaItems" class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+                    </div>
+                </div>
+
+                <!-- Mensaje No Encontrado en Modal -->
+                <div id="modalPrecioNoEncontrado" class="hidden py-6 text-center text-slate-500 space-y-1">
+                    <i class="fa-solid fa-circle-exclamation text-2xl text-rose-500"></i>
+                    <p class="text-sm font-bold text-slate-800">No se encontró ningún artículo</p>
+                    <p class="text-xs text-slate-400">Verifique el código o descripción e intente de nuevo.</p>
+                </div>
+            </div>
+
+            <!-- Footer del Modal -->
+            <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400">
+                <span>Atajo rápido: <kbd class="bg-white border border-slate-300 px-1.5 py-0.5 rounded font-mono font-bold text-slate-700">F2</kbd> en cualquier pantalla</span>
+                <button onclick="cerrarConsultorPrecios()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition">Cerrar (ESC)</button>
             </div>
         </div>
     </div>
@@ -462,6 +603,224 @@
         }
 
         // =========================================================================
+        // CONSULTADOR RÁPIDO DE PRECIOS GLOBAL (MODAL F2)
+        // =========================================================================
+        let articuloConsultadoModal = null;
+        let timeoutModalPrecio = null;
+
+        function abrirConsultorPrecios() {
+            const m = document.getElementById('modalConsultorPrecios');
+            if (!m) return;
+            const tasaDisp = document.getElementById('modalPrecioTasaDisplay');
+            if (tasaDisp) tasaDisp.textContent = `${TASA_BCV.toFixed(2)} Bs.`;
+            m.classList.remove('hidden');
+            limpiarModalPrecio();
+            setTimeout(() => {
+                const inp = document.getElementById('modalInputPrecio');
+                if (inp) {
+                    inp.focus();
+                    inp.select();
+                }
+            }, 100);
+        }
+
+        function cerrarConsultorPrecios() {
+            const m = document.getElementById('modalConsultorPrecios');
+            if (m) m.classList.add('hidden');
+        }
+
+        function limpiarModalPrecio() {
+            const inp = document.getElementById('modalInputPrecio');
+            if (inp) {
+                inp.value = '';
+                inp.focus();
+            }
+            document.getElementById('modalPrecioEstadoVacio')?.classList.remove('hidden');
+            document.getElementById('modalPrecioTarjeta')?.classList.add('hidden');
+            document.getElementById('modalPrecioCoincidencias')?.classList.add('hidden');
+            document.getElementById('modalPrecioNoEncontrado')?.classList.add('hidden');
+            articuloConsultadoModal = null;
+        }
+
+        async function ejecutarBusquedaModalPrecio() {
+            const inp = document.getElementById('modalInputPrecio');
+            if (!inp) return;
+            const q = inp.value.trim();
+            if (!q) {
+                limpiarModalPrecio();
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/precios/consultar?q=${encodeURIComponent(q)}`);
+                if (!res.ok) throw new Error("Error en consulta");
+                const data = await res.json();
+
+                if (data.tasa_bcv) {
+                    TASA_BCV = data.tasa_bcv;
+                    const tasaDisp = document.getElementById('modalPrecioTasaDisplay');
+                    if (tasaDisp) tasaDisp.textContent = `${TASA_BCV.toFixed(2)} Bs.`;
+                }
+
+                if (data.exacto) {
+                    mostrarTarjetaModalPrecio(data.exacto);
+                } else if (data.coincidencias && data.coincidencias.length > 0) {
+                    mostrarCoincidenciasModalPrecio(data.coincidencias);
+                } else {
+                    mostrarNoEncontradoModalPrecio();
+                }
+            } catch (err) {
+                console.error("Error al consultar precio:", err);
+            }
+        }
+
+        function mostrarTarjetaModalPrecio(art) {
+            articuloConsultadoModal = art;
+            document.getElementById('modalPrecioEstadoVacio')?.classList.add('hidden');
+            document.getElementById('modalPrecioCoincidencias')?.classList.add('hidden');
+            document.getElementById('modalPrecioNoEncontrado')?.classList.add('hidden');
+
+            const card = document.getElementById('modalPrecioTarjeta');
+            if (!card) return;
+            card.classList.remove('hidden');
+
+            document.getElementById('modalArtCodigo').textContent = `CÓD: ${art.codigo}`;
+            document.getElementById('modalArtCategoria').textContent = art.categoria || 'GENERAL';
+            document.getElementById('modalArtNombre').textContent = art.nombre;
+            document.getElementById('modalArtPrecioUSD').textContent = art.precio_usd.toFixed(2);
+            document.getElementById('modalArtPrecioBs').textContent = art.precio_bs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('modalArtNotaTasa').textContent = `Tasa BCV: ${TASA_BCV.toFixed(2)} Bs./$`;
+
+            const badgeStock = document.getElementById('modalArtStockBadge');
+            if (badgeStock) {
+                if (art.stock > (art.stock_alerta || 5)) {
+                    badgeStock.textContent = `Stock: ${art.stock} disp.`;
+                    badgeStock.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800";
+                } else if (art.stock > 0) {
+                    badgeStock.textContent = `Stock Bajo: ${art.stock}`;
+                    badgeStock.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800";
+                } else {
+                    badgeStock.textContent = `Agotado (0)`;
+                    badgeStock.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100 text-rose-800";
+                }
+            }
+
+            // Si estamos en la página del POS y existe la función agregarAlCarrito, mostrar botón de agregar
+            const btnPos = document.getElementById('modalBtnAgregarPOS');
+            if (btnPos) {
+                if (typeof agregarAlCarrito === 'function') {
+                    btnPos.classList.remove('hidden');
+                } else {
+                    btnPos.classList.add('hidden');
+                }
+            }
+
+            // Seleccionar el texto del input para permitir escanear el siguiente artículo en ráfaga
+            const inp = document.getElementById('modalInputPrecio');
+            if (inp) inp.select();
+        }
+
+        function mostrarCoincidenciasModalPrecio(items) {
+            document.getElementById('modalPrecioEstadoVacio')?.classList.add('hidden');
+            document.getElementById('modalPrecioTarjeta')?.classList.add('hidden');
+            document.getElementById('modalPrecioNoEncontrado')?.classList.add('hidden');
+
+            const cont = document.getElementById('modalPrecioCoincidencias');
+            const lista = document.getElementById('modalPrecioListaItems');
+            if (!cont || !lista) return;
+            cont.classList.remove('hidden');
+
+            lista.innerHTML = items.map(it => `
+                <div onclick="seleccionarCoincidenciaModal(${JSON.stringify(it).replace(/"/g, '&quot;')})" 
+                     class="p-2.5 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between text-xs group">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">#${it.codigo}</span>
+                        <div>
+                            <span class="font-bold text-slate-800 group-hover:text-[#8B1E24] transition block">${it.nombre}</span>
+                            <span class="text-[10px] text-slate-400 font-medium">${it.categoria} • Stock: ${it.stock}</span>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="block font-mono font-black text-emerald-700">$${it.precio_usd.toFixed(2)}</span>
+                        <span class="block font-mono text-[10px] text-slate-500">${it.precio_bs.toFixed(2)} Bs.</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function seleccionarCoincidenciaModal(art) {
+            mostrarTarjetaModalPrecio(art);
+        }
+
+        function mostrarNoEncontradoModalPrecio() {
+            document.getElementById('modalPrecioEstadoVacio')?.classList.add('hidden');
+            document.getElementById('modalPrecioTarjeta')?.classList.add('hidden');
+            document.getElementById('modalPrecioCoincidencias')?.classList.add('hidden');
+            document.getElementById('modalPrecioNoEncontrado')?.classList.remove('hidden');
+        }
+
+        function agregarDesdeModalPOS() {
+            if (articuloConsultadoModal && typeof agregarAlCarrito === 'function') {
+                agregarAlCarrito({
+                    codigo: articuloConsultadoModal.codigo,
+                    nombre: articuloConsultadoModal.nombre,
+                    precio: articuloConsultadoModal.precio_usd,
+                    stock: articuloConsultadoModal.stock
+                });
+                cerrarConsultorPrecios();
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `Agregado a la venta: ${articuloConsultadoModal.nombre}`,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            }
+        }
+
+        // Listener global para F2 y ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                const m = document.getElementById('modalConsultorPrecios');
+                if (m && !m.classList.contains('hidden')) {
+                    const inp = document.getElementById('modalInputPrecio');
+                    if (inp) { inp.focus(); inp.select(); }
+                } else {
+                    abrirConsultorPrecios();
+                }
+            } else if (e.key === 'Escape') {
+                const m = document.getElementById('modalConsultorPrecios');
+                if (m && !m.classList.contains('hidden')) {
+                    cerrarConsultorPrecios();
+                }
+            }
+        });
+
+        // Configuración del input del modal para auto-consulta y Enter
+        document.addEventListener('DOMContentLoaded', () => {
+            const inpModal = document.getElementById('modalInputPrecio');
+            if (inpModal) {
+                inpModal.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        ejecutarBusquedaModalPrecio();
+                    }
+                });
+                inpModal.addEventListener('input', () => {
+                    clearTimeout(timeoutModalPrecio);
+                    const v = inpModal.value.trim();
+                    if (v.length >= 3) {
+                        timeoutModalPrecio = setTimeout(() => {
+                            ejecutarBusquedaModalPrecio();
+                        }, 350);
+                    }
+                });
+            }
+        });
+
+        // =========================================================================
         // NAVEGACIÓN GLOBAL CON TECLA ENTER (COMPORTAMIENTO TIPO TABULADOR)
         // =========================================================================
         function inicializarNavegacionConEnter() {
@@ -484,8 +843,8 @@
                 }
 
                 // Excluir inputs especiales que tienen su propio comportamiento con Enter
-                // ej: el buscador principal de productos del POS que procesa código de barras
-                if (target.id === 'buscadorArticulo' || target.getAttribute('data-no-enter-tab') === 'true') {
+                // ej: el buscador principal de productos del POS que procesa código de barras y el consultor de precios
+                if (target.id === 'buscadorArticulo' || target.id === 'modalInputPrecio' || target.id === 'kioskInputBusqueda' || target.getAttribute('data-no-enter-tab') === 'true') {
                     return;
                 }
 

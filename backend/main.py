@@ -157,6 +157,62 @@ def list_articulos(
     items = query.order_by(Articulo.nombre.asc()).offset(offset).limit(limit).all()
     return {"total": total, "items": items}
 
+@app.get("/api/precios/consultar")
+def consultar_precio(q: str = "", db: Session = Depends(get_db), user: Optional[Usuario] = Depends(get_current_user)):
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    query_str = (q or "").strip()
+    if not query_str:
+        return {"exacto": None, "coincidencias": [], "tasa_bcv": tasa_bcv}
+    
+    # 1. Búsqueda exacta por código numérico
+    item_exacto = None
+    try:
+        codigo_num = int(query_str)
+        item_exacto = db.query(Articulo).filter(Articulo.codigo == codigo_num, Articulo.activo == True).first()
+    except ValueError:
+        pass
+    
+    # 2. Si no hubo coincidencia por código, buscar coincidencia exacta por nombre
+    if not item_exacto:
+        item_exacto = db.query(Articulo).filter(func.upper(Articulo.nombre) == query_str.upper(), Articulo.activo == True).first()
+
+    # 3. Búsqueda de coincidencias parciales
+    s = f"%{query_str}%"
+    try:
+        cod_n = int(query_str)
+        filtro = or_(Articulo.codigo == cod_n, Articulo.nombre.ilike(s), Articulo.categoria.ilike(s), Articulo.marca.ilike(s))
+    except ValueError:
+        filtro = or_(Articulo.nombre.ilike(s), Articulo.categoria.ilike(s), Articulo.marca.ilike(s))
+
+    matches = db.query(Articulo).filter(filtro, Articulo.activo == True).order_by(Articulo.nombre.asc()).limit(25).all()
+
+    def serializar_item(a: Articulo):
+        precio_usd = round(float(a.precio or 0.0), 2)
+        precio_bs = round(precio_usd * tasa_bcv, 2)
+        return {
+            "codigo": a.codigo,
+            "nombre": a.nombre,
+            "categoria": a.categoria or "GENERAL",
+            "marca": a.marca or "",
+            "proveedor": a.proveedor or "",
+            "precio_usd": precio_usd,
+            "precio_bs": precio_bs,
+            "stock": float(a.stock or 0.0),
+            "stock_alerta": float(a.stock_alerta or 5.0)
+        }
+
+    resultado_exacto = None
+    if item_exacto:
+        resultado_exacto = serializar_item(item_exacto)
+    elif len(matches) == 1:
+        resultado_exacto = serializar_item(matches[0])
+
+    return {
+        "tasa_bcv": tasa_bcv,
+        "exacto": resultado_exacto,
+        "coincidencias": [serializar_item(m) for m in matches]
+    }
+
 @app.get("/api/articulos/{codigo}")
 def get_articulo(codigo: int, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     item = db.query(Articulo).filter(Articulo.codigo == codigo).first()
@@ -1666,6 +1722,7 @@ def get_user_first_allowed_url(user: Usuario) -> str:
         ("historial", "/historial"),
         ("clientes", "/clientes"),
         ("reportes", "/reportes"),
+        ("precios", "/precios"),
         ("mantenimiento", "/mantenimiento"),
         ("usuarios", "/usuarios"),
     ]
@@ -1773,6 +1830,11 @@ def page_usuarios(request: Request, user: Usuario = Depends(get_current_user)):
     if not user.tiene_permiso("usuarios"):
         return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="usuarios.html", context={"user": user})
+
+@app.get("/precios", response_class=HTMLResponse)
+def page_precios(request: Request, user: Optional[Usuario] = Depends(get_current_user)):
+    # Si no hay sesión activa, permitimos el acceso para terminales tipo kiosco / mostrador
+    return templates.TemplateResponse(request=request, name="precios.html", context={"user": user})
 
 # ==========================================
 # MANTENIMIENTO, DIAGNÓSTICO Y RESPALDOS

@@ -18,19 +18,24 @@ class Usuario(Base):
     @property
     def lista_permisos(self):
         if self.rol == "admin":
-            return ["pos", "cajas", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
+            return ["pos", "cajas", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "precios", "*"]
         if not self.permisos or self.permisos == "*":
             if self.rol == "admin":
-                return ["pos", "cajas", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "*"]
-            return ["pos", "cajas", "historial", "clientes"]
+                return ["pos", "cajas", "inventario", "compras", "despachos", "creditos", "historial", "clientes", "reportes", "mantenimiento", "usuarios", "modificar_facturas", "precios", "*"]
+            return ["pos", "cajas", "historial", "clientes", "precios"]
         try:
             import json
             p = json.loads(self.permisos)
             if isinstance(p, list):
+                if "precios" not in p:
+                    p.append("precios")
                 return p
         except Exception:
-            return [x.strip() for x in self.permisos.split(",") if x.strip()]
-        return []
+            items = [x.strip() for x in self.permisos.split(",") if x.strip()]
+            if "precios" not in items:
+                items.append("precios")
+            return items
+        return ["precios"]
 
     def tiene_permiso(self, perm: str) -> bool:
         if self.rol == "admin":
