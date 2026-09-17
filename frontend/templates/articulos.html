@@ -3,6 +3,113 @@
 {% block title %}Inventario y Artículos - Prolago Carora 2026{% endblock %}
 {% block nav_inventario %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
+{% block extra_head %}
+<script src="/static/js/JsBarcode.all.min.js"></script>
+<script>
+    if (typeof JsBarcode === 'undefined') {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+        document.head.appendChild(s);
+    }
+</script>
+<style>
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #contenedorImpresionEtiquetas, #contenedorImpresionEtiquetas * {
+        visibility: visible !important;
+    }
+    #contenedorImpresionEtiquetas {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    header, nav, main, footer, .no-print, #modalArticulo, #modalImprimirEtiquetas {
+        display: none !important;
+    }
+
+    /* Formato Rollo Térmico (50x30mm o 58mm continuo) */
+    .modo-rollo {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .modo-rollo .etiqueta-print {
+        width: 52mm !important;
+        min-height: 28mm !important;
+        max-height: 35mm !important;
+        margin: 0 auto 3.5mm auto !important;
+        padding: 1.5mm 2.5mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        border: 1px dashed #bbb;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: center !important;
+        background: #fff !important;
+        overflow: hidden !important;
+    }
+
+    /* Formato Hoja Carta / A4 Adhesiva (3 columnas x 8 filas) */
+    .modo-carta {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 3mm !important;
+        padding: 5mm 3mm !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .modo-carta .etiqueta-print {
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        padding: 2mm 2mm !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: center !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        height: 31mm !important;
+        background: #fff !important;
+        overflow: hidden !important;
+    }
+
+    /* Formato Góndola / Estantería con Precio Gigante */
+    .modo-gondola {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 4mm !important;
+        padding: 5mm !important;
+    }
+    .modo-gondola .etiqueta-print {
+        border: 1.5px solid #222 !important;
+        border-radius: 6px !important;
+        padding: 3mm !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: center !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        height: 42mm !important;
+        background: #fff !important;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="space-y-6">
 
@@ -14,6 +121,10 @@
         </div>
 
         <div class="flex items-center space-x-2">
+            <button type="button" onclick="abrirModalEtiquetas()" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center space-x-2">
+                <i class="fa-solid fa-barcode text-amber-400 text-sm"></i>
+                <span>Imprimir Etiquetas</span>
+            </button>
             <button onclick="abrirModalNuevoArticulo()" class="px-4 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center space-x-2">
                 <i class="fa-solid fa-plus"></i>
                 <span>Nuevo Artículo</span>
@@ -190,12 +301,253 @@
         </form>
     </div>
 </div>
+
+<!-- MODAL IMPRIMIR ETIQUETAS CON CÓDIGO DE BARRAS -->
+<div id="modalImprimirEtiquetas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-5 sm:p-7 overflow-y-auto max-h-[94vh] flex flex-col">
+        <!-- Cabecera -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 shrink-0">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg shadow-sm">
+                    <i class="fa-solid fa-barcode"></i>
+                </div>
+                <div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-slate-800">Impresión de Etiquetas de Artículos</h3>
+                    <p class="text-xs text-slate-500">Imprime etiquetas con código, descripción, precio y código de barras</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModalEtiquetas()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Pestañas de Modo (Individual vs Lote) -->
+        <div class="flex border-b border-slate-200 mb-4 text-xs font-bold shrink-0">
+            <button type="button" id="tabBtnIndividual" onclick="cambiarTabEtiquetas('individual')"
+                class="py-2.5 px-4 border-b-2 border-[#8B1E24] text-[#8B1E24] flex items-center space-x-2 transition">
+                <i class="fa-solid fa-tag"></i>
+                <span>Etiqueta Individual</span>
+            </button>
+            <button type="button" id="tabBtnLote" onclick="cambiarTabEtiquetas('lote')"
+                class="py-2.5 px-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 transition">
+                <i class="fa-solid fa-tags"></i>
+                <span>Impresión por Lote / Múltiples</span>
+            </button>
+        </div>
+
+        <!-- CONTENIDO PESTAÑA 1: INDIVIDUAL -->
+        <div id="tabContenidoIndividual" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+                <!-- Columna Izquierda: Configuración -->
+                <div class="md:col-span-7 space-y-4">
+                    <!-- Selector / Buscador de Artículo -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Artículo Seleccionado</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="etiquetaBuscadorArticulo" oninput="buscarArticuloEtiqueta(this.value)" autocomplete="off"
+                                placeholder="Escribe código o nombre para buscar otro artículo..."
+                                class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:bg-white focus:outline-none">
+                            <div id="etiquetaDropdownResultados" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-100 z-30 text-xs"></div>
+                        </div>
+
+                        <!-- Card de información del producto seleccionado -->
+                        <div id="etiquetaInfoCard" class="mt-2.5 p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
+                            <div>
+                                <span class="font-bold text-slate-900 block" id="lblEtiquetaArtNombre">SELECCIONAR ARTÍCULO</span>
+                                <span class="text-slate-500 text-[11px]">Cód: <strong id="lblEtiquetaArtCodigo" class="text-slate-800 font-mono">0</strong> &bull; Stock: <strong id="lblEtiquetaArtStock" class="text-slate-800 font-mono">0</strong></span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-black text-emerald-700 font-mono block" id="lblEtiquetaArtPrecioUSD">$0.00</span>
+                                <span class="text-[10px] text-slate-500 font-mono" id="lblEtiquetaArtPrecioBS">Bs. 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cantidad de Etiquetas a Imprimir -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Cantidad de Copias</label>
+                        <div class="flex items-center space-x-2">
+                            <button type="button" onclick="modificarCantEtiquetas(-1)" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-xl font-black text-slate-700 transition flex items-center justify-center">-</button>
+                            <input type="number" id="cantEtiquetasIndividual" min="1" max="500" value="1" oninput="actualizarContadorEtiquetas()"
+                                class="w-20 py-2 bg-white border border-slate-300 rounded-xl font-mono font-black text-center text-sm focus:ring-2 focus:ring-amber-500">
+                            <button type="button" onclick="modificarCantEtiquetas(1)" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-xl font-black text-slate-700 transition flex items-center justify-center">+</button>
+                            
+                            <!-- Chips rápidos -->
+                            <div class="flex items-center space-x-1 pl-2">
+                                <button type="button" onclick="fijarCantEtiquetas(1)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">1</button>
+                                <button type="button" onclick="fijarCantEtiquetas(2)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">2</button>
+                                <button type="button" onclick="fijarCantEtiquetas(5)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">5</button>
+                                <button type="button" onclick="fijarCantEtiquetas(10)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">10</button>
+                                <button type="button" onclick="fijarCantSegunStock()" id="btnCantSegunStock" class="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-xs font-bold">Stock Actual</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formato de Papel / Etiquetadora -->
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Formato de Salida</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <label class="flex items-center p-2 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-amber-400 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50/40">
+                                <input type="radio" name="formatoEtiqueta" value="rollo" checked onchange="actualizarVistaPreviaEtiqueta()" class="text-amber-600 focus:ring-amber-500 mr-2">
+                                <div>
+                                    <span class="font-bold text-slate-800 block leading-tight">Rollo Térmico</span>
+                                    <span class="text-[10px] text-slate-400">50x30mm / 58mm</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-2 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-amber-400 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50/40">
+                                <input type="radio" name="formatoEtiqueta" value="carta" onchange="actualizarVistaPreviaEtiqueta()" class="text-amber-600 focus:ring-amber-500 mr-2">
+                                <div>
+                                    <span class="font-bold text-slate-800 block leading-tight">Hoja Carta / A4</span>
+                                    <span class="text-[10px] text-slate-400">Cuadrícula 3x8</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-2 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-amber-400 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50/40">
+                                <input type="radio" name="formatoEtiqueta" value="gondola" onchange="actualizarVistaPreviaEtiqueta()" class="text-amber-600 focus:ring-amber-500 mr-2">
+                                <div>
+                                    <span class="font-bold text-slate-800 block leading-tight">Góndola</span>
+                                    <span class="text-[10px] text-slate-400">Precio Grande</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Opciones Adicionales -->
+                        <div class="pt-2 border-t border-slate-200 flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-700">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="chkMostrarBs" checked onchange="actualizarVistaPreviaEtiqueta()" class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4">
+                                <span>Mostrar equivalente en Bs. (BCV)</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="chkMostrarEncabezado" checked onchange="actualizarVistaPreviaEtiqueta()" class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4">
+                                <span>Encabezado "PROLAGO C.A."</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Vista Previa en Vivo -->
+                <div class="md:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-100/70 border border-slate-200 rounded-2xl">
+                    <div class="w-full flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center space-x-1">
+                            <i class="fa-solid fa-eye text-slate-400"></i>
+                            <span>Vista Previa en Vivo</span>
+                        </span>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full" id="lblFormatoPreviewBadge">Rollo Térmico</span>
+                    </div>
+
+                    <!-- Simulación de la Etiqueta Adhesiva -->
+                    <div id="boxPreviewEtiqueta" class="w-full max-w-[240px] bg-white p-3 rounded-xl border-2 border-dashed border-slate-300 shadow-md text-slate-900 flex flex-col justify-between items-center transition-all min-h-[140px]">
+                        <div id="prevHeader" class="w-full flex justify-between items-center text-[9px] font-black uppercase border-b border-black/30 pb-0.5 mb-1 leading-none">
+                            <span class="tracking-wider">PROLAGO C.A.</span>
+                            <span class="font-mono" id="prevCodArt">CÓD: 0</span>
+                        </div>
+                        <div class="w-full font-black text-xs leading-tight text-center uppercase line-clamp-2 my-1" id="prevNombreArt">
+                            NOMBRE DEL PRODUCTO
+                        </div>
+                        <div class="w-full flex justify-center items-center my-1 bg-white">
+                            <svg id="previewBarcodeSvg" class="max-w-full"></svg>
+                        </div>
+                        <div id="prevFooterPrecios" class="w-full flex justify-between items-baseline border-t border-black/40 pt-1 mt-1">
+                            <div class="text-left leading-none" id="prevColumnaBs">
+                                <span class="text-[7px] uppercase block font-semibold text-slate-500">Bs. BCV</span>
+                                <span class="text-[10px] font-bold font-mono text-slate-800" id="prevPrecioBs">Bs. 0,00</span>
+                            </div>
+                            <div class="text-right leading-none">
+                                <span class="text-base font-black font-mono text-slate-950" id="prevPrecioUSD">$0.00</span>
+                                <span class="text-[9px] font-black ml-0.5">USD</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 text-center mt-2.5">
+                        <i class="fa-solid fa-circle-info mr-1"></i> El código de barras es compatible con cualquier lector o escáner óptico (CODE128).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENIDO PESTAÑA 2: POR LOTE -->
+        <div id="tabContenidoLote" class="space-y-4 hidden">
+            <!-- Barra de Acciones de Lote -->
+            <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="cargarFiltradosALote()" class="px-3 py-1.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-lg font-bold shadow-sm flex items-center space-x-1.5 transition">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>Cargar Artículos Filtrados (<span id="lblLoteCantFiltrados">0</span>)</span>
+                    </button>
+                    <button type="button" onclick="establecerCantidadesLote(1)" class="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-bold transition">
+                        Todas = 1
+                    </button>
+                    <button type="button" onclick="establecerCantidadesLote('stock')" class="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-bold transition">
+                        Según Stock Actual
+                    </button>
+                </div>
+                <button type="button" onclick="vaciarLote()" class="text-slate-400 hover:text-red-600 font-bold transition flex items-center space-x-1">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Vaciar Lista</span>
+                </button>
+            </div>
+
+            <!-- Tabla de Artículos en Cola de Impresión -->
+            <div class="border border-slate-200 rounded-2xl overflow-hidden max-h-64 overflow-y-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[10px] sticky top-0 border-b border-slate-200">
+                        <tr>
+                            <th class="py-2 px-3">Cód.</th>
+                            <th class="py-2 px-3">Descripción</th>
+                            <th class="py-2 px-3 text-right">Precio ($)</th>
+                            <th class="py-2 px-3 text-center">Stock</th>
+                            <th class="py-2 px-3 text-center w-28">Copias</th>
+                            <th class="py-2 px-2 text-center w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyLoteEtiquetas" class="divide-y divide-slate-100 font-mono">
+                        <tr>
+                            <td colspan="6" class="p-6 text-center text-slate-400 font-medium">
+                                No hay artículos en la cola. Pulsa "Cargar Artículos Filtrados" o busca un artículo para añadirlo.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Resumen de Lote -->
+            <div class="flex items-center justify-between px-3 py-2 bg-amber-50/70 border border-amber-200 rounded-xl text-xs">
+                <span class="text-slate-600">Total de artículos en lista: <strong id="lblLoteCantArticulos" class="text-slate-900">0</strong></span>
+                <span class="text-amber-900 font-black">Total etiquetas a imprimir: <strong id="lblLoteTotalEtiquetas" class="text-amber-700 font-mono text-sm">0</strong></span>
+            </div>
+        </div>
+
+        <!-- Botones de Acción Inferiores -->
+        <div class="mt-5 pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+            <span class="text-xs text-slate-500 flex items-center space-x-1.5">
+                <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                <span id="lblResumenImpresionFooter">Listo para imprimir</span>
+            </span>
+            <div class="flex space-x-2 w-full sm:w-auto">
+                <button type="button" onclick="cerrarModalEtiquetas()" class="flex-1 sm:flex-none px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                    Cancelar
+                </button>
+                <button type="button" onclick="ejecutarImpresionEtiquetas()" id="btnEjecutarImpresion" class="flex-1 sm:flex-none px-5 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white font-black text-xs rounded-xl shadow-lg shadow-rose-900/20 transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span id="lblTextoBtnImprimir">Imprimir Etiquetas (1)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENEDOR OCULTO PARA IMPRESIÓN DIRECTA DE ETIQUETAS -->
+<div id="contenedorImpresionEtiquetas" class="print-only"></div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     let todosLosArticulos = [];
     let categoriasUnicas = new Set();
+    let articulosFiltradosActuales = [];
+    let articuloEtiquetaActual = null;
+    let loteEtiquetas = [];
+    let tabEtiquetaActiva = 'individual';
 
     async function cargarArticulos() {
         try {
@@ -203,6 +555,7 @@
             if (res.ok) {
                 const data = await res.json();
                 todosLosArticulos = data.items;
+                articulosFiltradosActuales = todosLosArticulos;
                 
                 // Extraer categorías
                 categoriasUnicas.clear();
@@ -237,6 +590,10 @@
             const matchStock = !soloStock || a.stock > 0;
             return matchTxt && matchCat && matchStock;
         });
+
+        articulosFiltradosActuales = filtrados;
+        const badgeLote = document.getElementById('lblLoteCantFiltrados');
+        if (badgeLote) badgeLote.textContent = filtrados.length;
 
         renderizarTabla(filtrados);
     }
@@ -285,9 +642,12 @@
                 <td class="px-3 py-3 text-right font-mono text-slate-500">$${(item.sugerido || 0).toFixed(2)}</td>
                 <td class="px-4 py-3 text-right font-mono font-black text-emerald-700 text-sm">$${item.precio.toFixed(2)}</td>
                 <td class="px-4 py-3 text-right font-mono text-slate-600">Bs. ${Number(precioBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
-                <td class="px-3 py-3 text-center">
-                    <button onclick="editarArticulo(${item.codigo})" class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition" title="Editar">
-                        <i class="fa-solid fa-pen-to-square"></i>
+                <td class="px-3 py-3 text-center whitespace-nowrap space-x-1">
+                    <button onclick="imprimirEtiquetaIndividual(${item.codigo})" class="text-slate-600 hover:text-[#8B1E24] hover:bg-rose-50 p-1.5 rounded-lg transition" title="Imprimir Etiqueta con Código de Barras">
+                        <i class="fa-solid fa-barcode text-sm"></i>
+                    </button>
+                    <button onclick="editarArticulo(${item.codigo})" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 rounded-lg transition" title="Editar">
+                        <i class="fa-solid fa-pen-to-square text-sm"></i>
                     </button>
                 </td>
             `;
@@ -395,6 +755,428 @@
         } catch (e) {
             Swal.fire('Error', 'Fallo de conexión', 'error');
         }
+    }
+
+    // ==========================================
+    // MÓDULO DE IMPRESIÓN DE ETIQUETAS DE ARTÍCULOS
+    // ==========================================
+    function imprimirEtiquetaIndividual(codigo) {
+        abrirModalEtiquetas(codigo);
+    }
+
+    function abrirModalEtiquetas(codigo = null) {
+        if (codigo) {
+            articuloEtiquetaActual = todosLosArticulos.find(a => a.codigo === codigo) || todosLosArticulos[0];
+        } else if (!articuloEtiquetaActual && todosLosArticulos.length > 0) {
+            articuloEtiquetaActual = (articulosFiltradosActuales.length > 0) ? articulosFiltradosActuales[0] : todosLosArticulos[0];
+        }
+
+        if (articuloEtiquetaActual) {
+            seleccionarArticuloEtiqueta(articuloEtiquetaActual.codigo, false);
+        }
+
+        cambiarTabEtiquetas('individual');
+        document.getElementById('modalImprimirEtiquetas').classList.remove('hidden');
+        actualizarVistaPreviaEtiqueta();
+    }
+
+    function abrirModalEtiquetasLote() {
+        abrirModalEtiquetas();
+        cambiarTabEtiquetas('lote');
+    }
+
+    function cerrarModalEtiquetas() {
+        document.getElementById('modalImprimirEtiquetas').classList.add('hidden');
+        const drop = document.getElementById('etiquetaDropdownResultados');
+        if (drop) drop.classList.add('hidden');
+    }
+
+    function cambiarTabEtiquetas(tab) {
+        tabEtiquetaActiva = tab;
+        const btnInd = document.getElementById('tabBtnIndividual');
+        const btnLote = document.getElementById('tabBtnLote');
+        const contInd = document.getElementById('tabContenidoIndividual');
+        const contLote = document.getElementById('tabContenidoLote');
+
+        if (tab === 'individual') {
+            btnInd.className = "py-2.5 px-4 border-b-2 border-[#8B1E24] text-[#8B1E24] flex items-center space-x-2 transition";
+            btnLote.className = "py-2.5 px-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 transition";
+            contInd.classList.remove('hidden');
+            contLote.classList.add('hidden');
+            actualizarContadorEtiquetas();
+            actualizarVistaPreviaEtiqueta();
+        } else {
+            btnLote.className = "py-2.5 px-4 border-b-2 border-[#8B1E24] text-[#8B1E24] flex items-center space-x-2 transition";
+            btnInd.className = "py-2.5 px-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 transition";
+            contLote.classList.remove('hidden');
+            contInd.classList.add('hidden');
+            
+            if (loteEtiquetas.length === 0 && articulosFiltradosActuales.length > 0) {
+                cargarFiltradosALote();
+            } else {
+                actualizarContadorLote();
+            }
+        }
+    }
+
+    function buscarArticuloEtiqueta(val) {
+        const drop = document.getElementById('etiquetaDropdownResultados');
+        const txt = val.trim().toLowerCase();
+        if (txt.length < 1) {
+            drop.classList.add('hidden');
+            return;
+        }
+
+        const matches = todosLosArticulos.filter(a => 
+            String(a.codigo).includes(txt) || a.nombre.toLowerCase().includes(txt) || (a.marca && a.marca.toLowerCase().includes(txt))
+        ).slice(0, 10);
+
+        drop.innerHTML = '';
+        if (matches.length === 0) {
+            drop.innerHTML = '<div class="p-3 text-center text-slate-400">No se encontraron productos</div>';
+        } else {
+            matches.forEach(m => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'p-2.5 hover:bg-amber-50 cursor-pointer flex justify-between items-center transition';
+                itemDiv.innerHTML = `
+                    <div>
+                        <strong class="text-slate-800">${m.nombre}</strong>
+                        <span class="block text-[10px] text-slate-400">Cód: ${m.codigo} &bull; Stock: ${m.stock}</span>
+                    </div>
+                    <div class="text-right font-mono font-bold text-slate-900">$${m.precio.toFixed(2)}</div>
+                `;
+                itemDiv.onclick = () => {
+                    seleccionarArticuloEtiqueta(m.codigo);
+                    drop.classList.add('hidden');
+                    document.getElementById('etiquetaBuscadorArticulo').value = '';
+                };
+                drop.appendChild(itemDiv);
+            });
+        }
+        drop.classList.remove('hidden');
+    }
+
+    function seleccionarArticuloEtiqueta(codigo, actualizarPreview = true) {
+        const art = todosLosArticulos.find(a => a.codigo === codigo);
+        if (!art) return;
+        articuloEtiquetaActual = art;
+
+        document.getElementById('lblEtiquetaArtNombre').textContent = art.nombre;
+        document.getElementById('lblEtiquetaArtCodigo').textContent = art.codigo;
+        document.getElementById('lblEtiquetaArtStock').textContent = art.stock;
+        document.getElementById('lblEtiquetaArtPrecioUSD').textContent = `$${art.precio.toFixed(2)}`;
+        
+        const bs = (art.precio * TASA_BCV).toFixed(2);
+        document.getElementById('lblEtiquetaArtPrecioBS').textContent = `Bs. ${Number(bs).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+
+        const btnStock = document.getElementById('btnCantSegunStock');
+        if (btnStock) {
+            btnStock.textContent = `Stock (${art.stock})`;
+        }
+
+        if (actualizarPreview) {
+            actualizarVistaPreviaEtiqueta();
+            actualizarContadorEtiquetas();
+        }
+    }
+
+    function modificarCantEtiquetas(delta) {
+        const inp = document.getElementById('cantEtiquetasIndividual');
+        let val = parseInt(inp.value) || 1;
+        val = Math.max(1, Math.min(500, val + delta));
+        inp.value = val;
+        actualizarContadorEtiquetas();
+    }
+
+    function fijarCantEtiquetas(cant) {
+        document.getElementById('cantEtiquetasIndividual').value = cant;
+        actualizarContadorEtiquetas();
+    }
+
+    function fijarCantSegunStock() {
+        if (!articuloEtiquetaActual) return;
+        const s = Math.max(1, Math.round(articuloEtiquetaActual.stock || 1));
+        document.getElementById('cantEtiquetasIndividual').value = s;
+        actualizarContadorEtiquetas();
+    }
+
+    function actualizarContadorEtiquetas() {
+        if (tabEtiquetaActiva === 'individual') {
+            const cant = parseInt(document.getElementById('cantEtiquetasIndividual').value) || 1;
+            document.getElementById('lblTextoBtnImprimir').textContent = `Imprimir Etiquetas (${cant})`;
+            document.getElementById('lblResumenImpresionFooter').textContent = `${cant} etiqueta${cant > 1 ? 's' : ''} de ${articuloEtiquetaActual ? articuloEtiquetaActual.nombre.substring(0, 24) + '...' : 'producto'}`;
+        }
+    }
+
+    function actualizarVistaPreviaEtiqueta() {
+        if (!articuloEtiquetaActual) return;
+        const art = articuloEtiquetaActual;
+        const chkBs = document.getElementById('chkMostrarBs');
+        const chkEnc = document.getElementById('chkMostrarEncabezado');
+        const mostrarBs = chkBs ? chkBs.checked : true;
+        const mostrarEncabezado = chkEnc ? chkEnc.checked : true;
+        const formatoRadio = document.querySelector('input[name="formatoEtiqueta"]:checked');
+        const formato = formatoRadio ? formatoRadio.value : 'rollo';
+
+        // Badge formato
+        const formatoLabels = {
+            'rollo': 'Rollo Térmico (50x30mm)',
+            'carta': 'Hoja Carta (Cuadrícula 3x8)',
+            'gondola': 'Góndola / Estante'
+        };
+        const badgeFormato = document.getElementById('lblFormatoPreviewBadge');
+        if (badgeFormato) {
+            badgeFormato.textContent = formatoLabels[formato] || 'Rollo Térmico';
+        }
+
+        // Header
+        const prevHeader = document.getElementById('prevHeader');
+        if (prevHeader) {
+            prevHeader.style.display = mostrarEncabezado ? 'flex' : 'none';
+            document.getElementById('prevCodArt').textContent = `CÓD: ${art.codigo}`;
+        }
+
+        // Nombre
+        const prevNombre = document.getElementById('prevNombreArt');
+        if (prevNombre) prevNombre.textContent = art.nombre;
+
+        // Precios
+        const prevUSD = document.getElementById('prevPrecioUSD');
+        if (prevUSD) prevUSD.textContent = `$${art.precio.toFixed(2)}`;
+        
+        const colBs = document.getElementById('prevColumnaBs');
+        if (colBs) {
+            colBs.style.display = mostrarBs ? 'block' : 'none';
+            const precioBs = (art.precio * TASA_BCV).toFixed(2);
+            document.getElementById('prevPrecioBs').textContent = `Bs. ${Number(precioBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        }
+
+        // Render Barcode con JsBarcode
+        try {
+            if (typeof JsBarcode !== 'undefined') {
+                JsBarcode("#previewBarcodeSvg", String(art.codigo), {
+                    format: "CODE128",
+                    width: 1.4,
+                    height: 28,
+                    displayValue: true,
+                    fontSize: 10,
+                    textMargin: 1,
+                    margin: 2
+                });
+            }
+        } catch (e) {
+            console.warn("JsBarcode error en preview:", e);
+        }
+
+        actualizarContadorEtiquetas();
+    }
+
+    // Funciones de Lote
+    function cargarFiltradosALote() {
+        const lista = articulosFiltradosActuales.length > 0 ? articulosFiltradosActuales : todosLosArticulos;
+        loteEtiquetas = lista.map(a => ({
+            articulo: a,
+            cantidad: 1
+        }));
+        renderizarTablaLote();
+    }
+
+    function renderizarTablaLote() {
+        const tbody = document.getElementById('tbodyLoteEtiquetas');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (loteEtiquetas.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="p-6 text-center text-slate-400 font-medium">
+                        No hay artículos en la cola. Pulsa "Cargar Artículos Filtrados" para añadir los artículos visibles.
+                    </td>
+                </tr>
+            `;
+            actualizarContadorLote();
+            return;
+        }
+
+        loteEtiquetas.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
+            tr.innerHTML = `
+                <td class="py-2 px-3 font-bold text-slate-700">${item.articulo.codigo}</td>
+                <td class="py-2 px-3 font-sans font-semibold text-slate-900">${item.articulo.nombre}</td>
+                <td class="py-2 px-3 text-right font-bold text-emerald-700">$${item.articulo.precio.toFixed(2)}</td>
+                <td class="py-2 px-3 text-center text-slate-500">${item.articulo.stock}</td>
+                <td class="py-2 px-3 text-center">
+                    <input type="number" min="0" max="500" value="${item.cantidad}" oninput="actualizarCantItemLote(${idx}, this.value)"
+                        class="w-16 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center font-bold font-mono text-xs focus:ring-1 focus:ring-amber-500">
+                </td>
+                <td class="py-2 px-2 text-center">
+                    <button type="button" onclick="eliminarItemLote(${idx})" class="text-slate-400 hover:text-red-600 p-1 transition" title="Quitar">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        actualizarContadorLote();
+    }
+
+    function actualizarCantItemLote(idx, val) {
+        const num = parseInt(val) || 0;
+        if (loteEtiquetas[idx]) {
+            loteEtiquetas[idx].cantidad = Math.max(0, num);
+        }
+        actualizarContadorLote();
+    }
+
+    function eliminarItemLote(idx) {
+        loteEtiquetas.splice(idx, 1);
+        renderizarTablaLote();
+    }
+
+    function vaciarLote() {
+        loteEtiquetas = [];
+        renderizarTablaLote();
+    }
+
+    function establecerCantidadesLote(tipo) {
+        loteEtiquetas.forEach(it => {
+            if (tipo === 1) {
+                it.cantidad = 1;
+            } else if (tipo === 'stock') {
+                it.cantidad = Math.max(1, Math.round(it.articulo.stock || 1));
+            }
+        });
+        renderizarTablaLote();
+    }
+
+    function actualizarContadorLote() {
+        let totalEtiquetas = 0;
+        loteEtiquetas.forEach(it => {
+            totalEtiquetas += (parseInt(it.cantidad) || 0);
+        });
+
+        const lblCant = document.getElementById('lblLoteCantArticulos');
+        const lblTotal = document.getElementById('lblLoteTotalEtiquetas');
+        if (lblCant) lblCant.textContent = loteEtiquetas.length;
+        if (lblTotal) lblTotal.textContent = totalEtiquetas;
+
+        if (tabEtiquetaActiva === 'lote') {
+            document.getElementById('lblTextoBtnImprimir').textContent = `Imprimir Etiquetas (${totalEtiquetas})`;
+            document.getElementById('lblResumenImpresionFooter').textContent = `${totalEtiquetas} etiqueta${totalEtiquetas !== 1 ? 's' : ''} en ${loteEtiquetas.length} artículo${loteEtiquetas.length !== 1 ? 's' : ''}`;
+        }
+    }
+
+    function ejecutarImpresionEtiquetas() {
+        const contenedor = document.getElementById('contenedorImpresionEtiquetas');
+        contenedor.innerHTML = '';
+
+        let lista = [];
+        if (tabEtiquetaActiva === 'individual') {
+            if (!articuloEtiquetaActual) {
+                Swal.fire('Atención', 'Selecciona un artículo para imprimir', 'warning');
+                return;
+            }
+            const cant = parseInt(document.getElementById('cantEtiquetasIndividual').value) || 1;
+            lista = [{ articulo: articuloEtiquetaActual, cantidad: cant }];
+        } else {
+            lista = loteEtiquetas.filter(it => (parseInt(it.cantidad) || 0) > 0);
+            if (lista.length === 0) {
+                Swal.fire('Atención', 'No hay artículos con cantidad mayor a 0 en la lista de lote', 'warning');
+                return;
+            }
+        }
+
+        const formatoRadio = document.querySelector('input[name="formatoEtiqueta"]:checked');
+        const formato = formatoRadio ? formatoRadio.value : 'rollo';
+        const mostrarBs = document.getElementById('chkMostrarBs').checked;
+        const mostrarEncabezado = document.getElementById('chkMostrarEncabezado').checked;
+
+        contenedor.className = 'print-only modo-' + formato;
+
+        let contador = 0;
+        const barcodeTasks = [];
+
+        lista.forEach(item => {
+            const art = item.articulo;
+            const cant = parseInt(item.cantidad) || 1;
+            const precioBs = (art.precio * TASA_BCV).toFixed(2);
+            const precioBsFormateado = Number(precioBs).toLocaleString('es-VE', { minimumFractionDigits: 2 });
+
+            for (let i = 0; i < cant; i++) {
+                contador++;
+                const svgId = `print_bc_${art.codigo}_${contador}`;
+                const div = document.createElement('div');
+                div.className = 'etiqueta-print font-sans text-black';
+
+                div.innerHTML = `
+                    ${mostrarEncabezado ? `
+                    <div class="w-full flex justify-between items-center text-[8px] font-extrabold uppercase border-b border-black/30 pb-0.5 mb-1 leading-none">
+                        <span class="tracking-wider">PROLAGO C.A.</span>
+                        <span class="font-mono">CÓD: ${art.codigo}</span>
+                    </div>
+                    ` : `
+                    <div class="w-full text-right text-[8px] font-mono font-bold mb-0.5 leading-none">
+                        CÓD: ${art.codigo}
+                    </div>
+                    `}
+
+                    <div class="w-full font-black text-[11px] leading-tight text-center uppercase line-clamp-2 mb-1 px-0.5">
+                        ${art.nombre}
+                    </div>
+
+                    <div class="w-full flex justify-center items-center my-0.5">
+                        <svg id="${svgId}"></svg>
+                    </div>
+
+                    <div class="w-full flex justify-between items-baseline border-t border-black/40 pt-1 mt-auto">
+                        ${mostrarBs ? `
+                        <div class="text-left leading-none">
+                            <span class="text-[7px] uppercase block font-semibold text-slate-600">Bs. BCV</span>
+                            <span class="text-[10px] font-bold font-mono">Bs. ${precioBsFormateado}</span>
+                        </div>
+                        ` : '<div></div>'}
+                        <div class="text-right leading-none">
+                            <span class="text-sm font-black font-mono tracking-tight">$${art.precio.toFixed(2)}</span>
+                            <span class="text-[8px] font-black ml-0.5">USD</span>
+                        </div>
+                    </div>
+                `;
+
+                contenedor.appendChild(div);
+
+                barcodeTasks.push({
+                    id: svgId,
+                    code: String(art.codigo),
+                    formato: formato
+                });
+            }
+        });
+
+        // Generar todos los códigos de barras
+        if (typeof JsBarcode !== 'undefined') {
+            barcodeTasks.forEach(task => {
+                try {
+                    JsBarcode(`#${task.id}`, task.code, {
+                        format: "CODE128",
+                        width: task.formato === 'gondola' ? 2 : 1.4,
+                        height: task.formato === 'gondola' ? 36 : 28,
+                        displayValue: true,
+                        fontSize: 10,
+                        textMargin: 1,
+                        margin: 2
+                    });
+                } catch (err) {
+                    console.warn("Error generando barcode print:", task.id, err);
+                }
+            });
+        }
+
+        // Abrir diálogo de impresión
+        setTimeout(() => {
+            window.print();
+        }, 200);
     }
 
     document.addEventListener('DOMContentLoaded', cargarArticulos);
