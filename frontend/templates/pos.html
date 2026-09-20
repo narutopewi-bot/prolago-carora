@@ -167,6 +167,74 @@
             line-height: 1.35 !important;
         }
 
+        /* ---------------------------------------------------- */
+        /* CASO 3: TICKET TÉRMICO DE CIERRE DE CAJA (POS)       */
+        /* ---------------------------------------------------- */
+        body.imprimiendo-comprobante-caja-pos {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
+
+        body.imprimiendo-comprobante-caja-pos > *:not(main) {
+            display: none !important;
+        }
+
+        body.imprimiendo-comprobante-caja-pos main {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
+
+        body.imprimiendo-comprobante-caja-pos main > *:not(#modalComprobanteCajaPOS) {
+            display: none !important;
+        }
+
+        body.imprimiendo-comprobante-caja-pos #modalComprobanteCajaPOS {
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+        }
+
+        body.imprimiendo-comprobante-caja-pos #modalComprobanteCajaPOS > div {
+            position: static !important;
+            max-width: 80mm !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: transparent !important;
+            overflow: visible !important;
+        }
+
+        body.imprimiendo-comprobante-caja-pos #seccionTicketCajaImprimirPOS {
+            visibility: visible !important;
+            display: block !important;
+            position: relative !important;
+            margin: 0 !important;
+            padding: 2mm !important;
+            background: white !important;
+            color: black !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            width: 76mm !important;
+            max-width: 76mm !important;
+            font-size: 11px !important;
+        }
+
         @page {
             margin: 4mm;
             size: A4 portrait;
@@ -280,10 +348,16 @@
                         <span id="posCajaSubtitulo" class="block text-[10px] text-slate-500">Sin turno activo</span>
                     </div>
                 </div>
-                <button type="button" id="posBtnAccionCaja" onclick="manejarAccionCajaPOS()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
-                    <i class="fa-solid fa-door-open" id="posIcoBtnCaja"></i>
-                    <span id="posTxtBtnCaja">Abrir Caja</span>
-                </button>
+                <div class="flex items-center space-x-1.5">
+                    <button type="button" id="posBtnVerArqueo" onclick="verComprobanteCajaActualPOS()" title="Ver Arqueo / Reporte del Turno" class="hidden px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200">
+                        <i class="fa-solid fa-receipt text-slate-600"></i>
+                        <span>Arqueo</span>
+                    </button>
+                    <button type="button" id="posBtnAccionCaja" onclick="manejarAccionCajaPOS()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+                        <i class="fa-solid fa-door-open" id="posIcoBtnCaja"></i>
+                        <span id="posTxtBtnCaja">Abrir Caja</span>
+                    </button>
+                </div>
             </div>
 
             <!-- SELECCIÓN VISUAL: CONTADO VS A CRÉDITO -->
@@ -975,6 +1049,10 @@
                 <div>Ventas Efectivo: <strong class="text-white" id="posCierreVentasEfUSD">$0.00</strong></div>
                 <div>Abonos Efectivo: <strong class="text-white" id="posCierreAbonosEfUSD">$0.00</strong></div>
                 <div>Total Facturado: <strong class="text-white" id="posCierreTotalVentasUSD">$0.00</strong></div>
+                <div class="col-span-2 border-t border-white/10 pt-1 grid grid-cols-2 gap-2 text-[11px] text-emerald-300">
+                    <div>Transferencias: <strong class="text-white font-mono" id="posCierreVentasPMBs">Bs. 0,00</strong></div>
+                    <div>Punto Venta: <strong class="text-white font-mono" id="posCierreVentasPuntoBs">Bs. 0,00</strong></div>
+                </div>
             </div>
         </div>
 
@@ -1012,6 +1090,90 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL COMPROBANTE DE CIERRE / TICKET ARQUEO (POS)       -->
+<!-- ======================================================== -->
+<div id="modalComprobanteCajaPOS" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-800 overflow-y-auto max-h-[92vh]">
+        <div class="flex items-center justify-between border-b pb-3 mb-4 no-print">
+            <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-receipt"></i>
+                </span>
+                <div>
+                    <h3 class="font-bold text-base text-slate-900">Comprobante de Cierre</h3>
+                    <p class="text-xs text-slate-500" id="comprobanteCajaNumPOS">Caja #</p>
+                </div>
+            </div>
+            <button onclick="cerrarModalComprobanteCajaPOS()" class="text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- TICKET FÍSICO DE CIERRE -->
+        <div id="seccionTicketCajaImprimirPOS" class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-3">
+            <div class="text-center border-b border-dashed border-slate-400 pb-2">
+                <h4 class="font-black text-sm uppercase">PROLAGO C.A.</h4>
+                <p class="text-[11px] text-slate-600">RIF: J-50493821-0 • Carora</p>
+                <p class="font-bold mt-1 text-[11px]" id="tcTituloCortePOS">CORTE Y CIERRE DE CAJA</p>
+                <p class="text-[10px] text-slate-500" id="tcFechaCierrePOS"></p>
+            </div>
+
+            <div class="space-y-1 text-[11px]">
+                <div class="flex justify-between"><span>Caja / Terminal:</span><strong id="tcNombreCajaPOS" class="text-emerald-700">Caja 1</strong></div>
+                <div class="flex justify-between"><span>Turno Consecutivo:</span><strong id="tcNumeroPOS"></strong></div>
+                <div class="flex justify-between"><span>Apertura por:</span><span id="tcUsuarioAperturaPOS"></span></div>
+                <div class="flex justify-between"><span>Cierre por:</span><span id="tcUsuarioCierrePOS"></span></div>
+                <div class="flex justify-between"><span>Fecha Apertura:</span><span id="tcFechaAperturaPOS"></span></div>
+            </div>
+
+            <div class="border-t border-b border-dashed border-slate-400 py-2 space-y-1 text-[11px]">
+                <div class="flex justify-between"><span>Fondo Inicial ($):</span><strong id="tcFondoBasePOS">$0.00</strong></div>
+                <div class="flex justify-between"><span>Ventas Efectivo:</span><span id="tcVentasEfPOS">$0.00</span></div>
+                <div class="flex justify-between"><span>Ventas Zelle:</span><span id="tcVentasZellePOS">$0.00</span></div>
+                <div class="flex justify-between font-bold"><span>Ventas Transferencia:</span><span id="tcVentasPMPOS" class="text-slate-900 font-mono">Bs. 0,00</span></div>
+                <div class="flex justify-between font-bold"><span>Ventas Punto:</span><span id="tcVentasPuntoPOS" class="text-slate-900 font-mono">Bs. 0,00</span></div>
+                <div class="flex justify-between"><span>Ventas Crédito:</span><span id="tcVentasCreditoPOS">$0.00</span></div>
+                <div class="flex justify-between font-bold text-slate-900 pt-1 border-t"><span>TOTAL VENTAS ($):</span><strong id="tcTotalVentasPOS">$0.00</strong></div>
+                <div class="flex justify-between font-black text-slate-900"><span>TOTAL VENTAS (Bs.):</span><strong id="tcTotalVentasBsPOS">Bs. 0,00</strong></div>
+                <div class="flex justify-between font-bold text-slate-900"><span>TOTAL ABONOS ($):</span><strong id="tcTotalAbonosPOS">$0.00</strong></div>
+            </div>
+
+            <div class="space-y-1 text-[11px]">
+                <div class="flex justify-between font-bold"><span>Total Esperado Efectivo:</span><strong id="tcEsperadoEfPOS">$0.00</strong></div>
+                <div class="flex justify-between font-bold"><span>Efectivo Declarado:</span><strong id="tcDeclaradoEfPOS">$0.00</strong></div>
+                <div class="flex justify-between text-xs font-black pt-1 border-t" id="tcFilaDiferenciaPOS">
+                    <span>DIFERENCIA:</span>
+                    <strong id="tcDiferenciaPOS">$0.00</strong>
+                </div>
+            </div>
+
+            <div class="border-t border-dashed border-slate-400 pt-3 text-center text-[10px] space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="border-b border-slate-500 w-4/5 mx-auto mb-1"></div>
+                        <span>Cajero Entrega</span>
+                    </div>
+                    <div>
+                        <div class="border-b border-slate-500 w-4/5 mx-auto mb-1"></div>
+                        <span>Supervisor Recibe</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 flex justify-end space-x-2 no-print">
+            <button onclick="cerrarModalComprobanteCajaPOS()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                Cerrar
+            </button>
+            <button onclick="imprimirTicketCajaPOS()" class="px-5 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-print"></i>
+                <span>Imprimir Ticket</span>
+            </button>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -1080,6 +1242,7 @@
         const btn = document.getElementById('posBtnAccionCaja');
         const txt = document.getElementById('posTxtBtnCaja');
         const ico = document.getElementById('posIcoBtnCaja');
+        const btnArqueo = document.getElementById('posBtnVerArqueo');
 
         if (cajaAbiertaPOS && cajaActivaDataPOS) {
             dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
@@ -1088,6 +1251,7 @@
             btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200';
             txt.textContent = 'Cerrar Turno';
             ico.className = 'fa-solid fa-lock';
+            if (btnArqueo) btnArqueo.classList.remove('hidden');
         } else {
             dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse';
             tit.textContent = 'Caja Cerrada';
@@ -1095,6 +1259,7 @@
             btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm';
             txt.textContent = 'Abrir Caja';
             ico.className = 'fa-solid fa-door-open';
+            if (btnArqueo) btnArqueo.classList.add('hidden');
         }
     }
 
@@ -1181,12 +1346,24 @@
         if (!cajaAbiertaPOS || !cajaActivaDataPOS) return;
         const c = cajaActivaDataPOS;
 
-        document.getElementById('subtituloCierrePOS').textContent = `${c.nombre_caja || 'Caja 1'} &bull; Turno #${c.numero} &bull; Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
+        document.getElementById('subtituloCierrePOS').textContent = `${c.nombre_caja || 'Caja 1'} • Turno #${c.numero} • Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
         document.getElementById('posCierreEsperadoEfUSD').textContent = `$${c.total_esperado_efectivo.toFixed(2)}`;
         document.getElementById('posCierreBaseUSD').textContent = `$${c.monto_apertura_usd.toFixed(2)}`;
         document.getElementById('posCierreVentasEfUSD').textContent = `$${c.ventas_efectivo.toFixed(2)}`;
         document.getElementById('posCierreAbonosEfUSD').textContent = `$${c.abonos_efectivo.toFixed(2)}`;
         document.getElementById('posCierreTotalVentasUSD').textContent = `$${c.total_ventas.toFixed(2)}`;
+
+        const tasaCierre = c.tasa_bcv_cierre || c.tasa_bcv_apertura || TASA_BCV || 1;
+        const pmBsCalc = c.ventas_pagomovil_bs || ((c.ventas_pagomovil || 0) * tasaCierre);
+        const puntoBsCalc = c.ventas_punto_bs || ((c.ventas_punto || 0) * tasaCierre);
+        const formatearBsLocal = (v) => Number(v || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        if (document.getElementById('posCierreVentasPMBs')) {
+            document.getElementById('posCierreVentasPMBs').textContent = `Bs. ${formatearBsLocal(pmBsCalc)} ($${(c.ventas_pagomovil || 0).toFixed(2)})`;
+        }
+        if (document.getElementById('posCierreVentasPuntoBs')) {
+            document.getElementById('posCierreVentasPuntoBs').textContent = `Bs. ${formatearBsLocal(puntoBsCalc)} ($${(c.ventas_punto || 0).toFixed(2)})`;
+        }
 
         document.getElementById('posCierreDeclaradoEf').value = '';
         document.getElementById('posCierreObservaciones').value = '';
@@ -1227,6 +1404,7 @@
         e.preventDefault();
         const ef = parseFloat(document.getElementById('posCierreDeclaradoEf').value) || 0;
         const obs = document.getElementById('posCierreObservaciones').value.trim();
+        const idCajaCerrar = cajaActivaDataPOS ? cajaActivaDataPOS.id : null;
 
         const btn = document.getElementById('btnConfirmarCerrarCajaPOS');
         btn.disabled = true;
@@ -1236,21 +1414,25 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    caja_id: cajaActivaDataPOS ? cajaActivaDataPOS.id : null,
+                    caja_id: idCajaCerrar,
                     declarado_efectivo: ef,
                     observaciones: obs
                 })
             });
             if (res.ok) {
                 const data = await res.json();
+                const closedId = idCajaCerrar || data.caja.id;
                 cerrarModalCerrarCajaPOS();
                 Swal.fire({
                     icon: 'success',
                     title: `¡${data.caja.nombre_caja || 'Caja'} Cerrada!`,
-                    text: `Turno #${data.caja.numero} cerrado. Diferencia: ${data.caja.diferencia_efectivo >= 0 ? '+$' : '-$'}${Math.abs(data.caja.diferencia_efectivo).toFixed(2)}`,
-                    confirmButtonColor: '#e11d48'
+                    text: `Turno #${data.caja.numero} cerrado exitosamente.`,
+                    timer: 1800,
+                    showConfirmButton: false
                 });
                 await cargarEstadoCajaPOS();
+                // Mostrar de inmediato el comprobante de arqueo completo para revisar e imprimir
+                verComprobanteCajaPOS(closedId);
             } else {
                 const err = await res.json().catch(() => ({ detail: 'No se pudo cerrar la caja' }));
                 Swal.fire('Error', err.detail || 'No se pudo cerrar la caja', 'error');
@@ -1260,6 +1442,77 @@
         } finally {
             btn.disabled = false;
         }
+    }
+
+    async function verComprobanteCajaPOS(id) {
+        try {
+            const res = await fetch(`/api/cajas/${id}`);
+            if (res.ok) {
+                const c = await res.json();
+                document.getElementById('comprobanteCajaNumPOS').textContent = `${c.nombre_caja || 'Caja 1'} • Turno #${c.numero}`;
+                document.getElementById('tcNombreCajaPOS').textContent = c.nombre_caja || 'Caja 1';
+                document.getElementById('tcNumeroPOS').textContent = `#${c.numero}`;
+                document.getElementById('tcTituloCortePOS').textContent = (c.estado === 'cerrada') ? 'CORTE Y CIERRE DE CAJA' : 'CORTE PARCIAL DE CAJA (ARQUEO)';
+                document.getElementById('tcFechaCierrePOS').textContent = c.fecha_cierre || 'En curso...';
+                document.getElementById('tcUsuarioAperturaPOS').textContent = c.usuario_apertura_nombre || 'Admin';
+                document.getElementById('tcUsuarioCierrePOS').textContent = c.usuario_cierre_nombre || (c.estado === 'cerrada' ? 'Admin' : '-');
+                document.getElementById('tcFechaAperturaPOS').textContent = c.fecha_apertura;
+
+                const formatearBs = (val) => Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const tasa = c.tasa_bcv_cierre || c.tasa_bcv_apertura || TASA_BCV || 1;
+                const pmBs = c.ventas_pagomovil_bs || ((c.ventas_pagomovil || 0) * tasa);
+                const puntoBs = c.ventas_punto_bs || ((c.ventas_punto || 0) * tasa);
+                const totalBs = c.total_ventas_bs || ((c.total_ventas || 0) * tasa);
+
+                document.getElementById('tcFondoBasePOS').textContent = `$${(c.monto_apertura_usd || 0).toFixed(2)}`;
+                document.getElementById('tcVentasEfPOS').textContent = `$${(c.ventas_efectivo || 0).toFixed(2)}`;
+                document.getElementById('tcVentasZellePOS').textContent = `$${(c.ventas_zelle || 0).toFixed(2)}`;
+                document.getElementById('tcVentasPMPOS').textContent = `Bs. ${formatearBs(pmBs)} ($${(c.ventas_pagomovil || 0).toFixed(2)})`;
+                document.getElementById('tcVentasPuntoPOS').textContent = `Bs. ${formatearBs(puntoBs)} ($${(c.ventas_punto || 0).toFixed(2)})`;
+                document.getElementById('tcVentasCreditoPOS').textContent = `$${(c.ventas_credito || 0).toFixed(2)}`;
+                document.getElementById('tcTotalVentasPOS').textContent = `$${(c.total_ventas || 0).toFixed(2)}`;
+                if (document.getElementById('tcTotalVentasBsPOS')) {
+                    document.getElementById('tcTotalVentasBsPOS').textContent = `Bs. ${formatearBs(totalBs)}`;
+                }
+                document.getElementById('tcTotalAbonosPOS').textContent = `$${(c.total_abonos || 0).toFixed(2)}`;
+
+                document.getElementById('tcEsperadoEfPOS').textContent = `$${(c.total_esperado_efectivo || 0).toFixed(2)}`;
+                if (c.estado === 'cerrada') {
+                    document.getElementById('tcDeclaradoEfPOS').textContent = `$${(c.declarado_efectivo || 0).toFixed(2)}`;
+                    const dif = c.diferencia_efectivo || 0;
+                    document.getElementById('tcDiferenciaPOS').textContent = `${dif >= 0 ? '+$' : '-$'}${Math.abs(dif).toFixed(2)}`;
+                    document.getElementById('tcFilaDiferenciaPOS').className = `flex justify-between text-xs font-black pt-1 border-t ${dif === 0 ? 'text-slate-900' : (dif > 0 ? 'text-emerald-700' : 'text-rose-700')}`;
+                } else {
+                    document.getElementById('tcDeclaradoEfPOS').textContent = 'Turno en curso';
+                    document.getElementById('tcDiferenciaPOS').textContent = '-';
+                    document.getElementById('tcFilaDiferenciaPOS').className = 'flex justify-between text-xs font-black pt-1 border-t text-slate-700';
+                }
+
+                document.getElementById('modalComprobanteCajaPOS').classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error("Error cargando comprobante caja POS:", e);
+        }
+    }
+
+    function verComprobanteCajaActualPOS() {
+        if (!cajaActivaDataPOS) {
+            Swal.fire('Atención', 'No hay ningún turno de caja activo actualmente en este terminal.', 'info');
+            return;
+        }
+        verComprobanteCajaPOS(cajaActivaDataPOS.id);
+    }
+
+    function cerrarModalComprobanteCajaPOS() {
+        document.getElementById('modalComprobanteCajaPOS').classList.add('hidden');
+    }
+
+    function imprimirTicketCajaPOS() {
+        document.body.classList.add('imprimiendo-comprobante-caja-pos');
+        window.print();
+        setTimeout(() => {
+            document.body.classList.remove('imprimiendo-comprobante-caja-pos');
+        }, 1000);
     }
 
     // ========================================================

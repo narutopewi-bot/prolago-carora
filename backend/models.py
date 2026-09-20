@@ -80,6 +80,11 @@ class Caja(Base):
     ventas_credito = Column(Float, default=0.0)
     total_ventas = Column(Float, default=0.0)
 
+    # Renglones en Bolívares registrados en el turno
+    ventas_pagomovil_bs = Column(Float, default=0.0)
+    ventas_punto_bs = Column(Float, default=0.0)
+    total_ventas_bs = Column(Float, default=0.0)
+
     # Abonos cobrados durante el turno
     abonos_efectivo = Column(Float, default=0.0)
     abonos_zelle = Column(Float, default=0.0)

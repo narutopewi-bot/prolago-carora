@@ -264,6 +264,10 @@
                 <div>Ventas Efectivo: <strong class="text-white" id="cierreVentasEfUSD">$0.00</strong></div>
                 <div>Abonos Efectivo: <strong class="text-white" id="cierreAbonosEfUSD">$0.00</strong></div>
                 <div>Total Sistema General: <strong class="text-white" id="cierreTotalGenUSD">$0.00</strong></div>
+                <div class="col-span-2 border-t border-white/10 pt-1 grid grid-cols-2 gap-2 text-[11px] text-emerald-300">
+                    <div>Transferencias: <strong class="text-white font-mono" id="cierreVentasPMBs">Bs. 0,00</strong></div>
+                    <div>Punto Venta: <strong class="text-white font-mono" id="cierreVentasPuntoBs">Bs. 0,00</strong></div>
+                </div>
             </div>
         </div>
 
@@ -323,9 +327,9 @@
     </div>
 </div>
 
-<!-- ========================================== -->
-<!-- MODAL COMPROBANTE DE CIERRE / TICKET       -->
-<!-- ========================================== -->
+<!-- ======================================================== -->
+<!-- MODAL COMPROBANTE DE CIERRE / TICKET ARQUEO IMPRIMIBLE   -->
+<!-- ======================================================== -->
 <div id="modalComprobanteCaja" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 text-slate-800 overflow-y-auto max-h-[92vh]">
         <div class="flex items-center justify-between border-b pb-3 mb-4 no-print">
@@ -364,10 +368,11 @@
                 <div class="flex justify-between"><span>Fondo Inicial ($):</span><strong id="tcFondoBase">$0.00</strong></div>
                 <div class="flex justify-between"><span>Ventas Efectivo:</span><span id="tcVentasEf">$0.00</span></div>
                 <div class="flex justify-between"><span>Ventas Zelle:</span><span id="tcVentasZelle">$0.00</span></div>
-                <div class="flex justify-between"><span>Ventas Transferencia:</span><span id="tcVentasPM">$0.00</span></div>
-                <div class="flex justify-between"><span>Ventas Punto:</span><span id="tcVentasPunto">$0.00</span></div>
+                <div class="flex justify-between font-bold"><span>Ventas Transferencia:</span><span id="tcVentasPM" class="text-slate-900 font-mono">Bs. 0,00</span></div>
+                <div class="flex justify-between font-bold"><span>Ventas Punto:</span><span id="tcVentasPunto" class="text-slate-900 font-mono">Bs. 0,00</span></div>
                 <div class="flex justify-between"><span>Ventas Crédito:</span><span id="tcVentasCredito">$0.00</span></div>
                 <div class="flex justify-between font-bold text-slate-900 pt-1 border-t"><span>TOTAL VENTAS ($):</span><strong id="tcTotalVentas">$0.00</strong></div>
+                <div class="flex justify-between font-black text-slate-900"><span>TOTAL VENTAS (Bs.):</span><strong id="tcTotalVentasBs">Bs. 0,00</strong></div>
                 <div class="flex justify-between font-bold text-slate-900"><span>TOTAL ABONOS ($):</span><strong id="tcTotalAbonos">$0.00</strong></div>
             </div>
 
@@ -750,12 +755,24 @@
 
         idCajaACerrarActual = c.id;
 
-        document.getElementById('subtituloCierreCaja').textContent = `${c.nombre_caja || 'Caja 1'} &bull; Turno #${c.numero} &bull; Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
+        document.getElementById('subtituloCierreCaja').textContent = `${c.nombre_caja || 'Caja 1'} • Turno #${c.numero} • Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
         document.getElementById('cierreEsperadoEfectivoUSD').textContent = `$${c.total_esperado_efectivo.toFixed(2)}`;
         document.getElementById('cierreBaseUSD').textContent = `$${c.monto_apertura_usd.toFixed(2)}`;
         document.getElementById('cierreVentasEfUSD').textContent = `$${c.ventas_efectivo.toFixed(2)}`;
         document.getElementById('cierreAbonosEfUSD').textContent = `$${c.abonos_efectivo.toFixed(2)}`;
         document.getElementById('cierreTotalGenUSD').textContent = `$${c.total_esperado_general.toFixed(2)}`;
+
+        const tasaCierre = c.tasa_bcv_cierre || c.tasa_bcv_apertura || (estadoCajaGlobal && estadoCajaGlobal.tasa_bcv) || 1;
+        const pmBsCalc = c.ventas_pagomovil_bs || ((c.ventas_pagomovil || 0) * tasaCierre);
+        const puntoBsCalc = c.ventas_punto_bs || ((c.ventas_punto || 0) * tasaCierre);
+        const formatearBsLocal = (v) => Number(v || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        if (document.getElementById('cierreVentasPMBs')) {
+            document.getElementById('cierreVentasPMBs').textContent = `Bs. ${formatearBsLocal(pmBsCalc)} ($${(c.ventas_pagomovil || 0).toFixed(2)})`;
+        }
+        if (document.getElementById('cierreVentasPuntoBs')) {
+            document.getElementById('cierreVentasPuntoBs').textContent = `Bs. ${formatearBsLocal(puntoBsCalc)} ($${(c.ventas_punto || 0).toFixed(2)})`;
+        }
 
         document.getElementById('cierreDeclaradoEfectivo').value = '';
         document.getElementById('cierreDeclaradoZelle').value = c.ventas_zelle.toFixed(2);
@@ -849,7 +866,7 @@
             const res = await fetch(`/api/cajas/${id}`);
             if (res.ok) {
                 const c = await res.json();
-                document.getElementById('comprobanteCajaNum').textContent = `${c.nombre_caja || 'Caja 1'} &bull; Turno #${c.numero}`;
+                document.getElementById('comprobanteCajaNum').textContent = `${c.nombre_caja || 'Caja 1'} • Turno #${c.numero}`;
                 document.getElementById('tcNombreCaja').textContent = c.nombre_caja || 'Caja 1';
                 document.getElementById('tcNumero').textContent = `#${c.numero}`;
                 document.getElementById('tcFechaCierre').textContent = c.fecha_cierre || 'En curso';
@@ -857,13 +874,22 @@
                 document.getElementById('tcUsuarioCierre').textContent = c.usuario_cierre_nombre || '-';
                 document.getElementById('tcFechaApertura').textContent = c.fecha_apertura;
 
+                const formatearBs = (val) => Number(val || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const tasa = c.tasa_bcv_cierre || c.tasa_bcv_apertura || 1;
+                const pmBs = c.ventas_pagomovil_bs || ((c.ventas_pagomovil || 0) * tasa);
+                const puntoBs = c.ventas_punto_bs || ((c.ventas_punto || 0) * tasa);
+                const totalBs = c.total_ventas_bs || ((c.total_ventas || 0) * tasa);
+
                 document.getElementById('tcFondoBase').textContent = `$${c.monto_apertura_usd.toFixed(2)}`;
                 document.getElementById('tcVentasEf').textContent = `$${c.ventas_efectivo.toFixed(2)}`;
                 document.getElementById('tcVentasZelle').textContent = `$${c.ventas_zelle.toFixed(2)}`;
-                document.getElementById('tcVentasPM').textContent = `$${c.ventas_pagomovil.toFixed(2)}`;
-                document.getElementById('tcVentasPunto').textContent = `$${c.ventas_punto.toFixed(2)}`;
+                document.getElementById('tcVentasPM').textContent = `Bs. ${formatearBs(pmBs)} ($${(c.ventas_pagomovil || 0).toFixed(2)})`;
+                document.getElementById('tcVentasPunto').textContent = `Bs. ${formatearBs(puntoBs)} ($${(c.ventas_punto || 0).toFixed(2)})`;
                 document.getElementById('tcVentasCredito').textContent = `$${c.ventas_credito.toFixed(2)}`;
                 document.getElementById('tcTotalVentas').textContent = `$${c.total_ventas.toFixed(2)}`;
+                if (document.getElementById('tcTotalVentasBs')) {
+                    document.getElementById('tcTotalVentasBs').textContent = `Bs. ${formatearBs(totalBs)}`;
+                }
                 document.getElementById('tcTotalAbonos').textContent = `$${c.total_abonos.toFixed(2)}`;
 
                 document.getElementById('tcEsperadoEf').textContent = `$${c.total_esperado_efectivo.toFixed(2)}`;
