@@ -470,6 +470,21 @@
             </div>
         </div>
 
+        <!-- BARRA DE SELECCIÓN DE CAJA: CONSOLIDADO VS INDIVIDUAL -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+            <div class="flex items-center space-x-2.5">
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-filter text-emerald-600 mr-2"></i> Vista de Caja:
+                </span>
+                <select id="filtroReporteNombreCaja" onchange="cambiarFiltroCajaReporte()" class="px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm">
+                    <option value="TODAS">🏢 Todas las Cajas (Consolidado Administrador)</option>
+                </select>
+            </div>
+            <div class="text-xs text-slate-500 font-semibold" id="labelResumenCajasFiltro">
+                Mostrando balance global consolidado de todas las cajas
+            </div>
+        </div>
+
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h3 class="text-xs font-bold text-slate-800 uppercase">Turnos de Caja Realizados en el Período</h3>
@@ -480,6 +495,7 @@
                     <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] border-b">
                         <tr>
                             <th class="py-2.5 px-3 text-center">N° Turno</th>
+                            <th class="py-2.5 px-3">Caja / Terminal</th>
                             <th class="py-2.5 px-3">Cajero</th>
                             <th class="py-2.5 px-3">Apertura</th>
                             <th class="py-2.5 px-3">Cierre</th>
@@ -926,12 +942,37 @@
         renderTablaStockAlerta(filtrados);
     }
 
+    function cambiarFiltroCajaReporte() {
+        const { desde, hasta } = obtenerRangoFechas();
+        cargarReporteCajas(desde, hasta);
+    }
+
     async function cargarReporteCajas(desde, hasta) {
         try {
-            const res = await fetch(`/api/reportes/cajas?desde=${desde}&hasta=${hasta}`);
+            const sel = document.getElementById('filtroReporteNombreCaja');
+            const nomCaja = sel ? sel.value : 'TODAS';
+            const res = await fetch(`/api/reportes/cajas?desde=${desde}&hasta=${hasta}&nombre_caja=${encodeURIComponent(nomCaja)}`);
             if (res.ok) {
                 const d = await res.json();
                 cacheReporte['cajas'] = d;
+
+                // Actualizar opciones del selector de cajas si no se han cargado
+                if (sel && d.nombres_cajas && d.nombres_cajas.length > 0) {
+                    const currentSelection = sel.value;
+                    let opts = `<option value="TODAS">🏢 Todas las Cajas (Consolidado Administrador)</option>`;
+                    d.nombres_cajas.forEach(nc => {
+                        opts += `<option value="${nc}">${nc}</option>`;
+                    });
+                    sel.innerHTML = opts;
+                    sel.value = currentSelection;
+                }
+
+                const lbl = document.getElementById('labelResumenCajasFiltro');
+                if (lbl) {
+                    lbl.textContent = (nomCaja === 'TODAS') 
+                        ? 'Mostrando balance global consolidado de todas las cajas' 
+                        : `Mostrando balance filtrado únicamente para: ${nomCaja}`;
+                }
 
                 document.getElementById('rcTotalVentas').textContent = `$${d.totales.total_ventas_usd.toFixed(2)}`;
                 document.getElementById('rcTotalAbonos').textContent = `$${d.totales.total_abonos_usd.toFixed(2)}`;
@@ -944,14 +985,18 @@
 
                 const tbody = document.getElementById('tablaReporteCajas');
                 if (!d.cajas || d.cajas.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="11" class="text-center py-6 text-slate-400">No hay turnos de caja registrados en estas fechas</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="12" class="text-center py-6 text-slate-400 font-semibold">No hay turnos de caja registrados con estos filtros</td></tr>`;
                 } else {
                     tbody.innerHTML = d.cajas.map(c => `
-                        <tr class="hover:bg-slate-50">
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
                             <td class="py-2 px-3 text-center font-mono font-bold text-slate-900">#${c.numero}</td>
+                            <td class="py-2 px-3 font-extrabold text-slate-800 flex items-center space-x-1.5">
+                                <i class="fa-solid fa-cash-register text-slate-400 text-xs"></i>
+                                <span>${c.nombre_caja || 'Caja 1'}</span>
+                            </td>
                             <td class="py-2 px-3 font-semibold text-slate-800">${c.usuario_apertura_nombre}</td>
                             <td class="py-2 px-3 text-slate-500 text-[11px]">${c.fecha_apertura}</td>
-                            <td class="py-2 px-3 text-slate-500 text-[11px]">${c.fecha_cierre || '<em class="text-emerald-600">Abierta</em>'}</td>
+                            <td class="py-2 px-3 text-slate-500 text-[11px]">${c.fecha_cierre || '<em class="text-emerald-600 font-semibold">Abierta</em>'}</td>
                             <td class="py-2 px-3 text-right font-mono text-slate-600">$${c.monto_apertura_usd.toFixed(2)}</td>
                             <td class="py-2 px-3 text-right font-mono font-bold text-slate-800">$${c.total_ventas.toFixed(2)}</td>
                             <td class="py-2 px-3 text-right font-mono text-blue-700">$${c.total_abonos.toFixed(2)}</td>
@@ -1074,9 +1119,10 @@
                 csv += `"${a.codigo}","${a.nombre.replace(/"/g, '""')}","${a.categoria}","${a.proveedor || ''}",${a.stock},${a.stock_alerta},${a.deficit},${a.costo_final},${a.costo_reposicion_usd},${a.costo_reposicion_bs},"${a.estado}"\n`;
             });
         } else if (tabActiva === 'cajas') {
-            csv = "REPORTE DE CAJAS PROLAGO C.A.\nNumero,Cajero,Apertura,Cierre,Base USD,Ventas USD,Abonos USD,Esperado Ef USD,Declarado Ef USD,Diferencia USD,Estado\n";
+            csv = `REPORTE DE CAJAS PROLAGO C.A. - FILTRO: ${d.filtro_caja || 'TODAS'}\n`;
+            csv += "Numero,Caja_Terminal,Cajero,Apertura,Cierre,Base USD,Ventas USD,Abonos USD,Esperado Ef USD,Declarado Ef USD,Diferencia USD,Estado\n";
             (d.cajas || []).forEach(c => {
-                csv += `"${c.numero}","${c.usuario_apertura_nombre}","${c.fecha_apertura}","${c.fecha_cierre || ''}",${c.monto_apertura_usd},${c.total_ventas},${c.total_abonos},${c.total_esperado_efectivo},${c.declarado_efectivo},${c.diferencia_efectivo},"${c.estado}"\n`;
+                csv += `"${c.numero}","${c.nombre_caja || 'Caja 1'}","${c.usuario_apertura_nombre}","${c.fecha_apertura}","${c.fecha_cierre || ''}",${c.monto_apertura_usd},${c.total_ventas},${c.total_abonos},${c.total_esperado_efectivo},${c.declarado_efectivo},${c.diferencia_efectivo},"${c.estado}"\n`;
             });
         } else if (tabActiva === 'cobranza') {
             csv = "REPORTE DE COBRANZA Y CUENTAS POR COBRAR\nCliente,Facturas,Vencidas,Saldo Deudor USD\n";

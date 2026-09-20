@@ -48,6 +48,7 @@ class Caja(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     numero = Column(Integer, unique=True, index=True, nullable=False)  # Consecutivo: 1, 2, 3...
+    nombre_caja = Column(String(50), default="Caja 1", index=True)  # Caja 1, Caja 2, etc.
     estado = Column(String(20), default="abierta")  # 'abierta', 'cerrada'
 
     fecha_apertura = Column(DateTime, default=datetime.utcnow)

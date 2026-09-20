@@ -47,6 +47,16 @@ with engine.connect() as conn:
         conn.commit()
     except Exception:
         pass
+    try:
+        conn.execute(text("ALTER TABLE cajas ADD COLUMN nombre_caja VARCHAR(50) DEFAULT 'Caja 1'"))
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute(text("UPDATE cajas SET nombre_caja = 'Caja 1' WHERE nombre_caja IS NULL OR nombre_caja = ''"))
+        conn.commit()
+    except Exception:
+        pass
 
 app = FastAPI(title="Prolago Carora Web", version="1.0.0")
 
@@ -403,8 +413,18 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
             efectivo = total_factura
             inicial_abonada = total_factura
 
-    caja_activa = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
-    caja_id = caja_activa.id if caja_activa else None
+    caja_id = None
+    if getattr(payload, "caja_id", None):
+        c_esp = db.query(Caja).filter(Caja.id == payload.caja_id, Caja.estado == "abierta").first()
+        if c_esp:
+            caja_id = c_esp.id
+    if not caja_id:
+        c_user = db.query(Caja).filter(Caja.usuario_apertura_id == user.id, Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+        if c_user:
+            caja_id = c_user.id
+        else:
+            c_act = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+            caja_id = c_act.id if c_act else None
 
     factura = Factura(
         numero=next_num,
@@ -787,8 +807,18 @@ def registrar_abono(
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
     monto_bs = payload.monto_bs if payload.monto_bs and payload.monto_bs > 0 else round(monto_abono * tasa_bcv, 2)
 
-    caja_activa = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
-    caja_id = caja_activa.id if caja_activa else None
+    caja_id = None
+    if getattr(payload, "caja_id", None):
+        c_esp = db.query(Caja).filter(Caja.id == payload.caja_id, Caja.estado == "abierta").first()
+        if c_esp:
+            caja_id = c_esp.id
+    if not caja_id:
+        c_user = db.query(Caja).filter(Caja.usuario_apertura_id == user.id, Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+        if c_user:
+            caja_id = c_user.id
+        else:
+            c_act = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+            caja_id = c_act.id if c_act else None
 
     abono = AbonoCredito(
         factura_id=factura.id,
@@ -1017,6 +1047,7 @@ def serializar_caja(caja: Caja, db: Session, detalle: bool = False):
     res = {
         "id": caja.id,
         "numero": caja.numero,
+        "nombre_caja": caja.nombre_caja or "Caja 1",
         "estado": caja.estado,
         "fecha_apertura": caja.fecha_apertura.strftime("%d/%m/%Y %I:%M %p") if caja.fecha_apertura else "",
         "fecha_cierre": caja.fecha_cierre.strftime("%d/%m/%Y %I:%M %p") if caja.fecha_cierre else "",
@@ -1083,21 +1114,62 @@ def serializar_caja(caja: Caja, db: Session, detalle: bool = False):
     return res
 
 @app.get("/api/cajas/estado")
-def get_caja_estado(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
-    caja = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
-    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+def get_caja_estado(
+    caja_id: Optional[int] = None,
+    nombre_caja: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    cajas_abiertas = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.asc()).all()
+    caja = None
+    if caja_id:
+        caja = db.query(Caja).filter(Caja.id == caja_id, Caja.estado == "abierta").first()
+    elif nombre_caja:
+        caja = db.query(Caja).filter(Caja.nombre_caja == nombre_caja, Caja.estado == "abierta").first()
+    
     if not caja:
-        return {"activa": False, "caja": None, "tasa_bcv": tasa_bcv}
-    return {"activa": True, "caja": serializar_caja(caja, db, detalle=True), "tasa_bcv": tasa_bcv}
+        # 1. Buscar si el usuario actual tiene una caja abierta
+        caja = db.query(Caja).filter(Caja.usuario_apertura_id == user.id, Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+    
+    # 2. Si no tiene una propia y hay cajas abiertas, tomar la primera para mostrar estado
+    if not caja and cajas_abiertas:
+        caja = cajas_abiertas[0]
+        
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    cajas_activas_serializadas = [serializar_caja(c, db, detalle=False) for c in cajas_abiertas]
+    
+    return {
+        "activa": caja is not None,
+        "caja": serializar_caja(caja, db, detalle=True) if caja else None,
+        "cajas_abiertas": cajas_activas_serializadas,
+        "total_cajas_abiertas": len(cajas_abiertas),
+        "tasa_bcv": tasa_bcv
+    }
 
 @app.post("/api/cajas/abrir")
 def abrir_caja(payload: CajaApertura, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     if not user.tiene_permiso("cajas") and not user.tiene_permiso("pos"):
         raise HTTPException(status_code=403, detail="No tienes permiso para abrir caja")
 
-    caja_activa = db.query(Caja).filter(Caja.estado == "abierta").first()
-    if caja_activa:
-        raise HTTPException(status_code=400, detail=f"Ya existe una caja abierta (#{caja_activa.numero}). Debe cerrarla antes de abrir una nueva.")
+    nombre_caja = (payload.nombre_caja or "Caja 1").strip()
+    if not nombre_caja:
+        nombre_caja = "Caja 1"
+
+    # 1. Validar que este usuario no tenga ya una caja abierta
+    caja_usuario = db.query(Caja).filter(Caja.estado == "abierta", Caja.usuario_apertura_id == user.id).first()
+    if caja_usuario:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Usted ya tiene una caja abierta ({caja_usuario.nombre_caja} #{caja_usuario.numero}). Debe cerrarla antes de abrir otra."
+        )
+
+    # 2. Validar que el nombre_caja no esté ya abierto por otro usuario
+    caja_nombre_abierta = db.query(Caja).filter(Caja.estado == "abierta", Caja.nombre_caja == nombre_caja).first()
+    if caja_nombre_abierta:
+        raise HTTPException(
+            status_code=400,
+            detail=f"La '{nombre_caja}' ya se encuentra abierta por {caja_nombre_abierta.usuario_apertura_nombre}. Seleccione otra caja o cierre el turno anterior."
+        )
     
     last_caja = db.query(Caja).order_by(Caja.id.desc()).first()
     nuevo_num = (last_caja.numero + 1) if (last_caja and last_caja.numero) else 1
@@ -1108,6 +1180,7 @@ def abrir_caja(payload: CajaApertura, db: Session = Depends(get_db), user: Usuar
     
     nueva_caja = Caja(
         numero=nuevo_num,
+        nombre_caja=nombre_caja,
         estado="abierta",
         fecha_apertura=datetime.now(),
         usuario_apertura_id=user.id,
@@ -1129,7 +1202,18 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
     if not user.tiene_permiso("cajas") and not user.tiene_permiso("pos"):
         raise HTTPException(status_code=403, detail="No tienes permiso para cerrar caja")
 
-    caja = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+    caja = None
+    if payload.caja_id:
+        caja = db.query(Caja).filter(Caja.id == payload.caja_id, Caja.estado == "abierta").first()
+    
+    if not caja:
+        # Intentar cerrar la caja abierta por el usuario actual
+        caja = db.query(Caja).filter(Caja.estado == "abierta", Caja.usuario_apertura_id == user.id).order_by(Caja.id.desc()).first()
+
+    if not caja:
+        # Fallback si solo hay una caja abierta
+        caja = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
+
     if not caja:
         raise HTTPException(status_code=400, detail="No hay ninguna caja abierta actualmente para cerrar")
     
@@ -1164,8 +1248,17 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
     return {"status": "ok", "caja": serializar_caja(caja, db, detalle=True)}
 
 @app.get("/api/cajas")
-def listar_cajas(limit: int = 50, offset: int = 0, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
-    cajas = db.query(Caja).order_by(Caja.id.desc()).offset(offset).limit(limit).all()
+def listar_cajas(
+    nombre_caja: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    query = db.query(Caja)
+    if nombre_caja and nombre_caja.strip() != "" and nombre_caja.upper() != "TODAS":
+        query = query.filter(Caja.nombre_caja == nombre_caja.strip())
+    cajas = query.order_by(Caja.id.desc()).offset(offset).limit(limit).all()
     return [serializar_caja(c, db) for c in cajas]
 
 @app.get("/api/cajas/{caja_id}")
@@ -1466,13 +1559,25 @@ def get_reporte_stock_alerta(
 def get_reporte_cajas_consolidado(
     desde: Optional[str] = None,
     hasta: Optional[str] = None,
+    nombre_caja: Optional[str] = None,
     db: Session = Depends(get_db),
     user: Usuario = Depends(require_user)
 ):
     if not user.tiene_permiso("reportes"):
         raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
     dt_inicio, dt_fin = parse_date_range(desde, hasta)
-    cajas = db.query(Caja).filter(Caja.fecha_apertura >= dt_inicio, Caja.fecha_apertura <= dt_fin).order_by(Caja.id.desc()).all()
+    query = db.query(Caja).filter(Caja.fecha_apertura >= dt_inicio, Caja.fecha_apertura <= dt_fin)
+    
+    if nombre_caja and nombre_caja.strip() != "" and nombre_caja.upper() != "TODAS":
+        query = query.filter(Caja.nombre_caja == nombre_caja.strip())
+        
+    cajas = query.order_by(Caja.id.desc()).all()
+    
+    # Nombres de cajas registrados históricamente en el sistema
+    nombres_cajas_raw = db.query(Caja.nombre_caja).distinct().all()
+    nombres_cajas = sorted(list({r[0] for r in nombres_cajas_raw if r[0]}))
+    if not nombres_cajas:
+        nombres_cajas = ["Caja 1"]
     
     cajas_serializadas = [serializar_caja(c, db) for c in cajas]
     total_ingresos = sum(c["total_ventas"] for c in cajas_serializadas)
@@ -1485,6 +1590,8 @@ def get_reporte_cajas_consolidado(
             "desde": dt_inicio.strftime("%d/%m/%Y"),
             "hasta": dt_fin.strftime("%d/%m/%Y")
         },
+        "filtro_caja": nombre_caja or "TODAS",
+        "nombres_cajas": nombres_cajas,
         "totales": {
             "cantidad_cajas": len(cajas),
             "total_ventas_usd": round(total_ingresos, 2),

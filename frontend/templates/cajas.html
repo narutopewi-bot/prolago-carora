@@ -108,7 +108,11 @@
                 <p class="text-xs text-slate-500">Registro histórico de aperturas, recaudación, arqueos y cuadres de caja</p>
             </div>
             <div class="flex items-center space-x-2">
-                <span class="text-xs text-slate-500 font-semibold" id="contadorCajasHistorial">0 cajas registradas</span>
+                <span class="text-xs text-slate-500 font-bold mr-1">Filtrar por:</span>
+                <select id="filtroHistorialCajaNombre" onchange="filtrarHistorialCajasLocal()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <option value="TODAS">🏢 Todas las Cajas</option>
+                </select>
+                <span class="text-xs text-slate-500 font-semibold" id="contadorCajasHistorial">0 turnos registrados</span>
             </div>
         </div>
 
@@ -116,10 +120,11 @@
             <table class="w-full text-left text-xs">
                 <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[11px] border-b border-slate-200">
                     <tr>
-                        <th class="px-4 py-3 text-center">N° Caja</th>
-                        <th class="px-4 py-3">Responsable</th>
-                        <th class="px-4 py-3">Apertura</th>
-                        <th class="px-4 py-3">Cierre</th>
+                        <th class="px-3 py-3 text-center">N° Turno</th>
+                        <th class="px-3 py-3">Caja / Terminal</th>
+                        <th class="px-3 py-3">Responsable</th>
+                        <th class="px-3 py-3">Apertura</th>
+                        <th class="px-3 py-3">Cierre</th>
                         <th class="px-3 py-3 text-right">Fondo Base ($)</th>
                         <th class="px-3 py-3 text-right">Ventas ($)</th>
                         <th class="px-3 py-3 text-right">Abonos ($)</th>
@@ -127,12 +132,12 @@
                         <th class="px-3 py-3 text-right">Declarado ($)</th>
                         <th class="px-3 py-3 text-right">Diferencia ($)</th>
                         <th class="px-3 py-3 text-center">Estado</th>
-                        <th class="px-4 py-3 text-center">Acciones</th>
+                        <th class="px-3 py-3 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaHistorialCajas" class="divide-y divide-slate-100">
                     <tr>
-                        <td colspan="12" class="text-center py-8 text-slate-400">Cargando historial de cajas...</td>
+                        <td colspan="13" class="text-center py-8 text-slate-400">Cargando historial de cajas...</td>
                     </tr>
                 </tbody>
             </table>
@@ -161,6 +166,26 @@
         </div>
 
         <form onsubmit="guardarAperturaCaja(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Terminal / Caja <span class="text-emerald-600">*</span></span>
+                    <span id="labelCajasOcupadasBadge" class="text-[10px] text-slate-400 font-semibold"></span>
+                </label>
+                <div class="grid grid-cols-4 gap-1.5 mb-2">
+                    <button type="button" onclick="seleccionarBotonCaja('Caja 1')" id="btnSugCaja1" class="py-1.5 px-2 text-xs font-black rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 border-emerald-400">Caja 1</button>
+                    <button type="button" onclick="seleccionarBotonCaja('Caja 2')" id="btnSugCaja2" class="py-1.5 px-2 text-xs font-black rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 text-slate-700">Caja 2</button>
+                    <button type="button" onclick="seleccionarBotonCaja('Caja 3')" id="btnSugCaja3" class="py-1.5 px-2 text-xs font-black rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 text-slate-700">Caja 3</button>
+                    <button type="button" onclick="seleccionarBotonCaja('Caja 4')" id="btnSugCaja4" class="py-1.5 px-2 text-xs font-black rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 text-slate-700">Caja 4</button>
+                </div>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-cash-register"></i>
+                    </span>
+                    <input type="text" id="abrirNombreCaja" value="Caja 1" required placeholder="Ej: Caja 1, Caja 2, Caja Mostrador..."
+                        class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                </div>
+            </div>
+
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Fondo Base en Efectivo ($ USD) <span class="text-emerald-600">*</span>
@@ -328,7 +353,8 @@
             </div>
 
             <div class="space-y-1 text-[11px]">
-                <div class="flex justify-between"><span>Caja N°:</span><strong id="tcNumero"></strong></div>
+                <div class="flex justify-between"><span>Caja / Terminal:</span><strong id="tcNombreCaja" class="text-emerald-700">Caja 1</strong></div>
+                <div class="flex justify-between"><span>Turno Consecutivo:</span><strong id="tcNumero"></strong></div>
                 <div class="flex justify-between"><span>Apertura por:</span><span id="tcUsuarioApertura"></span></div>
                 <div class="flex justify-between"><span>Cierre por:</span><span id="tcUsuarioCierre"></span></div>
                 <div class="flex justify-between"><span>Fecha Apertura:</span><span id="tcFechaApertura"></span></div>
@@ -384,8 +410,9 @@
 
 {% block extra_scripts %}
 <script>
-    let estadoCajaGlobal = { activa: false, caja: null, tasa_bcv: 1.0 };
+    let estadoCajaGlobal = { activa: false, caja: null, cajas_abiertas: [], tasa_bcv: 1.0 };
     let cajasHistorialCache = [];
+    let idCajaACerrarActual = null;
 
     async function cargarModuloCajas() {
         await cargarEstadoCajaActual();
@@ -404,14 +431,29 @@
         }
     }
 
+    function seleccionarBotonCaja(nombre) {
+        document.getElementById('abrirNombreCaja').value = nombre;
+        ['Caja 1', 'Caja 2', 'Caja 3', 'Caja 4'].forEach((nom, idx) => {
+            const btn = document.getElementById(`btnSugCaja${idx + 1}`);
+            if (!btn) return;
+            if (nom === nombre) {
+                btn.className = "py-1.5 px-2 text-xs font-black rounded-lg border border-emerald-400 bg-emerald-50 text-emerald-800 shadow-sm";
+            } else {
+                btn.className = "py-1.5 px-2 text-xs font-black rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 text-slate-700";
+            }
+        });
+    }
+
     function renderizarCajaActual() {
         const cont = document.getElementById('contenedorCajaActual');
         const btnHeader = document.getElementById('btnHeaderAccionCaja');
         const txtHeader = document.getElementById('textoHeaderAccion');
         const icoHeader = document.getElementById('iconoHeaderAccion');
 
-        if (!estadoCajaGlobal.activa || !estadoCajaGlobal.caja) {
-            // CAJA CERRADA
+        const abiertas = estadoCajaGlobal.cajas_abiertas || [];
+
+        if (abiertas.length === 0) {
+            // NINGUNA CAJA ABIERTA
             btnHeader.className = "px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center space-x-2";
             txtHeader.textContent = "Abrir Caja";
             icoHeader.className = "fa-solid fa-door-open";
@@ -421,11 +463,11 @@
                     <div class="space-y-2">
                         <div class="inline-flex items-center space-x-2 px-3 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-full text-xs font-black uppercase tracking-wider">
                             <span class="w-2 h-2 rounded-full bg-rose-400"></span>
-                            <span>Caja Cerrada</span>
+                            <span>Todas las Cajas Cerradas</span>
                         </div>
-                        <h2 class="text-2xl sm:text-3xl font-black tracking-tight">No hay ningún turno de caja activo</h2>
+                        <h2 class="text-2xl sm:text-3xl font-black tracking-tight">No hay ningún turno de caja activo en el sistema</h2>
                         <p class="text-slate-400 text-xs sm:text-sm max-w-xl">
-                            Para registrar cobros y emitir ventas en el Punto de Venta (POS), debe abrir un turno e ingresar el fondo base para vueltos.
+                            Para registrar cobros y emitir ventas en el Punto de Venta (POS), debe abrir un turno (Caja 1, Caja 2, Caja 3, etc.) e ingresar el fondo base para vueltos.
                         </p>
                     </div>
 
@@ -436,87 +478,137 @@
                 </div>
             `;
         } else {
-            // CAJA ABIERTA
-            const c = estadoCajaGlobal.caja;
-            btnHeader.className = "px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/20 transition flex items-center space-x-2";
-            txtHeader.textContent = "Cerrar Caja / Arqueo";
-            icoHeader.className = "fa-solid fa-cash-register";
+            // AL MENOS UNA CAJA ABIERTA (SOPORTE MULTICAJA EN VIVO)
+            btnHeader.className = "px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center space-x-2";
+            txtHeader.textContent = "+ Abrir Otra Caja";
+            icoHeader.className = "fa-solid fa-plus";
 
-            cont.innerHTML = `
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                    <!-- Banner de cabecera -->
-                    <div class="p-5 sm:p-6 bg-gradient-to-r from-emerald-800 to-emerald-950 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div class="space-y-1">
-                            <div class="flex items-center space-x-2.5">
-                                <span class="px-3 py-1 bg-emerald-500 text-slate-950 rounded-full font-black text-xs uppercase tracking-wider animate-pulse">
-                                    Turno en Curso &bull; Caja #${c.numero}
-                                </span>
-                                <span class="text-xs text-emerald-200">Apertura: ${c.fecha_apertura}</span>
-                            </div>
-                            <h2 class="text-xl sm:text-2xl font-black">Cajero: ${c.usuario_apertura_nombre || 'Administrador'}</h2>
-                            <p class="text-xs text-emerald-200/80">Fondo Base Inicial: <strong class="text-white">$${c.monto_apertura_usd.toFixed(2)} USD</strong> (Bs. ${(c.monto_apertura_usd * c.tasa_bcv_apertura).toLocaleString('es-VE', {minimumFractionDigits: 2})})</p>
-                        </div>
-
-                        <div class="flex items-center space-x-2">
-                            <button onclick="abrirModalCerrarCaja()" class="px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center space-x-2">
-                                <i class="fa-solid fa-lock"></i>
-                                <span>ARQUEO Y CIERRE DE CAJA</span>
-                            </button>
-                        </div>
+            let htmlCajas = `
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse mr-2"></span>
+                            Cajas Activas en Red (${abiertas.length} ${abiertas.length === 1 ? 'Terminal Abierta' : 'Terminales Abiertas'})
+                        </h3>
+                        <button onclick="abrirModalAbrirCaja()" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center space-x-1">
+                            <i class="fa-solid fa-circle-plus"></i>
+                            <span>Abrir Nueva Caja / Terminal</span>
+                        </button>
                     </div>
 
-                    <!-- Métricas en vivo del turno -->
-                    <div class="p-5 sm:p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                        <div class="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
-                            <span class="text-[10px] font-bold text-emerald-700 uppercase block">Efectivo ($)</span>
-                            <span class="text-lg font-black text-emerald-800 mt-1 block font-mono">$${(c.ventas_efectivo + c.abonos_efectivo).toFixed(2)}</span>
-                            <span class="text-[9px] text-emerald-600">Ventas + Abonos</span>
+                    <div class="grid grid-cols-1 ${abiertas.length > 1 ? 'xl:grid-cols-2' : ''} gap-5">
+            `;
+
+            abiertas.forEach(c => {
+                htmlCajas += `
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between">
+                        <!-- Banner cabecera de la caja -->
+                        <div class="p-5 bg-gradient-to-r from-emerald-800 to-emerald-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="px-3 py-1 bg-emerald-400 text-slate-950 rounded-full font-black text-xs uppercase tracking-wider shadow-sm">
+                                        <i class="fa-solid fa-cash-register mr-1"></i> ${c.nombre_caja || 'Caja 1'}
+                                    </span>
+                                    <span class="px-2.5 py-0.5 bg-white/20 text-white rounded-lg font-bold text-[11px]">
+                                        Turno #${c.numero}
+                                    </span>
+                                    <span class="text-xs text-emerald-200">${c.fecha_apertura}</span>
+                                </div>
+                                <h4 class="text-base sm:text-lg font-black mt-1">Responsable: ${c.usuario_apertura_nombre || 'Admin'}</h4>
+                                <p class="text-xs text-emerald-200/80">Fondo Base: <strong class="text-white">$${c.monto_apertura_usd.toFixed(2)} USD</strong> (Bs. ${(c.monto_apertura_usd * c.tasa_bcv_apertura).toLocaleString('es-VE', {minimumFractionDigits: 2})})</p>
+                            </div>
+
+                            <button onclick="abrirModalCerrarCaja(${c.id})" class="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 shrink-0">
+                                <i class="fa-solid fa-lock"></i>
+                                <span>Cierre / Arqueo</span>
+                            </button>
                         </div>
 
-                        <div class="p-3.5 bg-purple-50 rounded-2xl border border-purple-100 text-center">
-                            <span class="text-[10px] font-bold text-purple-700 uppercase block">Zelle ($)</span>
-                            <span class="text-lg font-black text-purple-800 mt-1 block font-mono">$${(c.ventas_zelle + c.abonos_zelle).toFixed(2)}</span>
-                            <span class="text-[9px] text-purple-600">Digital</span>
-                        </div>
+                        <!-- Métricas en vivo de la caja -->
+                        <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50/50">
+                            <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase block">Efectivo ($)</span>
+                                <span class="text-base font-black text-emerald-800 mt-0.5 block font-mono">$${(c.ventas_efectivo + c.abonos_efectivo).toFixed(2)}</span>
+                                <span class="text-[9px] text-slate-400">Ventas + Abonos</span>
+                            </div>
 
-                        <div class="p-3.5 bg-blue-50 rounded-2xl border border-blue-100 text-center">
-                            <span class="text-[10px] font-bold text-blue-700 uppercase block">Pago Móvil ($)</span>
-                            <span class="text-lg font-black text-blue-800 mt-1 block font-mono">$${(c.ventas_pagomovil + c.abonos_pagomovil).toFixed(2)}</span>
-                            <span class="text-[9px] text-blue-600">Bs. al cambio</span>
-                        </div>
+                            <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
+                                <span class="text-[10px] font-bold text-purple-700 uppercase block">Zelle ($)</span>
+                                <span class="text-base font-black text-purple-800 mt-0.5 block font-mono">$${(c.ventas_zelle + c.abonos_zelle).toFixed(2)}</span>
+                                <span class="text-[9px] text-slate-400">Digital</span>
+                            </div>
 
-                        <div class="p-3.5 bg-amber-50 rounded-2xl border border-amber-100 text-center">
-                            <span class="text-[10px] font-bold text-amber-700 uppercase block">Punto Venta ($)</span>
-                            <span class="text-lg font-black text-amber-800 mt-1 block font-mono">$${(c.ventas_punto + c.abonos_punto).toFixed(2)}</span>
-                            <span class="text-[9px] text-amber-600">Tarjetas</span>
-                        </div>
+                            <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
+                                <span class="text-[10px] font-bold text-blue-700 uppercase block">Pago Móvil ($)</span>
+                                <span class="text-base font-black text-blue-800 mt-0.5 block font-mono">$${(c.ventas_pagomovil + c.abonos_pagomovil).toFixed(2)}</span>
+                                <span class="text-[9px] text-slate-400">Bs. al cambio</span>
+                            </div>
 
-                        <div class="p-3.5 bg-rose-50 rounded-2xl border border-rose-100 text-center">
-                            <span class="text-[10px] font-bold text-rose-700 uppercase block">Ventas a Crédito</span>
-                            <span class="text-lg font-black text-rose-800 mt-1 block font-mono">$${c.ventas_credito.toFixed(2)}</span>
-                            <span class="text-[9px] text-rose-600">Por cobrar</span>
-                        </div>
+                            <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
+                                <span class="text-[10px] font-bold text-amber-700 uppercase block">Punto Venta ($)</span>
+                                <span class="text-base font-black text-amber-800 mt-0.5 block font-mono">$${(c.ventas_punto + c.abonos_punto).toFixed(2)}</span>
+                                <span class="text-[9px] text-slate-400">Tarjetas</span>
+                            </div>
 
-                        <div class="p-3.5 bg-slate-900 text-white rounded-2xl text-center shadow-inner">
-                            <span class="text-[10px] font-bold text-emerald-400 uppercase block">Total Efectivo Gaveta</span>
-                            <span class="text-lg font-black text-emerald-300 mt-1 block font-mono">$${c.total_esperado_efectivo.toFixed(2)}</span>
-                            <span class="text-[9px] text-slate-400">Fondo + Efectivo</span>
+                            <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
+                                <span class="text-[10px] font-bold text-slate-700 uppercase block">Total Ventas ($)</span>
+                                <span class="text-base font-black text-slate-900 mt-0.5 block font-mono">$${c.total_ventas.toFixed(2)}</span>
+                                <span class="text-[9px] text-slate-400">Facturado</span>
+                            </div>
+
+                            <div class="p-2.5 bg-slate-900 text-white rounded-xl text-center shadow-inner">
+                                <span class="text-[10px] font-bold text-emerald-400 uppercase block">Gaveta Física ($)</span>
+                                <span class="text-base font-black text-emerald-300 mt-0.5 block font-mono">$${c.total_esperado_efectivo.toFixed(2)}</span>
+                                <span class="text-[9px] text-slate-400">Fondo + Efectivo</span>
+                            </div>
                         </div>
+                    </div>
+                `;
+            });
+
+            htmlCajas += `
                     </div>
                 </div>
             `;
+            cont.innerHTML = htmlCajas;
         }
     }
 
     async function cargarHistorialCajas() {
         try {
-            const res = await fetch('/api/cajas?limit=50');
+            const res = await fetch('/api/cajas?limit=100');
             if (res.ok) {
                 cajasHistorialCache = await res.json();
+                actualizarSelectorFiltroHistorial();
                 renderizarHistorialCajas(cajasHistorialCache);
             }
         } catch (e) {
             console.error("Error al cargar historial de cajas:", e);
+        }
+    }
+
+    function actualizarSelectorFiltroHistorial() {
+        const sel = document.getElementById('filtroHistorialCajaNombre');
+        if (!sel) return;
+        const actualVal = sel.value;
+        const nombres = Array.from(new Set(cajasHistorialCache.map(c => c.nombre_caja || 'Caja 1'))).sort();
+        
+        sel.innerHTML = `<option value="TODAS">🏢 Todas las Cajas (Consolidado)</option>` + 
+            nombres.map(n => `<option value="${n}">${n}</option>`).join('');
+            
+        if (nombres.includes(actualVal)) {
+            sel.value = actualVal;
+        }
+    }
+
+    function filtrarHistorialCajasLocal() {
+        const sel = document.getElementById('filtroHistorialCajaNombre');
+        const val = sel ? sel.value : 'TODAS';
+        if (val === 'TODAS') {
+            renderizarHistorialCajas(cajasHistorialCache);
+        } else {
+            const filtradas = cajasHistorialCache.filter(c => (c.nombre_caja || 'Caja 1') === val);
+            renderizarHistorialCajas(filtradas);
         }
     }
 
@@ -525,7 +617,7 @@
         document.getElementById('contadorCajasHistorial').textContent = `${lista.length} turnos registrados`;
 
         if (!lista || lista.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-slate-400 font-semibold">No se han registrado cierres de caja todavía.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="13" class="text-center py-8 text-slate-400 font-semibold">No se encontraron turnos de caja registrados.</td></tr>`;
             return;
         }
 
@@ -537,10 +629,14 @@
 
             return `
                 <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                    <td class="px-4 py-3 text-center font-mono font-black text-slate-900">#${c.numero}</td>
-                    <td class="px-4 py-3 font-semibold text-slate-800">${c.usuario_apertura_nombre || 'Admin'}</td>
-                    <td class="px-4 py-3 text-slate-600 text-[11px]">${c.fecha_apertura}</td>
-                    <td class="px-4 py-3 text-slate-600 text-[11px]">${c.fecha_cierre || '<em class="text-emerald-600 font-semibold">En curso...</em>'}</td>
+                    <td class="px-3 py-3 text-center font-mono font-black text-slate-900">#${c.numero}</td>
+                    <td class="px-3 py-3 font-extrabold text-slate-800 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-cash-register text-slate-400 text-xs"></i>
+                        <span>${c.nombre_caja || 'Caja 1'}</span>
+                    </td>
+                    <td class="px-3 py-3 font-semibold text-slate-800">${c.usuario_apertura_nombre || 'Admin'}</td>
+                    <td class="px-3 py-3 text-slate-600 text-[11px]">${c.fecha_apertura}</td>
+                    <td class="px-3 py-3 text-slate-600 text-[11px]">${c.fecha_cierre || '<em class="text-emerald-600 font-semibold">En curso...</em>'}</td>
                     <td class="px-3 py-3 text-right font-mono text-slate-700">$${c.monto_apertura_usd.toFixed(2)}</td>
                     <td class="px-3 py-3 text-right font-mono font-bold text-slate-800">$${c.total_ventas.toFixed(2)}</td>
                     <td class="px-3 py-3 text-right font-mono text-emerald-700">$${c.total_abonos.toFixed(2)}</td>
@@ -548,7 +644,7 @@
                     <td class="px-3 py-3 text-right font-mono font-bold text-slate-800">${c.estado === 'cerrada' ? '$' + c.declarado_efectivo.toFixed(2) : '-'}</td>
                     <td class="px-3 py-3 text-right font-mono ${difClass}">${c.estado === 'cerrada' ? (c.diferencia_efectivo >= 0 ? '+$' : '-$') + Math.abs(c.diferencia_efectivo).toFixed(2) : '-'}</td>
                     <td class="px-3 py-3 text-center">${estadoBadge}</td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-3 py-3 text-center">
                         <button onclick="verComprobanteCaja(${c.id})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] transition flex items-center justify-center space-x-1 mx-auto">
                             <i class="fa-solid fa-receipt text-xs"></i>
                             <span>Ticket</span>
@@ -560,17 +656,28 @@
     }
 
     function manejarBotonPrincipalCaja() {
-        if (!estadoCajaGlobal.activa) {
-            abrirModalAbrirCaja();
-        } else {
-            abrirModalCerrarCaja();
-        }
+        abrirModalAbrirCaja();
     }
 
     function abrirModalAbrirCaja() {
         document.getElementById('abrirMontoUSD').value = '0.00';
         document.getElementById('abrirMontoBS').value = '0.00';
         document.getElementById('abrirObservaciones').value = '';
+
+        // Preseleccionar siguiente caja libre
+        const ocupadas = (estadoCajaGlobal.cajas_abiertas || []).map(c => c.nombre_caja);
+        let sugerida = 'Caja 1';
+        if (ocupadas.includes('Caja 1')) sugerida = 'Caja 2';
+        if (ocupadas.includes('Caja 2')) sugerida = 'Caja 3';
+        if (ocupadas.includes('Caja 3')) sugerida = 'Caja 4';
+
+        seleccionarBotonCaja(sugerida);
+
+        const badgeOcupadas = document.getElementById('labelCajasOcupadasBadge');
+        if (badgeOcupadas) {
+            badgeOcupadas.textContent = ocupadas.length > 0 ? `En uso: ${ocupadas.join(', ')}` : 'Todas disponibles';
+        }
+
         calcularEquivAperturaBS();
         document.getElementById('modalAbrirCaja').classList.remove('hidden');
     }
@@ -587,6 +694,7 @@
 
     async function guardarAperturaCaja(e) {
         e.preventDefault();
+        const nombreCaja = (document.getElementById('abrirNombreCaja').value || 'Caja 1').trim();
         const montoUSD = parseFloat(document.getElementById('abrirMontoUSD').value) || 0;
         const montoBS = parseFloat(document.getElementById('abrirMontoBS').value) || 0;
         const obs = document.getElementById('abrirObservaciones').value.trim();
@@ -599,6 +707,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    nombre_caja: nombreCaja,
                     monto_apertura_usd: montoUSD,
                     monto_apertura_bs: montoBS,
                     observaciones: obs
@@ -609,14 +718,14 @@
                 cerrarModalAbrirCaja();
                 Swal.fire({
                     icon: 'success',
-                    title: `Caja #${data.caja.numero} Abierta`,
-                    text: `Turno iniciado con fondo de $${montoUSD.toFixed(2)} USD`,
+                    title: `¡${data.caja.nombre_caja} Abierta!`,
+                    text: `Turno #${data.caja.numero} iniciado con fondo de $${montoUSD.toFixed(2)} USD`,
                     confirmButtonColor: '#10b981'
                 });
-                cargarModuloCajas();
+                await cargarModuloCajas();
             } else {
                 const err = await res.json().catch(() => ({ detail: 'No se pudo abrir la caja' }));
-                Swal.fire('Error', err.detail || 'No se pudo abrir la caja', 'error');
+                Swal.fire('Atención', err.detail || 'No se pudo abrir la caja', 'warning');
             }
         } catch (e) {
             Swal.fire('Error', 'Fallo de comunicación con el servidor', 'error');
@@ -625,11 +734,23 @@
         }
     }
 
-    function abrirModalCerrarCaja() {
-        if (!estadoCajaGlobal.activa || !estadoCajaGlobal.caja) return;
-        const c = estadoCajaGlobal.caja;
+    function abrirModalCerrarCaja(cajaId = null) {
+        let c = null;
+        const abiertas = estadoCajaGlobal.cajas_abiertas || [];
+        if (cajaId) {
+            c = abiertas.find(x => x.id === cajaId);
+        }
+        if (!c && estadoCajaGlobal.caja) {
+            c = estadoCajaGlobal.caja;
+        }
+        if (!c && abiertas.length > 0) {
+            c = abiertas[0];
+        }
+        if (!c) return;
 
-        document.getElementById('subtituloCierreCaja').textContent = `Caja #${c.numero} &bull; Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
+        idCajaACerrarActual = c.id;
+
+        document.getElementById('subtituloCierreCaja').textContent = `${c.nombre_caja || 'Caja 1'} &bull; Turno #${c.numero} &bull; Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
         document.getElementById('cierreEsperadoEfectivoUSD').textContent = `$${c.total_esperado_efectivo.toFixed(2)}`;
         document.getElementById('cierreBaseUSD').textContent = `$${c.monto_apertura_usd.toFixed(2)}`;
         document.getElementById('cierreVentasEfUSD').textContent = `$${c.ventas_efectivo.toFixed(2)}`;
@@ -648,11 +769,13 @@
 
     function cerrarModalCerrarCaja() {
         document.getElementById('modalCerrarCaja').classList.add('hidden');
+        idCajaACerrarActual = null;
     }
 
     function calcularDiferenciasCierre() {
-        if (!estadoCajaGlobal.caja) return;
-        const esperado = estadoCajaGlobal.caja.total_esperado_efectivo || 0;
+        const c = (estadoCajaGlobal.cajas_abiertas || []).find(x => x.id === idCajaACerrarActual) || estadoCajaGlobal.caja;
+        if (!c) return;
+        const esperado = c.total_esperado_efectivo || 0;
         const declarado = parseFloat(document.getElementById('cierreDeclaradoEfectivo').value) || 0;
         const dif = declarado - esperado;
 
@@ -690,6 +813,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    caja_id: idCajaACerrarActual,
                     declarado_efectivo: ef,
                     declarado_zelle: zelle,
                     declarado_pagomovil: pm,
@@ -699,15 +823,16 @@
             });
             if (res.ok) {
                 const data = await res.json();
+                const closedId = idCajaACerrarActual || data.caja.id;
                 cerrarModalCerrarCaja();
                 Swal.fire({
                     icon: 'success',
-                    title: `Caja #${data.caja.numero} Cerrada`,
-                    text: `Diferencia de caja: ${data.caja.diferencia_efectivo >= 0 ? '+$' : '-$'}${Math.abs(data.caja.diferencia_efectivo).toFixed(2)}`,
+                    title: `¡${data.caja.nombre_caja || 'Caja'} Cerrada!`,
+                    text: `Turno #${data.caja.numero} cerrado. Diferencia: ${data.caja.diferencia_efectivo >= 0 ? '+$' : '-$'}${Math.abs(data.caja.diferencia_efectivo).toFixed(2)}`,
                     confirmButtonColor: '#e11d48'
                 });
                 await cargarModuloCajas();
-                verComprobanteCaja(data.caja.id);
+                verComprobanteCaja(closedId);
             } else {
                 const err = await res.json().catch(() => ({ detail: 'No se pudo cerrar la caja' }));
                 Swal.fire('Error', err.detail || 'No se pudo cerrar la caja', 'error');
@@ -724,7 +849,8 @@
             const res = await fetch(`/api/cajas/${id}`);
             if (res.ok) {
                 const c = await res.json();
-                document.getElementById('comprobanteCajaNum').textContent = `Caja N° ${c.numero}`;
+                document.getElementById('comprobanteCajaNum').textContent = `${c.nombre_caja || 'Caja 1'} &bull; Turno #${c.numero}`;
+                document.getElementById('tcNombreCaja').textContent = c.nombre_caja || 'Caja 1';
                 document.getElementById('tcNumero').textContent = `#${c.numero}`;
                 document.getElementById('tcFechaCierre').textContent = c.fecha_cierre || 'En curso';
                 document.getElementById('tcUsuarioApertura').textContent = c.usuario_apertura_nombre || 'Admin';

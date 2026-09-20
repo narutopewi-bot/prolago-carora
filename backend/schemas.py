@@ -64,6 +64,7 @@ class FacturaCreate(BaseModel):
     punto: Optional[float] = 0.0
     credito: Optional[float] = 0.0
     dias_credito: Optional[int] = 15
+    caja_id: Optional[int] = None
     items: List[ItemFacturaCreate]
 
 class AbonoCreate(BaseModel):
@@ -71,6 +72,7 @@ class AbonoCreate(BaseModel):
     monto_bs: Optional[float] = 0.0
     metodo_pago: Optional[str] = "efectivo"
     nota: Optional[str] = ""
+    caja_id: Optional[int] = None
 
 class ItemDespachoCreate(BaseModel):
     codigo_articulo: int
@@ -143,11 +145,13 @@ class FacturaUpdate(BaseModel):
 
 # Esquemas de Control de Cajas (Turnos)
 class CajaApertura(BaseModel):
+    nombre_caja: Optional[str] = "Caja 1"
     monto_apertura_usd: float = 0.0
     monto_apertura_bs: Optional[float] = 0.0
     observaciones: Optional[str] = ""
 
 class CajaCierre(BaseModel):
+    caja_id: Optional[int] = None
     declarado_efectivo: float = 0.0
     declarado_zelle: Optional[float] = 0.0
     declarado_pagomovil: Optional[float] = 0.0
