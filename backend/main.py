@@ -8,7 +8,7 @@ if hasattr(time, "tzset"):
     time.tzset()
 
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, Request, Response, status, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, status, UploadFile, File, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -785,6 +785,63 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al modificar factura: {str(e)}")
+
+@app.delete("/api/facturas/{id}")
+def delete_factura(
+    id: int, 
+    admin_password: Optional[str] = Query(None),
+    db: Session = Depends(get_db), 
+    user: Usuario = Depends(require_user)
+):
+    autorizado = (user.rol == "admin")
+    if not autorizado and admin_password:
+        admin = check_admin_password(db, admin_password)
+        if admin:
+            autorizado = True
+
+    if not autorizado:
+        raise HTTPException(
+            status_code=403, 
+            detail="Acceso restringido: Solo un usuario administrador puede eliminar o anular facturas."
+        )
+
+    factura = db.query(Factura).filter(Factura.id == id).first()
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada.")
+
+    try:
+        numero_factura = factura.numero
+        caja_id = factura.caja_id
+
+        # 1. Devolver los productos al inventario (restaurar stock)
+        for it in (factura.items or []):
+            try:
+                cod_num = int(it.codigo_articulo)
+            except (ValueError, TypeError):
+                cod_num = it.codigo_articulo
+            art = db.query(Articulo).filter(Articulo.codigo == cod_num).first()
+            if art:
+                art.stock = round((art.stock or 0.0) + (it.cantidad or 0.0), 2)
+
+        # 2. Eliminar factura (los abonos y detalles se eliminan por cascade)
+        db.delete(factura)
+        db.commit()
+
+        # 3. Recalcular métricas de la caja asociada si existe
+        if caja_id:
+            caja = db.query(Caja).filter(Caja.id == caja_id).first()
+            if caja:
+                calcular_metricas_caja(caja, db)
+                db.commit()
+
+        return {
+            "status": "ok",
+            "message": f"Factura #{numero_factura} anulada y eliminada exitosamente. El stock de los productos ha sido restaurado en el inventario.",
+            "numero": numero_factura
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al anular factura: {str(e)}")
 
 # ==========================================
 # GESTIÓN DE CRÉDITOS Y COBRANZAS

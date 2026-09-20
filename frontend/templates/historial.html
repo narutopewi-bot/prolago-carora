@@ -290,10 +290,14 @@
         </div>
 
         <div class="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <button onclick="cerrarDetalle()" class="flex-1 py-2.5 bg-slate-100 font-bold rounded-xl text-slate-700">Cerrar</button>
+            <button onclick="cerrarDetalle()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-700 transition">Cerrar</button>
             <button type="button" onclick="intentarModificarFactura(detalleFacturaActual ? detalleFacturaActual.id : null)" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 font-bold rounded-xl text-white flex items-center justify-center space-x-1.5 shadow transition" title="Modificar esta factura">
                 <i class="fa-solid fa-pen-to-square"></i>
                 <span>Modificar</span>
+            </button>
+            <button type="button" onclick="intentarEliminarFactura(detalleFacturaActual ? detalleFacturaActual.id : null, detalleFacturaActual ? detalleFacturaActual.numero : '')" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 font-bold rounded-xl text-white flex items-center justify-center space-x-1.5 shadow transition" title="Anular o eliminar esta factura">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Anular</span>
             </button>
             <button type="button" onclick="imprimirMediaHojaDesdeDetalle()" id="btnImprimirMediaHojaDetalle" class="hidden flex-1 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] font-bold rounded-xl text-white flex items-center justify-center space-x-1.5 shadow transition">
                 <i class="fa-solid fa-file-invoice-dollar"></i>
@@ -809,6 +813,9 @@
                         <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     ${btnPrintMediaHoja}
+                    <button onclick="intentarEliminarFactura(${f.id}, '${f.numero}')" class="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition" title="Anular / Eliminar Factura">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -1069,6 +1076,103 @@
                 } catch (e) {
                     Swal.fire('Error', 'Fallo al verificar contraseña con el servidor', 'error');
                 }
+            }
+        }
+    }
+
+    async function intentarEliminarFactura(id, numero) {
+        if (!id) return;
+        
+        let adminPassword = null;
+        const esAdmin = (typeof window.IS_ADMIN !== 'undefined' && window.IS_ADMIN === true) || (window.CURRENT_USER_ROL === 'admin');
+        
+        if (!esAdmin) {
+            // Solicitar clave de administrador
+            const { value: password } = await Swal.fire({
+                title: 'Autorización de Administrador',
+                text: 'Solo un usuario administrador puede eliminar o anular facturas. Ingrese la contraseña de administrador:',
+                input: 'password',
+                inputPlaceholder: 'Contraseña del administrador...',
+                icon: 'lock',
+                showCancelButton: true,
+                confirmButtonText: 'Autorizar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e11d48'
+            });
+
+            if (!password) return;
+
+            try {
+                const resVerif = await fetch('/api/auth/verificar_admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const dVerif = await resVerif.json();
+                if (!resVerif.ok || dVerif.status !== 'ok') {
+                    Swal.fire('No Autorizado', dVerif.detail || 'Contraseña de administrador incorrecta.', 'error');
+                    return;
+                }
+                adminPassword = password;
+            } catch (e) {
+                Swal.fire('Error', 'Fallo al verificar autorización con el servidor', 'error');
+                return;
+            }
+        }
+
+        const result = await Swal.fire({
+            title: `¿Anular y Eliminar Factura #${numero}?`,
+            html: `
+                <div class="text-left text-xs space-y-2.5">
+                    <p class="text-slate-700 font-medium">Esta acción es <strong>definitiva</strong> y realizará los siguientes ajustes en el sistema:</p>
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-rose-800 space-y-1.5 font-medium">
+                        <div class="flex items-center"><i class="fa-solid fa-rotate-left mr-2 text-emerald-600"></i> Se restaurará el stock de cada artículo vendido en el inventario.</div>
+                        <div class="flex items-center"><i class="fa-solid fa-trash-can mr-2 text-rose-600"></i> La factura quedará anulada y se eliminará del historial.</div>
+                        <div class="flex items-center"><i class="fa-solid fa-calculator mr-2 text-blue-600"></i> Los totales de caja se recalcularán automáticamente.</div>
+                    </div>
+                    <p class="text-slate-500 italic text-[11px]">¿Confirmas que deseas proceder con la anulación?</p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-trash-can mr-1.5"></i> Sí, Anular y Eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                Swal.fire({
+                    title: 'Anulando Factura...',
+                    text: 'Restaurando stock en inventario y recalculando registros',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const url = adminPassword 
+                    ? `/api/facturas/${id}?admin_password=${encodeURIComponent(adminPassword)}` 
+                    : `/api/facturas/${id}`;
+
+                const res = await fetch(url, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+
+                if (res.ok && data.status === 'ok') {
+                    cerrarDetalle();
+                    await Swal.fire({
+                        title: 'Factura Anulada',
+                        text: data.message || `La factura #${numero} fue eliminada y el stock fue devuelto al inventario.`,
+                        icon: 'success',
+                        confirmButtonColor: '#10b981'
+                    });
+                    cargarHistorial();
+                } else {
+                    Swal.fire('Error', data.detail || 'No se pudo anular la factura.', 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Fallo de conexión al intentar anular la factura.', 'error');
             }
         }
     }
