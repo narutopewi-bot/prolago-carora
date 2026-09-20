@@ -1,5 +1,12 @@
 import os
-from datetime import datetime, date, timedelta
+import time
+from datetime import datetime, date, timedelta, timezone
+
+# Forzar zona horaria de Venezuela a nivel de sistema operativo en Linux/Render
+os.environ["TZ"] = "America/Caracas"
+if hasattr(time, "tzset"):
+    time.tzset()
+
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Request, Response, status, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
@@ -10,7 +17,10 @@ from sqlalchemy import func, or_, desc, text
 import json
 
 from .database import get_db, engine, Base
-from .models import Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito, Caja
+from .models import (
+    Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito, Caja,
+    ahora_venezuela, TZ_VENEZUELA
+)
 from .schemas import (
     LoginRequest, TasaBCVUpdate, ArticuloCreate, ArticuloOut,
     ClienteCreate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, AbonoCreate,
@@ -25,7 +35,7 @@ from .auth import (
 # Inicializar tablas
 Base.metadata.create_all(bind=engine)
 
-# Auto-migración segura de columnas nuevas
+# Auto-migración segura de columnas nuevas y ajustes
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE articulos ADD COLUMN stock_alerta FLOAT DEFAULT 5.0"))
@@ -55,6 +65,20 @@ with engine.connect() as conn:
     try:
         conn.execute(text("UPDATE cajas SET nombre_caja = 'Caja 1' WHERE nombre_caja IS NULL OR nombre_caja = ''"))
         conn.commit()
+    except Exception:
+        pass
+    try:
+        # Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) para registros previos de Render
+        conn.execute(text("CREATE TABLE IF NOT EXISTS _sistema_migraciones (clave VARCHAR(50) PRIMARY KEY)"))
+        conn.commit()
+        migrada = conn.execute(text("SELECT clave FROM _sistema_migraciones WHERE clave = 'ajustar_utc_a_venezuela_v1'")).fetchone()
+        if not migrada:
+            conn.execute(text("UPDATE facturas SET fecha = datetime(fecha, '-4 hours') WHERE fecha IS NOT NULL AND fecha >= '2026-09-16'"))
+            conn.execute(text("UPDATE abonos_credito SET fecha = datetime(fecha, '-4 hours') WHERE fecha IS NOT NULL AND fecha >= '2026-09-16'"))
+            conn.execute(text("UPDATE cajas SET fecha_apertura = datetime(fecha_apertura, '-4 hours') WHERE fecha_apertura IS NOT NULL AND fecha_apertura >= '2026-09-16'"))
+            conn.execute(text("UPDATE cajas SET fecha_cierre = datetime(fecha_cierre, '-4 hours') WHERE fecha_cierre IS NOT NULL AND fecha_cierre >= '2026-09-16'"))
+            conn.execute(text("INSERT INTO _sistema_migraciones (clave) VALUES ('ajustar_utc_a_venezuela_v1')"))
+            conn.commit()
     except Exception:
         pass
 
@@ -403,7 +427,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         credito = max(0.0, round(total_factura - inicial_abonada, 2))
         saldo_pendiente = credito
         estado_credito = "pendiente" if saldo_pendiente > 0.009 else "saldado"
-        fecha_venc = (datetime.now() + timedelta(days=payload.dias_credito or 15)) if saldo_pendiente > 0 else None
+        fecha_venc = (ahora_venezuela() + timedelta(days=payload.dias_credito or 15)) if saldo_pendiente > 0 else None
     else:
         credito = 0.0
         saldo_pendiente = 0.0
@@ -428,7 +452,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
 
     factura = Factura(
         numero=next_num,
-        fecha=datetime.now(),
+        fecha=ahora_venezuela(),
         cliente_nombre=(payload.cliente_nombre or "CLIENTE DE CONTADO").strip().upper(),
         cliente_id=payload.cliente_id,
         total=total_factura,
@@ -701,7 +725,7 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
             factura.saldo_pendiente = max(0.0, round(credito_inicial - total_abonos, 2))
             factura.estado_credito = "saldado" if factura.saldo_pendiente <= 0.009 else "pendiente"
             if payload.dias_credito and payload.dias_credito > 0:
-                f_base = factura.fecha if isinstance(factura.fecha, datetime) else datetime.now()
+                f_base = factura.fecha if isinstance(factura.fecha, datetime) else ahora_venezuela()
                 factura.fecha_vencimiento = f_base + timedelta(days=payload.dias_credito)
 
         db.commit()
@@ -822,7 +846,7 @@ def registrar_abono(
 
     abono = AbonoCredito(
         factura_id=factura.id,
-        fecha=datetime.now(),
+        fecha=ahora_venezuela(),
         monto_usd=round(monto_abono, 2),
         monto_bs=round(monto_bs, 2),
         tasa_bcv=tasa_bcv,
@@ -884,11 +908,9 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
     if not payload.items:
         raise HTTPException(status_code=400, detail="El despacho no contiene artículos")
 
-    last = db.query(Despacho).order_by(Despacho.id.desc()).first()
-    try:
-        next_num = str(int(last.numero) + 1) if last else "1"
-    except:
-        next_num = str((last.id if last else 0) + 1)
+    # Generar correlativo
+    last_disp = db.query(Despacho).order_by(Despacho.id.desc()).first()
+    next_num = str(last_disp.id + 1) if last_disp else "1"
 
     total_despacho = 0.0
     detalles = []
@@ -898,7 +920,7 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
         if not articulo:
             raise HTTPException(status_code=404, detail=f"Artículo {it.codigo_articulo} no encontrado")
         
-        costo = it.costo_unitario or articulo.costo_final
+        costo = it.costo_unitario or articulo.costo
         subtotal = round(it.cantidad * costo, 2)
         total_despacho += subtotal
 
@@ -915,7 +937,7 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
 
     despacho = Despacho(
         numero=next_num,
-        fecha=datetime.now(),
+        fecha=ahora_venezuela(),
         destino_cliente=payload.destino_cliente.strip().upper(),
         direccion=(payload.direccion or "").strip(),
         total=round(total_despacho, 2),
@@ -959,7 +981,7 @@ def create_compra(payload: CompraCreate, db: Session = Depends(get_db), user: Us
 
     # Registrar en compras
     compra = Compra(
-        fecha=datetime.now(),
+        fecha=ahora_venezuela(),
         codigo_articulo=articulo.codigo,
         nombre_articulo=articulo.nombre,
         cantidad=payload.cantidad,
@@ -1182,7 +1204,7 @@ def abrir_caja(payload: CajaApertura, db: Session = Depends(get_db), user: Usuar
         numero=nuevo_num,
         nombre_caja=nombre_caja,
         estado="abierta",
-        fecha_apertura=datetime.now(),
+        fecha_apertura=ahora_venezuela(),
         usuario_apertura_id=user.id,
         usuario_apertura_nombre=user.nombre,
         monto_apertura_usd=monto_usd,
@@ -1230,7 +1252,7 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
     dif_general = round(total_dec - (caja.total_esperado_general or 0.0), 2)
     
     caja.estado = "cerrada"
-    caja.fecha_cierre = datetime.now()
+    caja.fecha_cierre = ahora_venezuela()
     caja.usuario_cierre_id = user.id
     caja.usuario_cierre_nombre = user.nombre
     caja.tasa_bcv_cierre = tasa_bcv
@@ -1614,7 +1636,7 @@ def get_reporte_cobranza(
         raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
     dt_inicio, dt_fin = parse_date_range(desde, hasta)
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
-    now = datetime.now()
+    now = ahora_venezuela()
     
     facturas_pendientes = db.query(Factura).filter(Factura.condicion == "credito", Factura.saldo_pendiente > 0).all()
     cartera_total = sum(f.saldo_pendiente for f in facturas_pendientes)
@@ -1673,7 +1695,7 @@ def get_reporte_cobranza(
 # Compatibilidad para widgets existentes
 @app.get("/api/reportes/resumen")
 def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
-    today_start = datetime.combine(date.today(), datetime.min.time())
+    today_start = datetime.combine(ahora_venezuela().date(), datetime.min.time())
     
     facturas_hoy = db.query(Factura).filter(Factura.fecha >= today_start).all()
     total_hoy = sum(f.total for f in facturas_hoy)
@@ -1969,7 +1991,7 @@ def crear_autobackup_diario():
             return
         backup_dir = os.path.join(base_dir, "respaldos")
         os.makedirs(backup_dir, exist_ok=True)
-        hoy_str = datetime.now().strftime("%Y-%m-%d")
+        hoy_str = ahora_venezuela().strftime("%Y-%m-%d")
         dest = os.path.join(backup_dir, f"prolago_autobackup_{hoy_str}.db")
         if not os.path.exists(dest):
             shutil.copy2(db_file, dest)
@@ -2027,7 +2049,7 @@ def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(requi
         "respaldos_guardados": cant_respaldos,
         "ip_local": get_lan_ip(),
         "puerto": 8000,
-        "fecha_servidor": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "fecha_servidor": ahora_venezuela().strftime("%Y-%m-%d %H:%M:%S")
     }
 
 @app.post("/api/mantenimiento/optimizar")
@@ -2057,7 +2079,7 @@ def descargar_backup(user: Usuario = Depends(require_admin)):
     if not os.path.exists(db_file):
         raise HTTPException(status_code=404, detail="Archivo de base de datos no encontrado")
 
-    fecha = datetime.now().strftime("%Y%m%d_%H%M%S")
+    fecha = ahora_venezuela().strftime("%Y%m%d_%H%M%S")
     backup_dir = os.path.join(base_dir, "respaldos")
     os.makedirs(backup_dir, exist_ok=True)
     
@@ -2121,7 +2143,7 @@ async def restaurar_backup(archivo: UploadFile = File(...), user: Usuario = Depe
 
     # 4. Guardar copia de seguridad preventiva de la BD que se va a reemplazar
     if os.path.exists(db_file):
-        fecha_seg = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fecha_seg = ahora_venezuela().strftime("%Y%m%d_%H%M%S")
         try:
             shutil.copy2(db_file, os.path.join(backup_dir, f"prolago_reemplazada_{fecha_seg}.db"))
         except Exception:

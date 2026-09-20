@@ -1,7 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from .database import Base
+
+# Zona Horaria oficial de Venezuela (VET, UTC-4)
+TZ_VENEZUELA = timezone(timedelta(hours=-4))
+
+def ahora_venezuela():
+    """Retorna fecha y hora exacta en la zona horaria de Venezuela (UTC-4)."""
+    return datetime.now(TZ_VENEZUELA).replace(tzinfo=None)
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -13,7 +20,7 @@ class Usuario(Base):
     rol = Column(String(20), default="cajero")  # 'admin' o 'cajero'
     activo = Column(Boolean, default=True)
     permisos = Column(Text, default="*")  # JSON lista de permisos o '*'
-    creado_en = Column(DateTime, default=datetime.utcnow)
+    creado_en = Column(DateTime, default=ahora_venezuela)
 
     @property
     def lista_permisos(self):
@@ -51,7 +58,7 @@ class Caja(Base):
     nombre_caja = Column(String(50), default="Caja 1", index=True)  # Caja 1, Caja 2, etc.
     estado = Column(String(20), default="abierta")  # 'abierta', 'cerrada'
 
-    fecha_apertura = Column(DateTime, default=datetime.utcnow)
+    fecha_apertura = Column(DateTime, default=ahora_venezuela)
     fecha_cierre = Column(DateTime, nullable=True)
 
     usuario_apertura_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
@@ -138,7 +145,7 @@ class Compra(Base):
     __tablename__ = "compras"
 
     id = Column(Integer, primary_key=True, index=True)
-    fecha = Column(DateTime, default=datetime.utcnow)
+    fecha = Column(DateTime, default=ahora_venezuela)
     codigo_articulo = Column(Integer, index=True, nullable=False)
     nombre_articulo = Column(String(255), default="")
     cantidad = Column(Float, default=0.0)
@@ -153,7 +160,7 @@ class Factura(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     numero = Column(String(50), unique=True, index=True, nullable=False)
-    fecha = Column(DateTime, default=datetime.utcnow)
+    fecha = Column(DateTime, default=ahora_venezuela)
     cliente_nombre = Column(String(150), default="CLIENTE DE CONTADO")
     cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=True)
     
@@ -183,7 +190,7 @@ class AbonoCredito(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     factura_id = Column(Integer, ForeignKey("facturas.id"), nullable=False)
-    fecha = Column(DateTime, default=datetime.utcnow)
+    fecha = Column(DateTime, default=ahora_venezuela)
     monto_usd = Column(Float, default=0.0)
     monto_bs = Column(Float, default=0.0)
     tasa_bcv = Column(Float, default=1.0)
@@ -214,7 +221,7 @@ class Despacho(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     numero = Column(String(50), unique=True, index=True, nullable=False)
-    fecha = Column(DateTime, default=datetime.utcnow)
+    fecha = Column(DateTime, default=ahora_venezuela)
     destino_cliente = Column(String(150), nullable=False)
     direccion = Column(String(255), default="")
     total = Column(Float, default=0.0)
