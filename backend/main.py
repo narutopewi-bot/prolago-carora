@@ -473,15 +473,12 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
     caja_id = None
     if getattr(payload, "caja_id", None):
         c_esp = db.query(Caja).filter(Caja.id == payload.caja_id, Caja.estado == "abierta").first()
-        if c_esp:
+        if c_esp and (user.rol == "admin" or c_esp.usuario_apertura_id == user.id):
             caja_id = c_esp.id
     if not caja_id:
         c_user = db.query(Caja).filter(Caja.usuario_apertura_id == user.id, Caja.estado == "abierta").order_by(Caja.id.desc()).first()
         if c_user:
             caja_id = c_user.id
-        else:
-            c_act = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
-            caja_id = c_act.id if c_act else None
 
     factura = Factura(
         numero=next_num,
@@ -874,15 +871,12 @@ def registrar_abono(
     caja_id = None
     if getattr(payload, "caja_id", None):
         c_esp = db.query(Caja).filter(Caja.id == payload.caja_id, Caja.estado == "abierta").first()
-        if c_esp:
+        if c_esp and (user.rol == "admin" or c_esp.usuario_apertura_id == user.id):
             caja_id = c_esp.id
     if not caja_id:
         c_user = db.query(Caja).filter(Caja.usuario_apertura_id == user.id, Caja.estado == "abierta").order_by(Caja.id.desc()).first()
         if c_user:
             caja_id = c_user.id
-        else:
-            c_act = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
-            caja_id = c_act.id if c_act else None
 
     abono = AbonoCredito(
         factura_id=factura.id,
@@ -1215,27 +1209,31 @@ def get_caja_estado(
 ):
     cajas_abiertas = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.asc()).all()
     caja = None
-    if caja_id:
+    if caja_id and (user.rol == "admin" or user.tiene_permiso("reportes")):
         caja = db.query(Caja).filter(Caja.id == caja_id, Caja.estado == "abierta").first()
-    elif nombre_caja:
+    elif nombre_caja and (user.rol == "admin" or user.tiene_permiso("reportes")):
         caja = db.query(Caja).filter(Caja.nombre_caja == nombre_caja, Caja.estado == "abierta").first()
     
     if not caja:
-        # 1. Buscar si el usuario actual tiene una caja abierta
+        # Cada usuario consulta y administra EXCLUSIVAMENTE su propia caja abierta
         caja = db.query(Caja).filter(Caja.usuario_apertura_id == user.id, Caja.estado == "abierta").order_by(Caja.id.desc()).first()
     
-    # 2. Si no tiene una propia y hay cajas abiertas, tomar la primera para mostrar estado
-    if not caja and cajas_abiertas:
-        caja = cajas_abiertas[0]
-        
+    # NUNCA hacer fallback a la caja de otro usuario. Si este usuario no tiene caja propia abierta, activa es False.
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
-    cajas_activas_serializadas = [serializar_caja(c, db, detalle=False) for c in cajas_abiertas]
+    cajas_ocupadas_nombres = [c.nombre_caja for c in cajas_abiertas if c.nombre_caja]
+
+    # Solo administradores o supervisores de reportes ven todas las cajas activas. Un cajero solo ve su propia caja.
+    if user.rol == "admin" or user.tiene_permiso("reportes"):
+        cajas_activas_serializadas = [serializar_caja(c, db, detalle=False) for c in cajas_abiertas]
+    else:
+        cajas_activas_serializadas = [serializar_caja(caja, db, detalle=False)] if caja else []
     
     return {
         "activa": caja is not None,
         "caja": serializar_caja(caja, db, detalle=True) if caja else None,
         "cajas_abiertas": cajas_activas_serializadas,
-        "total_cajas_abiertas": len(cajas_abiertas),
+        "cajas_ocupadas_nombres": cajas_ocupadas_nombres,
+        "total_cajas_abiertas": len(cajas_abiertas) if (user.rol == "admin" or user.tiene_permiso("reportes")) else (1 if caja else 0),
         "tasa_bcv": tasa_bcv
     }
 
@@ -1298,17 +1296,15 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
     caja = None
     if payload.caja_id:
         caja = db.query(Caja).filter(Caja.id == payload.caja_id, Caja.estado == "abierta").first()
+        if caja and user.rol != "admin" and caja.usuario_apertura_id != user.id:
+            raise HTTPException(status_code=403, detail="No tienes permiso para cerrar la caja de otro usuario")
     
     if not caja:
         # Intentar cerrar la caja abierta por el usuario actual
         caja = db.query(Caja).filter(Caja.estado == "abierta", Caja.usuario_apertura_id == user.id).order_by(Caja.id.desc()).first()
 
     if not caja:
-        # Fallback si solo hay una caja abierta
-        caja = db.query(Caja).filter(Caja.estado == "abierta").order_by(Caja.id.desc()).first()
-
-    if not caja:
-        raise HTTPException(status_code=400, detail="No hay ninguna caja abierta actualmente para cerrar")
+        raise HTTPException(status_code=400, detail="No tienes ninguna caja abierta actualmente para cerrar")
     
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
     caja = calcular_metricas_caja(caja, db)
@@ -1349,6 +1345,9 @@ def listar_cajas(
     user: Usuario = Depends(require_user)
 ):
     query = db.query(Caja)
+    # Si no es administrador ni tiene permisos de reportes, solo ve sus propias cajas
+    if user.rol != "admin" and not user.tiene_permiso("reportes"):
+        query = query.filter(Caja.usuario_apertura_id == user.id)
     if nombre_caja and nombre_caja.strip() != "" and nombre_caja.upper() != "TODAS":
         query = query.filter(Caja.nombre_caja == nombre_caja.strip())
     cajas = query.order_by(Caja.id.desc()).offset(offset).limit(limit).all()
@@ -1359,6 +1358,8 @@ def obtener_caja_detalle(caja_id: int, db: Session = Depends(get_db), user: Usua
     caja = db.query(Caja).filter(Caja.id == caja_id).first()
     if not caja:
         raise HTTPException(status_code=404, detail="Caja no encontrada")
+    if user.rol != "admin" and not user.tiene_permiso("reportes") and caja.usuario_apertura_id != user.id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver el detalle de esta caja")
     return serializar_caja(caja, db, detalle=True)
 
 # ==========================================

@@ -1213,6 +1213,7 @@
                 cajaAbiertaPOS = data.activa;
                 cajaActivaDataPOS = data.caja;
                 cajasAbiertasGlobalPOS = data.cajas_abiertas || [];
+                cajasOcupadasGlobalPOS = data.cajas_ocupadas_nombres || (data.cajas_abiertas || []).map(c => c.nombre_caja);
                 actualizarWidgetCajaPOS();
             }
         } catch (e) {
@@ -1221,16 +1222,29 @@
     }
 
     let cajasAbiertasGlobalPOS = [];
+    let cajasOcupadasGlobalPOS = [];
 
     function seleccionarBotonCajaPOS(nombre) {
         document.getElementById('abrirNombreCajaPOS').value = nombre;
+        const ocupadas = cajasOcupadasGlobalPOS || [];
         ['Caja 1', 'Caja 2', 'Caja 3', 'Caja 4'].forEach((nom, idx) => {
             const btn = document.getElementById(`btnSugPosCaja${idx + 1}`);
             if (!btn) return;
-            if (nom === nombre) {
-                btn.className = "py-1.5 px-2 text-xs font-black rounded-lg border border-emerald-400 bg-emerald-50 text-emerald-800 shadow-sm";
+            const esOcupada = ocupadas.includes(nom);
+            if (esOcupada) {
+                btn.disabled = true;
+                btn.title = "Caja actualmente abierta por otro usuario";
+                btn.className = "py-1.5 px-2 text-xs font-bold rounded-lg border border-rose-200 bg-rose-50 text-rose-400 cursor-not-allowed opacity-60 line-through";
+                btn.textContent = `${nom} (En uso)`;
             } else {
-                btn.className = "py-1.5 px-2 text-xs font-black rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 text-slate-700";
+                btn.disabled = false;
+                btn.title = "";
+                btn.textContent = nom;
+                if (nom === nombre) {
+                    btn.className = "py-1.5 px-2 text-xs font-black rounded-lg border border-emerald-400 bg-emerald-50 text-emerald-800 shadow-sm";
+                } else {
+                    btn.className = "py-1.5 px-2 text-xs font-black rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 text-slate-700 cursor-pointer";
+                }
             }
         });
     }
@@ -1275,7 +1289,7 @@
         document.getElementById('abrirMontoUSDPOS').value = '0.00';
         document.getElementById('abrirObservacionesPOS').value = '';
 
-        const ocupadas = (cajasAbiertasGlobalPOS || []).map(c => c.nombre_caja);
+        const ocupadas = cajasOcupadasGlobalPOS || [];
         let sugerida = 'Caja 1';
         if (ocupadas.includes('Caja 1')) sugerida = 'Caja 2';
         if (ocupadas.includes('Caja 2')) sugerida = 'Caja 3';
