@@ -1890,68 +1890,47 @@
             lbl.textContent = condicionVenta === 'credito' ? 'Total asignado (Inicial + Crédito):' : 'Pago completado:';
             lbl.className = 'text-xs font-bold uppercase tracking-wider block text-emerald-800';
             valUSD.textContent = '$0.00';
+            valUSD.className = 'text-2xl sm:text-3xl font-black text-emerald-600';
+            valBS.textContent = 'Bs. 0,00';
+            valBS.className = 'text-lg sm:text-xl font-black text-emerald-700';
+            icono.className = 'w-10 h-10 rounded-full flex items-center justify-center text-lg bg-emerald-100 text-emerald-600 shrink-0';
+            icono.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            msg.textContent = condicionVenta === 'credito' ? 'La distribución de inicial y saldo a crédito cubre la totalidad de la factura.' : 'El monto cobrado cubre exactamente la totalidad de la factura.';
+        }
+    }
+
+    function asignarRestanteMetodo(metodo) {
         const totalUSD = obtenerTotalUSD();
+
         const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
         const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
         const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
         const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
         const crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
 
-        const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
-        const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
+        // Monto pagado por otros métodos (excluyendo el seleccionado)
+        let otrosPagosUSD = 0;
+        if (metodo !== 'efectivoUSD') otrosPagosUSD += efUSD;
+        if (metodo !== 'zelleUSD') otrosPagosUSD += zeUSD;
+        if (metodo !== 'pagomovilBS') otrosPagosUSD += (pmBS / TASA_BCV);
+        if (metodo !== 'puntoBS') otrosPagosUSD += (puBS / TASA_BCV);
+        if (metodo !== 'creditoUSD') otrosPagosUSD += crUSD;
 
-        const pagadoUSD = efUSD + zeUSD + pmUSD + puUSD + crUSD;
-        const restanteUSD = totalUSD - pagadoUSD;
+        const restanteUSD = Math.max(0, totalUSD - otrosPagosUSD);
         const restanteBS = restanteUSD * TASA_BCV;
 
-        const banner = document.getElementById('bannerRestantePago');
-        const txtUSD = document.getElementById('textoRestanteUSD');
-        const txtBS = document.getElementById('textoRestanteBS');
-
-        if (Math.abs(restanteUSD) < 0.009) {
-            banner.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-emerald-50 border-emerald-200 text-emerald-800';
-            txtUSD.textContent = '$0.00';
-            txtBS.textContent = 'Monto exacto cubierto';
-        } else if (restanteUSD > 0) {
-            banner.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-amber-50 border-amber-200 text-amber-900';
-            txtUSD.textContent = `$${restanteUSD.toFixed(2)}`;
-            txtBS.textContent = `Faltan Bs. ${Number(restanteBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
-        } else {
-            const cambioUSD = Math.abs(restanteUSD);
-            const cambioBS = cambioUSD * TASA_BCV;
-            banner.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-blue-50 border-blue-200 text-blue-900';
-            txtUSD.textContent = `+$${cambioUSD.toFixed(2)}`;
-            txtBS.textContent = `Cambio: Bs. ${Number(cambioBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
-        }
-    }
-
-    function asignarRestanteMetodo(metodo) {
-        const totalUSD = obtenerTotalUSD();
-        const efUSD = metodo === 'efectivoUSD' ? 0 : (parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0);
-        const zeUSD = metodo === 'zelleUSD' ? 0 : (parseFloat(document.getElementById('pagoZelleUSD').value) || 0);
-        const pmBS = metodo === 'pagomovilBS' ? 0 : (parseFloat(document.getElementById('pagoMovilBS').value) || 0);
-        const puBS = metodo === 'puntoBS' ? 0 : (parseFloat(document.getElementById('pagoPuntoBS').value) || 0);
-        const crUSD = metodo === 'creditoUSD' ? 0 : (parseFloat(document.getElementById('pagoCreditoUSD').value) || 0);
-
-        const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
-        const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
-
-        const otrosPagados = efUSD + zeUSD + pmUSD + puUSD + crUSD;
-        const restanteUSD = Math.max(0, Math.round((totalUSD - otrosPagados) * 100) / 100);
-        const restanteBS = Math.max(0, Math.round((restanteUSD * TASA_BCV) * 100) / 100);
-
         if (metodo === 'efectivoUSD') {
-            document.getElementById('pagoEfectivoUSD').value = restanteUSD.toFixed(2);
+            document.getElementById('pagoEfectivoUSD').value = restanteUSD > 0 ? restanteUSD.toFixed(2) : '';
         } else if (metodo === 'zelleUSD') {
-            document.getElementById('pagoZelleUSD').value = restanteUSD.toFixed(2);
+            document.getElementById('pagoZelleUSD').value = restanteUSD > 0 ? restanteUSD.toFixed(2) : '';
         } else if (metodo === 'pagomovilBS') {
-            document.getElementById('pagoMovilBS').value = restanteBS.toFixed(2);
-            document.getElementById('eqMovilUSD').textContent = `$${restanteUSD.toFixed(2)} USD`;
+            document.getElementById('pagoMovilBS').value = restanteBS > 0 ? restanteBS.toFixed(2) : '';
+            calcularDesdeBolivares('pagoMovilBS', 'eqMovilUSD');
         } else if (metodo === 'puntoBS') {
-            document.getElementById('pagoPuntoBS').value = restanteBS.toFixed(2);
-            document.getElementById('eqPuntoUSD').textContent = `$${restanteUSD.toFixed(2)} USD`;
+            document.getElementById('pagoPuntoBS').value = restanteBS > 0 ? restanteBS.toFixed(2) : '';
+            calcularDesdeBolivares('pagoPuntoBS', 'eqPuntoUSD');
         } else if (metodo === 'creditoUSD') {
-            document.getElementById('pagoCreditoUSD').value = restanteUSD.toFixed(2);
+            document.getElementById('pagoCreditoUSD').value = restanteUSD > 0 ? restanteUSD.toFixed(2) : '';
         }
 
         calcularRestantePago();
