@@ -447,25 +447,35 @@
     <!-- 4. PESTAÑA: REPORTE DE CAJAS                             -->
     <!-- ======================================================== -->
     <div id="panel_cajas" class="panel-reporte hidden space-y-6">
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Ventas en Cajas</span>
-                <span class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 block" id="rcTotalVentas">$0.00</span>
-                <span class="text-[10px] text-slate-400">En turnos seleccionados</span>
+                <span class="text-xl font-black text-emerald-600 font-mono mt-1 block" id="rcTotalVentas">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-semibold" id="rcTotalVentasBs">Bs. 0,00</span>
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Abonos Recaudados</span>
-                <span class="text-xl sm:text-2xl font-black text-blue-600 font-mono mt-1 block" id="rcTotalAbonos">$0.00</span>
+                <span class="text-xl font-black text-blue-600 font-mono mt-1 block" id="rcTotalAbonos">$0.00</span>
                 <span class="text-[10px] text-slate-400">Cobranzas en turno</span>
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Efectivo Físico</span>
-                <span class="text-xl sm:text-2xl font-black text-slate-800 font-mono mt-1 block" id="rcTotalEfectivo">$0.00</span>
-                <span class="text-[10px] text-slate-400">Ventas + Abonos efectivo</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Efectivo Total en Gavetas</span>
+                <span class="text-xl font-black text-slate-800 font-mono mt-1 block" id="rcTotalEfectivo">$0.00</span>
+                <span class="text-[10px] text-slate-400">Ventas + Abonos Ef.</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Transferencias</span>
+                <span class="text-xl font-black text-blue-700 font-mono mt-1 block" id="rcTotalTransf">$0.00</span>
+                <span class="text-[10px] text-blue-600 font-bold" id="rcTotalTransfBs">Bs. 0,00</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Zelle Digital</span>
+                <span class="text-xl font-black text-purple-700 font-mono mt-1 block" id="rcTotalZelle">$0.00</span>
+                <span class="text-[10px] text-purple-500">Divisas digitales</span>
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <span class="text-[10px] font-bold text-slate-400 uppercase block">Diferencias de Cuadre</span>
-                <span class="text-xl sm:text-2xl font-black font-mono mt-1 block" id="rcTotalDiferencias">$0.00</span>
+                <span class="text-xl font-black font-mono mt-1 block" id="rcTotalDiferencias">$0.00</span>
                 <span class="text-[10px] text-slate-400" id="rcDiferenciaNota">Balance neto</span>
             </div>
         </div>
@@ -511,6 +521,7 @@
                     <tbody id="tablaReporteCajas" class="divide-y divide-slate-100">
                         <!-- Dinámico -->
                     </tbody>
+                    <tfoot id="tablaReporteCajasFoot"></tfoot>
                 </table>
             </div>
         </div>
@@ -975,8 +986,20 @@
                 }
 
                 document.getElementById('rcTotalVentas').textContent = `$${d.totales.total_ventas_usd.toFixed(2)}`;
+                if (document.getElementById('rcTotalVentasBs')) {
+                    document.getElementById('rcTotalVentasBs').textContent = `Bs. ${(d.totales.total_ventas_bs || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
                 document.getElementById('rcTotalAbonos').textContent = `$${d.totales.total_abonos_usd.toFixed(2)}`;
                 document.getElementById('rcTotalEfectivo').textContent = `$${d.totales.total_efectivo_usd.toFixed(2)}`;
+                if (document.getElementById('rcTotalTransf')) {
+                    document.getElementById('rcTotalTransf').textContent = `$${(d.totales.total_pagomovil_usd || 0).toFixed(2)}`;
+                }
+                if (document.getElementById('rcTotalTransfBs')) {
+                    document.getElementById('rcTotalTransfBs').textContent = `Bs. ${(d.totales.total_pagomovil_bs || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
+                if (document.getElementById('rcTotalZelle')) {
+                    document.getElementById('rcTotalZelle').textContent = `$${(d.totales.total_zelle_usd || 0).toFixed(2)}`;
+                }
                 
                 const dif = d.totales.total_diferencias_usd;
                 const txtDif = document.getElementById('rcTotalDiferencias');
@@ -984,8 +1007,11 @@
                 txtDif.className = `text-xl sm:text-2xl font-black font-mono mt-1 block ${dif === 0 ? 'text-slate-800' : (dif > 0 ? 'text-emerald-600' : 'text-rose-600')}`;
 
                 const tbody = document.getElementById('tablaReporteCajas');
+                const tfoot = document.getElementById('tablaReporteCajasFoot');
+
                 if (!d.cajas || d.cajas.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="12" class="text-center py-6 text-slate-400 font-semibold">No hay turnos de caja registrados con estos filtros</td></tr>`;
+                    if (tfoot) tfoot.innerHTML = '';
                 } else {
                     tbody.innerHTML = d.cajas.map(c => `
                         <tr class="hover:bg-slate-50 border-b border-slate-100">
@@ -1010,6 +1036,27 @@
                             </td>
                         </tr>
                     `).join('');
+
+                    if (tfoot) {
+                        const tot = d.totales;
+                        const difCls = tot.total_diferencias_usd === 0 ? 'text-slate-200 font-bold' : (tot.total_diferencias_usd > 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black');
+                        tfoot.innerHTML = `
+                            <tr class="bg-slate-900 text-white font-black text-xs border-t-2 border-emerald-500">
+                                <td colspan="5" class="py-3 px-3 uppercase text-emerald-400 font-black">
+                                    <i class="fa-solid fa-calculator mr-1.5"></i> TOTAL GENERAL (${d.cajas.length} Turnos):
+                                </td>
+                                <td class="py-3 px-3 text-right font-mono text-slate-300">$${(tot.total_fondo_usd || 0).toFixed(2)}</td>
+                                <td class="py-3 px-3 text-right font-mono text-emerald-300 font-black">$${(tot.total_ventas_usd || 0).toFixed(2)}</td>
+                                <td class="py-3 px-3 text-right font-mono text-blue-300">$${(tot.total_abonos_usd || 0).toFixed(2)}</td>
+                                <td class="py-3 px-3 text-right font-mono text-emerald-300 font-black">$${(tot.total_esperado_efectivo_usd || 0).toFixed(2)}</td>
+                                <td class="py-3 px-3 text-right font-mono text-slate-200">$${(tot.total_declarado_efectivo_usd || 0).toFixed(2)}</td>
+                                <td class="py-3 px-3 text-right font-mono font-black ${difCls}">
+                                    ${tot.total_diferencias_usd >= 0 ? '+$' : '-$'}${Math.abs(tot.total_diferencias_usd).toFixed(2)}
+                                </td>
+                                <td class="py-3 px-3 text-center text-slate-400 text-[10px]">Consolidado</td>
+                            </tr>
+                        `;
+                    }
                 }
             }
         } catch (e) {

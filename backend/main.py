@@ -1676,11 +1676,17 @@ def get_reporte_cajas_consolidado(
     cajas_serializadas = [serializar_caja(c, db) for c in cajas]
     total_ingresos = sum(c["total_ventas"] for c in cajas_serializadas)
     total_ingresos_bs = sum(c.get("total_ventas_bs", 0.0) for c in cajas_serializadas)
+    total_fondo = sum(c.get("monto_apertura_usd", 0.0) for c in cajas_serializadas)
+    total_zelle = sum(c.get("ventas_zelle", 0.0) + c.get("abonos_zelle", 0.0) for c in cajas_serializadas)
+    total_pagomovil_usd = sum(c.get("ventas_pagomovil", 0.0) + c.get("abonos_pagomovil", 0.0) for c in cajas_serializadas)
     total_pagomovil_bs = sum(c.get("ventas_pagomovil_bs", 0.0) for c in cajas_serializadas)
+    total_punto_usd = sum(c.get("ventas_punto", 0.0) + c.get("abonos_punto", 0.0) for c in cajas_serializadas)
     total_punto_bs = sum(c.get("ventas_punto_bs", 0.0) for c in cajas_serializadas)
     total_abonos = sum(c["total_abonos"] for c in cajas_serializadas)
     total_abonos_bs = sum(c.get("total_abonos_bs", 0.0) for c in cajas_serializadas)
     total_efectivo = sum(c["ventas_efectivo"] + c["abonos_efectivo"] for c in cajas_serializadas)
+    total_esperado_efectivo = sum(c.get("total_esperado_efectivo", 0.0) for c in cajas_serializadas)
+    total_declarado_efectivo = sum(c.get("declarado_efectivo", 0.0) for c in cajas_serializadas if c["estado"] == "cerrada")
     total_diferencias = sum(c["diferencia_efectivo"] for c in cajas_serializadas if c["estado"] == "cerrada")
     
     return {
@@ -1694,11 +1700,17 @@ def get_reporte_cajas_consolidado(
             "cantidad_cajas": len(cajas),
             "total_ventas_usd": round(total_ingresos, 2),
             "total_ventas_bs": round(total_ingresos_bs, 2),
+            "total_fondo_usd": round(total_fondo, 2),
+            "total_zelle_usd": round(total_zelle, 2),
+            "total_pagomovil_usd": round(total_pagomovil_usd, 2),
             "total_pagomovil_bs": round(total_pagomovil_bs, 2),
+            "total_punto_usd": round(total_punto_usd, 2),
             "total_punto_bs": round(total_punto_bs, 2),
             "total_abonos_usd": round(total_abonos, 2),
             "total_abonos_bs": round(total_abonos_bs, 2),
             "total_efectivo_usd": round(total_efectivo, 2),
+            "total_esperado_efectivo_usd": round(total_esperado_efectivo, 2),
+            "total_declarado_efectivo_usd": round(total_declarado_efectivo, 2),
             "total_diferencias_usd": round(total_diferencias, 2)
         },
         "cajas": cajas_serializadas
