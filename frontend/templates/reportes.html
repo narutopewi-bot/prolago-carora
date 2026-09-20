@@ -447,39 +447,6 @@
     <!-- 4. PESTAÑA: REPORTE DE CAJAS                             -->
     <!-- ======================================================== -->
     <div id="panel_cajas" class="panel-reporte hidden space-y-6">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Ventas en Cajas</span>
-                <span class="text-xl font-black text-emerald-600 font-mono mt-1 block" id="rcTotalVentas">$0.00</span>
-                <span class="text-[10px] text-slate-500 font-semibold" id="rcTotalVentasBs">Bs. 0,00</span>
-            </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Abonos Recaudados</span>
-                <span class="text-xl font-black text-blue-600 font-mono mt-1 block" id="rcTotalAbonos">$0.00</span>
-                <span class="text-[10px] text-slate-400">Cobranzas en turno</span>
-            </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block">Efectivo Total en Gavetas</span>
-                <span class="text-xl font-black text-slate-800 font-mono mt-1 block" id="rcTotalEfectivo">$0.00</span>
-                <span class="text-[10px] text-slate-400">Ventas + Abonos Ef.</span>
-            </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Transferencias</span>
-                <span class="text-xl font-black text-blue-700 font-mono mt-1 block" id="rcTotalTransf">$0.00</span>
-                <span class="text-[10px] text-blue-600 font-bold" id="rcTotalTransfBs">Bs. 0,00</span>
-            </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Zelle Digital</span>
-                <span class="text-xl font-black text-purple-700 font-mono mt-1 block" id="rcTotalZelle">$0.00</span>
-                <span class="text-[10px] text-purple-500">Divisas digitales</span>
-            </div>
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase block">Diferencias de Cuadre</span>
-                <span class="text-xl font-black font-mono mt-1 block" id="rcTotalDiferencias">$0.00</span>
-                <span class="text-[10px] text-slate-400" id="rcDiferenciaNota">Balance neto</span>
-            </div>
-        </div>
-
         <!-- BARRA DE SELECCIÓN DE CAJA: CONSOLIDADO VS INDIVIDUAL -->
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
             <div class="flex items-center space-x-2.5">
@@ -492,6 +459,72 @@
             </div>
             <div class="text-xs text-slate-500 font-semibold" id="labelResumenCajasFiltro">
                 Mostrando balance global consolidado de todas las cajas
+            </div>
+        </div>
+
+        <!-- TARJETA MAESTRA: REPORTE DE CAJAS (DISEÑO ESTÉTICO CONSOLIDADO IDÉNTICO A CAJAS) -->
+        <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 text-white rounded-3xl shadow-xl border-2 border-emerald-500/50 p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div class="space-y-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span id="badgeTipoReporteCajas" class="px-3 py-1 bg-amber-400 text-slate-950 rounded-full font-black text-xs uppercase tracking-wider shadow-sm flex items-center">
+                            <i class="fa-solid fa-vault mr-1.5"></i> TOTAL GENERAL • CAJA CONSOLIDADA
+                        </span>
+                        <span id="badgeCantidadCajasReporte" class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg font-black text-[11px]">
+                            0 Turnos Registrados Sumados
+                        </span>
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black tracking-tight text-white" id="tituloReporteCajasCard">
+                        Total General de Todas las Cajas
+                    </h3>
+                    <p class="text-xs text-slate-300" id="subtituloReporteCajasCard">
+                        Sumando turnos en el período &bull; Fondos Base Sumados: <strong class="text-white font-mono" id="rcTotalFondosBase">$0.00 USD</strong> &bull; Abonos: <strong class="text-blue-300 font-mono" id="rcTotalAbonos">$0.00</strong> &bull; Dif. Cuadre: <strong class="font-mono text-slate-300" id="rcTotalDiferencias">$0.00</strong>
+                    </p>
+                </div>
+                <div class="text-left sm:text-right shrink-0 bg-white/5 border border-white/10 rounded-2xl p-3">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block" id="labelFacturadoPeriodo">TOTAL FACTURADO EN RED</span>
+                    <span class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono" id="rcTotalVentas">$0.00</span>
+                    <span class="text-[10px] text-slate-300 font-bold block" id="rcTotalVentasBs">Bs. 0,00</span>
+                </div>
+            </div>
+
+            <!-- 6 Totales Consolidados -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                <div class="p-3 bg-white/5 hover:bg-white/10 transition rounded-2xl border border-white/10 text-center">
+                    <span class="text-[10px] font-bold text-emerald-300 uppercase block">EFECTIVO TOTAL ($)</span>
+                    <span class="text-lg sm:text-xl font-black text-emerald-400 mt-1 block font-mono" id="rcTotalEfectivo">$0.00</span>
+                    <span class="text-[9px] text-slate-400">Ventas + Abonos</span>
+                </div>
+
+                <div class="p-3 bg-white/5 hover:bg-white/10 transition rounded-2xl border border-white/10 text-center">
+                    <span class="text-[10px] font-bold text-purple-300 uppercase block">ZELLE TOTAL ($)</span>
+                    <span class="text-lg sm:text-xl font-black text-purple-300 mt-1 block font-mono" id="rcTotalZelle">$0.00</span>
+                    <span class="text-[9px] text-slate-400">Digital</span>
+                </div>
+
+                <div class="p-3 bg-white/5 hover:bg-white/10 transition rounded-2xl border border-white/10 text-center">
+                    <span class="text-[10px] font-bold text-blue-300 uppercase block">TRANSFERENCIA TOTAL</span>
+                    <span class="text-lg sm:text-xl font-black text-blue-300 mt-1 block font-mono" id="rcTotalTransf">$0.00</span>
+                    <span class="text-[9px] text-slate-300 font-bold" id="rcTotalTransfBs">Bs. 0,00</span>
+                </div>
+
+                <div class="p-3 bg-white/5 hover:bg-white/10 transition rounded-2xl border border-white/10 text-center">
+                    <span class="text-[10px] font-bold text-amber-300 uppercase block">PUNTO VENTA TOTAL</span>
+                    <span class="text-lg sm:text-xl font-black text-amber-300 mt-1 block font-mono" id="rcTotalPunto">$0.00</span>
+                    <span class="text-[9px] text-slate-300 font-bold" id="rcTotalPuntoBs">Bs. 0,00</span>
+                </div>
+
+                <div class="p-3 bg-white/5 hover:bg-white/10 transition rounded-2xl border border-white/10 text-center">
+                    <span class="text-[10px] font-bold text-emerald-200 uppercase block">TOTAL VENTAS ($)</span>
+                    <span class="text-lg sm:text-xl font-black text-emerald-300 mt-1 block font-mono" id="rcTotalVentasCard">$0.00</span>
+                    <span class="text-[9px] text-slate-400">Facturado en Red</span>
+                </div>
+
+                <div class="p-3 bg-emerald-500/20 rounded-2xl border border-emerald-500/40 text-center shadow-lg">
+                    <span class="text-[10px] font-bold text-emerald-300 uppercase block">GAVETAS FÍSICAS ($)</span>
+                    <span class="text-lg sm:text-xl font-black text-emerald-200 mt-1 block font-mono" id="rcTotalGavetas">$0.00</span>
+                    <span class="text-[9px] text-emerald-300/80">Fondo + Efectivo Total</span>
+                </div>
             </div>
         </div>
 
@@ -985,26 +1018,86 @@
                         : `Mostrando balance filtrado únicamente para: ${nomCaja}`;
                 }
 
-                document.getElementById('rcTotalVentas').textContent = `$${d.totales.total_ventas_usd.toFixed(2)}`;
+                // Actualizar Badges y Títulos de la Tarjeta Maestra
+                const badgeTipo = document.getElementById('badgeTipoReporteCajas');
+                if (badgeTipo) {
+                    badgeTipo.innerHTML = (nomCaja === 'TODAS')
+                        ? `<i class="fa-solid fa-vault mr-1.5"></i> TOTAL GENERAL • CAJA CONSOLIDADA`
+                        : `<i class="fa-solid fa-cash-register mr-1.5"></i> REPORTE INDIVIDUAL • ${nomCaja.toUpperCase()}`;
+                }
+
+                const badgeCant = document.getElementById('badgeCantidadCajasReporte');
+                if (badgeCant) {
+                    const cant = d.cajas ? d.cajas.length : 0;
+                    badgeCant.textContent = (nomCaja === 'TODAS')
+                        ? `${cant} ${cant === 1 ? 'Turno Registrado' : 'Turnos Registrados Sumados'}`
+                        : `${cant} ${cant === 1 ? 'Turno Registrado' : 'Turnos Registrados'}`;
+                }
+
+                const tituloCard = document.getElementById('tituloReporteCajasCard');
+                if (tituloCard) {
+                    tituloCard.textContent = (nomCaja === 'TODAS')
+                        ? 'Total General de Todas las Cajas'
+                        : `Reporte de Caja: ${nomCaja}`;
+                }
+
+                const dif = d.totales.total_diferencias_usd || 0;
+                const difCls = dif === 0 ? 'text-slate-300' : (dif > 0 ? 'text-emerald-400 font-black' : 'text-rose-400 font-black');
+                const difSign = dif >= 0 ? '+$' : '-$';
+
+                const subCard = document.getElementById('subtituloReporteCajasCard');
+                if (subCard) {
+                    const cajasAuditadas = (nomCaja === 'TODAS')
+                        ? (d.nombres_cajas && d.nombres_cajas.length > 0 ? d.nombres_cajas.join(' + ') : 'Todas')
+                        : nomCaja;
+                    subCard.innerHTML = `
+                        Auditando: <strong class="text-emerald-300 font-bold">${cajasAuditadas}</strong> &bull; 
+                        Fondos Base: <strong class="text-white font-mono" id="rcTotalFondosBase">$${(d.totales.total_fondo_usd || 0).toFixed(2)} USD</strong> &bull; 
+                        Abonos: <strong class="text-blue-300 font-mono" id="rcTotalAbonos">$${(d.totales.total_abonos_usd || 0).toFixed(2)}</strong> &bull; 
+                        Dif. Cuadre: <strong class="font-mono ${difCls}" id="rcTotalDiferencias">${difSign}${Math.abs(dif).toFixed(2)} USD</strong>
+                    `;
+                }
+
+                const lblFact = document.getElementById('labelFacturadoPeriodo');
+                if (lblFact) {
+                    lblFact.textContent = (nomCaja === 'TODAS') ? 'TOTAL FACTURADO EN RED' : 'TOTAL FACTURADO EN CAJA';
+                }
+
+                // 6 Métricas Consolidadas
+                document.getElementById('rcTotalVentas').textContent = `$${(d.totales.total_ventas_usd || 0).toFixed(2)}`;
                 if (document.getElementById('rcTotalVentasBs')) {
                     document.getElementById('rcTotalVentasBs').textContent = `Bs. ${(d.totales.total_ventas_bs || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
-                document.getElementById('rcTotalAbonos').textContent = `$${d.totales.total_abonos_usd.toFixed(2)}`;
-                document.getElementById('rcTotalEfectivo').textContent = `$${d.totales.total_efectivo_usd.toFixed(2)}`;
+
+                if (document.getElementById('rcTotalEfectivo')) {
+                    document.getElementById('rcTotalEfectivo').textContent = `$${(d.totales.total_efectivo_usd || 0).toFixed(2)}`;
+                }
+
+                if (document.getElementById('rcTotalZelle')) {
+                    document.getElementById('rcTotalZelle').textContent = `$${(d.totales.total_zelle_usd || 0).toFixed(2)}`;
+                }
+
                 if (document.getElementById('rcTotalTransf')) {
                     document.getElementById('rcTotalTransf').textContent = `$${(d.totales.total_pagomovil_usd || 0).toFixed(2)}`;
                 }
                 if (document.getElementById('rcTotalTransfBs')) {
                     document.getElementById('rcTotalTransfBs').textContent = `Bs. ${(d.totales.total_pagomovil_bs || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
-                if (document.getElementById('rcTotalZelle')) {
-                    document.getElementById('rcTotalZelle').textContent = `$${(d.totales.total_zelle_usd || 0).toFixed(2)}`;
+
+                if (document.getElementById('rcTotalPunto')) {
+                    document.getElementById('rcTotalPunto').textContent = `$${(d.totales.total_punto_usd || 0).toFixed(2)}`;
                 }
-                
-                const dif = d.totales.total_diferencias_usd;
-                const txtDif = document.getElementById('rcTotalDiferencias');
-                txtDif.textContent = `${dif >= 0 ? '+$' : '-$'}${Math.abs(dif).toFixed(2)}`;
-                txtDif.className = `text-xl sm:text-2xl font-black font-mono mt-1 block ${dif === 0 ? 'text-slate-800' : (dif > 0 ? 'text-emerald-600' : 'text-rose-600')}`;
+                if (document.getElementById('rcTotalPuntoBs')) {
+                    document.getElementById('rcTotalPuntoBs').textContent = `Bs. ${(d.totales.total_punto_bs || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
+
+                if (document.getElementById('rcTotalVentasCard')) {
+                    document.getElementById('rcTotalVentasCard').textContent = `$${(d.totales.total_ventas_usd || 0).toFixed(2)}`;
+                }
+
+                if (document.getElementById('rcTotalGavetas')) {
+                    document.getElementById('rcTotalGavetas').textContent = `$${(d.totales.total_esperado_efectivo_usd || 0).toFixed(2)}`;
+                }
 
                 const tbody = document.getElementById('tablaReporteCajas');
                 const tfoot = document.getElementById('tablaReporteCajasFoot');
