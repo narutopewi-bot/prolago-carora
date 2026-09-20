@@ -287,7 +287,7 @@
                         class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Pago Móvil ($)</label>
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">Transferencia ($)</label>
                     <input type="number" id="cierreDeclaradoPagoMovil" step="0.01" min="0" value="0.00" oninput="calcularDiferenciasCierre()"
                         class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold">
                 </div>
@@ -364,7 +364,7 @@
                 <div class="flex justify-between"><span>Fondo Inicial ($):</span><strong id="tcFondoBase">$0.00</strong></div>
                 <div class="flex justify-between"><span>Ventas Efectivo:</span><span id="tcVentasEf">$0.00</span></div>
                 <div class="flex justify-between"><span>Ventas Zelle:</span><span id="tcVentasZelle">$0.00</span></div>
-                <div class="flex justify-between"><span>Ventas Pago Móvil:</span><span id="tcVentasPM">$0.00</span></div>
+                <div class="flex justify-between"><span>Ventas Transferencia:</span><span id="tcVentasPM">$0.00</span></div>
                 <div class="flex justify-between"><span>Ventas Punto:</span><span id="tcVentasPunto">$0.00</span></div>
                 <div class="flex justify-between"><span>Ventas Crédito:</span><span id="tcVentasCredito">$0.00</span></div>
                 <div class="flex justify-between font-bold text-slate-900 pt-1 border-t"><span>TOTAL VENTAS ($):</span><strong id="tcTotalVentas">$0.00</strong></div>
@@ -539,7 +539,7 @@
                             </div>
 
                             <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
-                                <span class="text-[10px] font-bold text-blue-700 uppercase block">Pago Móvil ($)</span>
+                                <span class="text-[10px] font-bold text-blue-700 uppercase block">Transferencia ($)</span>
                                 <span class="text-base font-black text-blue-800 mt-0.5 block font-mono">$${(c.ventas_pagomovil + c.abonos_pagomovil).toFixed(2)}</span>
                                 <span class="text-[9px] text-slate-400">Bs. al cambio</span>
                             </div>

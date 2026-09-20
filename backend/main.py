@@ -53,6 +53,11 @@ with engine.connect() as conn:
     except Exception:
         pass
     try:
+        conn.execute(text("ALTER TABLE facturas ADD COLUMN referencia_transferencia VARCHAR(100) DEFAULT ''"))
+        conn.commit()
+    except Exception:
+        pass
+    try:
         conn.execute(text("ALTER TABLE abonos_credito ADD COLUMN caja_id INTEGER"))
         conn.commit()
     except Exception:
@@ -391,6 +396,19 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         if not articulo:
             raise HTTPException(status_code=404, detail=f"Artículo {it.codigo_articulo} no encontrado")
         
+        # Bloqueo estricto cuando no hay stock
+        stock_actual = float(articulo.stock or 0.0)
+        if stock_actual <= 0.0001:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede facturar '{articulo.nombre}'. El producto no tiene unidades en inventario (Stock: 0)."
+            )
+        if float(it.cantidad) > stock_actual:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Stock insuficiente para '{articulo.nombre}'. Solicitado: {it.cantidad}, Disponible en inventario: {stock_actual}."
+            )
+
         # Descuento en %
         dcto = max(0.0, min(100.0, it.descuento_pct or 0.0))
         precio_con_dcto = it.precio_unitario * (1.0 - dcto / 100.0)
@@ -463,6 +481,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         pagomovil=pagomovil,
         punto=punto,
         credito=credito,
+        referencia_transferencia=(payload.referencia_transferencia or "").strip().upper(),
         saldo_pendiente=saldo_pendiente,
         estado_credito=estado_credito,
         fecha_vencimiento=fecha_venc,
@@ -493,6 +512,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         "pagomovil": factura.pagomovil or 0.0,
         "punto": factura.punto or 0.0,
         "credito": factura.credito or 0.0,
+        "referencia_transferencia": factura.referencia_transferencia or "",
         "inicial_abonada": inicial_abonada,
         "saldo_pendiente": factura.saldo_pendiente,
         "fecha_vencimiento": factura.fecha_vencimiento.strftime("%d/%m/%Y") if factura.fecha_vencimiento else "",
@@ -558,6 +578,7 @@ def list_facturas(
             "pagomovil": f.pagomovil or 0.0,
             "punto": f.punto or 0.0,
             "credito": cred,
+            "referencia_transferencia": f.referencia_transferencia or "",
             "saldo_pendiente": saldo,
             "total_abonado": abonado,
             "estado_credito": f.estado_credito or ("saldado" if saldo <= 0.009 else "pendiente"),
@@ -607,12 +628,14 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
         "total_usd": factura.total,
         "total_bs": round(factura.total * factura.tasa_bcv, 2),
         "tasa_bcv": factura.tasa_bcv,
+        "referencia_transferencia": factura.referencia_transferencia or "",
         "pagos": {
             "efectivo": factura.efectivo,
             "zelle": factura.zelle,
             "pagomovil": factura.pagomovil,
             "punto": factura.punto,
-            "credito": cred
+            "credito": cred,
+            "referencia_transferencia": factura.referencia_transferencia or ""
         },
         "abonos": abonos_list,
         "items": [
@@ -706,6 +729,7 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
         if payload.pagomovil is not None: factura.pagomovil = round(payload.pagomovil, 2)
         if payload.punto is not None: factura.punto = round(payload.punto, 2)
         if payload.credito is not None: factura.credito = round(payload.credito, 2)
+        if payload.referencia_transferencia is not None: factura.referencia_transferencia = payload.referencia_transferencia.strip().upper()
 
         suma_pagos = round((factura.efectivo or 0.0) + (factura.zelle or 0.0) + (factura.pagomovil or 0.0) + (factura.punto or 0.0), 2)
         
@@ -738,7 +762,8 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
             "numero": factura.numero,
             "total": factura.total,
             "condicion": factura.condicion,
-            "saldo_pendiente": factura.saldo_pendiente
+            "saldo_pendiente": factura.saldo_pendiente,
+            "referencia_transferencia": factura.referencia_transferencia or ""
         }
     except HTTPException:
         db.rollback()

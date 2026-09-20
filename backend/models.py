@@ -178,6 +178,7 @@ class Factura(Base):
     zelle = Column(Float, default=0.0)
     pagomovil = Column(Float, default=0.0)
     punto = Column(Float, default=0.0)
+    referencia_transferencia = Column(String(100), default="")
     
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     caja_id = Column(Integer, ForeignKey("cajas.id"), nullable=True)

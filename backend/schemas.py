@@ -63,6 +63,7 @@ class FacturaCreate(BaseModel):
     pagomovil: Optional[float] = 0.0
     punto: Optional[float] = 0.0
     credito: Optional[float] = 0.0
+    referencia_transferencia: Optional[str] = ""
     dias_credito: Optional[int] = 15
     caja_id: Optional[int] = None
     items: List[ItemFacturaCreate]
@@ -139,6 +140,7 @@ class FacturaUpdate(BaseModel):
     pagomovil: Optional[float] = None
     punto: Optional[float] = None
     credito: Optional[float] = None
+    referencia_transferencia: Optional[str] = None
     dias_credito: Optional[int] = None
     items: Optional[List[ItemFacturaUpdate]] = None
     admin_password: Optional[str] = None

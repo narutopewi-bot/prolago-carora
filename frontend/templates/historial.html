@@ -202,7 +202,7 @@
                         <th class="px-4 py-3.5">Cliente</th>
                         <th class="px-3 py-3.5 text-right">Efectivo ($)</th>
                         <th class="px-3 py-3.5 text-right">Zelle ($)</th>
-                        <th class="px-3 py-3.5 text-right">Pago Móvil ($)</th>
+                        <th class="px-3 py-3.5 text-right">Transferencia ($)</th>
                         <th class="px-3 py-3.5 text-right">Punto ($)</th>
                         <th class="px-3 py-3.5 text-right font-bold text-rose-600">Crédito / Debe ($)</th>
                         <th class="px-4 py-3.5 text-right">Total ($)</th>
@@ -558,7 +558,7 @@
                                 class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
                         </div>
                         <div>
-                            <span class="text-[10px] text-blue-600 font-semibold block">Pago Móvil ($):</span>
+                            <span class="text-[10px] text-blue-600 font-semibold block">Transferencia ($):</span>
                             <input type="number" step="0.01" min="0" id="modPagoPagomovil" oninput="recalcularTotalesMod(false)"
                                 class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
                         </div>
@@ -566,6 +566,11 @@
                             <span class="text-[10px] text-amber-600 font-semibold block">Punto de Venta ($):</span>
                             <input type="number" step="0.01" min="0" id="modPagoPunto" oninput="recalcularTotalesMod(false)"
                                 class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-[10px] text-blue-800 font-semibold block">N° Ref. Transferencia:</span>
+                            <input type="text" id="modRefTransferencia" placeholder="Ej: 481920 (Opcional)"
+                                class="w-full px-2 py-1 bg-white border border-blue-200 rounded-lg text-xs font-mono uppercase">
                         </div>
                     </div>
 
@@ -789,7 +794,9 @@
                 <td class="px-4 py-3 font-semibold text-slate-800">${f.cliente_nombre}</td>
                 <td class="px-3 py-3 text-right font-mono text-slate-600">${f.efectivo ? '$' + f.efectivo.toFixed(2) : '-'}</td>
                 <td class="px-3 py-3 text-right font-mono text-purple-600">${f.zelle ? '$' + f.zelle.toFixed(2) : '-'}</td>
-                <td class="px-3 py-3 text-right font-mono text-blue-600">${f.pagomovil ? '$' + f.pagomovil.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3 text-right font-mono text-blue-600">
+                    ${f.pagomovil ? `$${f.pagomovil.toFixed(2)}${f.referencia_transferencia ? `<div class="text-[9px] text-blue-500 font-bold">Ref: ${f.referencia_transferencia}</div>` : ''}` : '-'}
+                </td>
                 <td class="px-3 py-3 text-right font-mono text-amber-600">${f.punto ? '$' + f.punto.toFixed(2) : '-'}</td>
                 <td class="px-3 py-3 text-right font-mono">${celdaCredito}</td>
                 <td class="px-4 py-3 text-right font-mono font-black text-slate-900 text-sm">$${f.total.toFixed(2)}</td>
@@ -992,7 +999,8 @@
         }
         if (pagos.pagomovil > 0) {
             huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Pago Móvil:</span><strong class="font-mono text-slate-800">$${pagos.pagomovil.toFixed(2)}</strong></div>`;
+            const refTxt = d.referencia_transferencia ? ` [Ref: ${d.referencia_transferencia}]` : '';
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Transferencia${refTxt}:</span><strong class="font-mono text-slate-800">$${pagos.pagomovil.toFixed(2)}</strong></div>`;
         }
         if (pagos.punto > 0) {
             huboInicial = true;
@@ -1101,6 +1109,9 @@
             document.getElementById('modPagoPagomovil').value = pagos.pagomovil || 0;
             document.getElementById('modPagoPunto').value = pagos.punto || 0;
             document.getElementById('modPagoCredito').value = pagos.credito || 0;
+            if (document.getElementById('modRefTransferencia')) {
+                document.getElementById('modRefTransferencia').value = d.referencia_transferencia || '';
+            }
 
             renderizarItemsMod();
             cambioCondicionMod();
@@ -1368,6 +1379,7 @@
             pagomovil: pm,
             punto: pt,
             credito: cr,
+            referencia_transferencia: document.getElementById('modRefTransferencia') ? document.getElementById('modRefTransferencia').value.trim() : '',
             items: itemsPayload,
             admin_password: facturaModActual.adminPassword || adminOverridePassword || null
         };

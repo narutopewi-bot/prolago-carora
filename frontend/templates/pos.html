@@ -410,7 +410,7 @@
                     <span>Dejar Totalidad a Crédito (100%)</span>
                 </button>
             </div>
-            <p class="text-[10px] text-rose-700 font-semibold text-center">Si el cliente abona una inicial, ingrésela en Efectivo o Pago Móvil y el restante quedará a crédito.</p>
+            <p class="text-[10px] text-rose-700 font-semibold text-center">Si el cliente abona una inicial, ingrésela en Efectivo o Transferencia y el restante quedará a crédito.</p>
         </div>
 
         <!-- INDICADOR EN VIVO DE SALDO PENDIENTE O VUELTO -->
@@ -454,12 +454,12 @@
                 </div>
             </div>
 
-            <!-- 2. PAGO MÓVIL (BOLÍVARES) -->
-            <div class="p-3 bg-blue-50/50 hover:bg-blue-50 rounded-xl border border-blue-200 transition">
-                <div class="flex items-center justify-between mb-1.5">
+            <!-- 2. TRANSFERENCIA (BOLÍVARES) -->
+            <div class="p-3 bg-blue-50/50 hover:bg-blue-50 rounded-xl border border-blue-200 transition space-y-2">
+                <div class="flex items-center justify-between mb-1">
                     <span class="font-bold text-blue-900 flex items-center">
-                        <i class="fa-solid fa-mobile-screen text-blue-600 mr-2 text-sm shrink-0"></i>
-                        Pago Móvil (en Bolívares Bs.)
+                        <i class="fa-solid fa-money-bill-transfer text-blue-600 mr-2 text-sm shrink-0"></i>
+                        Transferencia (en Bolívares Bs.)
                     </span>
                     <button type="button" onclick="asignarRestanteMetodo('pagomovilBS')" class="text-[10px] bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-bold transition">
                         Pagar restante en Bs.
@@ -475,6 +475,14 @@
                         <span class="text-[10px] text-slate-500 block">Equivale a:</span>
                         <span id="eqMovilUSD" class="font-mono font-black text-blue-700 text-xs">$0.00 USD</span>
                     </div>
+                </div>
+                <!-- Campo de N° de Referencia de Transferencia -->
+                <div class="pt-1.5 border-t border-blue-200/60">
+                    <label class="block text-[10px] font-bold text-blue-900 uppercase tracking-wider mb-1">
+                        <i class="fa-solid fa-hashtag text-blue-600 mr-1"></i>N° de Referencia de la Transferencia
+                    </label>
+                    <input type="text" id="pagoRefTransferencia" placeholder="Ej: 481920 (Referencia bancaria...)"
+                        class="w-full px-3 py-1.5 bg-white border border-blue-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase">
                 </div>
             </div>
 
@@ -1389,21 +1397,27 @@
                 }
 
                 if (autoSelectFirst && data.items.length === 1) {
-                    agregarAlCarrito(data.items[0]);
-                    document.getElementById('buscadorArticulo').value = '';
-                    dropdown.classList.add('hidden');
-                    return;
+                    if (data.items[0].stock > 0) {
+                        agregarAlCarrito(data.items[0]);
+                        document.getElementById('buscadorArticulo').value = '';
+                        dropdown.classList.add('hidden');
+                        return;
+                    }
                 }
 
                 data.items.forEach(item => {
                     const div = document.createElement('div');
-                    div.className = 'p-3 hover:bg-emerald-50/70 cursor-pointer flex items-center justify-between transition';
-                    const stockClass = item.stock > 10 ? 'bg-emerald-100 text-emerald-800' : (item.stock > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800');
+                    const estaAgotado = (item.stock || 0) <= 0;
+                    div.className = `p-3 flex items-center justify-between transition ${estaAgotado ? 'bg-red-50/40 hover:bg-red-50 cursor-not-allowed opacity-75' : 'hover:bg-emerald-50/70 cursor-pointer'}`;
+                    const stockClass = item.stock > 10 ? 'bg-emerald-100 text-emerald-800' : (item.stock > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700 font-black');
                     const precioBs = (item.precio * TASA_BCV).toFixed(2);
 
                     div.innerHTML = `
                         <div>
-                            <div class="font-bold text-slate-800 text-xs">${item.nombre}</div>
+                            <div class="font-bold text-slate-800 text-xs flex items-center space-x-1.5">
+                                <span>${item.nombre}</span>
+                                ${estaAgotado ? '<span class="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded font-black uppercase tracking-wider">Agotado</span>' : ''}
+                            </div>
                             <div class="text-[11px] text-slate-400 mt-0.5">
                                 Cód: <span class="font-mono font-bold text-slate-600">${item.codigo}</span> | Cat: ${item.categoria || 'GENERAL'}
                             </div>
@@ -1411,10 +1425,19 @@
                         <div class="text-right">
                             <div class="text-sm font-black text-emerald-600">$${item.precio.toFixed(2)}</div>
                             <div class="text-[10px] text-slate-400 font-medium">Bs. ${precioBs}</div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${stockClass}">Stock: ${item.stock}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${stockClass}">${estaAgotado ? 'Sin Stock: 0' : 'Stock: ' + item.stock}</span>
                         </div>
                     `;
                     div.onclick = () => {
+                        if (estaAgotado) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Artículo Agotado',
+                                text: `El producto "${item.nombre}" no tiene unidades disponibles en inventario (Stock: 0). No se puede facturar.`,
+                                confirmButtonColor: '#8B1E24'
+                            });
+                            return;
+                        }
                         agregarAlCarrito(item);
                         document.getElementById('buscadorArticulo').value = '';
                         dropdown.classList.add('hidden');
@@ -1430,8 +1453,28 @@
     }
 
     function agregarAlCarrito(prod) {
+        const stockDisp = parseFloat(prod.stock || 0);
+        if (stockDisp <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Artículo sin Stock',
+                text: `El producto "${prod.nombre}" no tiene unidades disponibles en inventario (Stock: 0). No se puede vender.`,
+                confirmButtonColor: '#8B1E24'
+            });
+            return;
+        }
+
         const existe = carrito.find(x => x.codigo === prod.codigo);
         if (existe) {
+            if (existe.cantidad + 1 > stockDisp) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Stock Límite Alcanzado',
+                    text: `No puedes agregar más unidades de "${prod.nombre}". Solo hay ${stockDisp} unidades en inventario.`,
+                    confirmButtonColor: '#8B1E24'
+                });
+                return;
+            }
             existe.cantidad += 1;
         } else {
             carrito.push({
@@ -1440,7 +1483,7 @@
                 precio: prod.precio,
                 descuento: 0,
                 cantidad: 1,
-                stock: prod.stock
+                stock: stockDisp
             });
         }
         renderizarCarrito();
@@ -1580,14 +1623,44 @@
     }
 
     function cambiarCantidad(idx, delta) {
-        carrito[idx].cantidad += delta;
-        if (carrito[idx].cantidad <= 0) carrito[idx].cantidad = 1;
+        const item = carrito[idx];
+        const nuevaCant = item.cantidad + delta;
+        if (nuevaCant <= 0) {
+            item.cantidad = 1;
+            renderizarCarrito();
+            return;
+        }
+        if (item.stock !== undefined && nuevaCant > item.stock) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Stock Límite',
+                text: `Solo dispones de ${item.stock} unidades en inventario para "${item.nombre}".`,
+                confirmButtonColor: '#8B1E24'
+            });
+            item.cantidad = item.stock;
+            renderizarCarrito();
+            return;
+        }
+        item.cantidad = nuevaCant;
         renderizarCarrito();
     }
 
     function ajustarCantidad(idx, val) {
         const n = parseFloat(val);
-        carrito[idx].cantidad = (!isNaN(n) && n > 0) ? n : 1;
+        const item = carrito[idx];
+        if (isNaN(n) || n <= 0) {
+            item.cantidad = 1;
+        } else if (item.stock !== undefined && n > item.stock) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Stock Límite',
+                text: `Solo dispones de ${item.stock} unidades en inventario para "${item.nombre}".`,
+                confirmButtonColor: '#8B1E24'
+            });
+            item.cantidad = item.stock;
+        } else {
+            item.cantidad = n;
+        }
         renderizarCarrito();
     }
 
@@ -1617,6 +1690,28 @@
     // ========================================================
     function abrirModalCobrar() {
         if (carrito.length === 0) return;
+
+        // Validar que ningún artículo en el carrito esté sin stock o exceda existencia
+        for (const it of carrito) {
+            if (it.stock !== undefined && it.stock <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Artículo Agotado en Carrito',
+                    text: `El artículo "${it.nombre}" no tiene unidades disponibles (Stock: 0). Elimínalo del carrito para poder cobrar.`,
+                    confirmButtonColor: '#8B1E24'
+                });
+                return;
+            }
+            if (it.stock !== undefined && it.cantidad > it.stock) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Stock Insuficiente',
+                    text: `La cantidad solicitada para "${it.nombre}" (${it.cantidad}) supera el stock disponible (${it.stock}). Por favor ajusta la cantidad antes de cobrar.`,
+                    confirmButtonColor: '#8B1E24'
+                });
+                return;
+            }
+        }
 
         // Validar si la caja está abierta antes de cobrar
         if (!cajaAbiertaPOS) {
@@ -1774,7 +1869,7 @@
             valBS.className = 'text-lg sm:text-xl font-black text-rose-700';
             icono.className = 'w-10 h-10 rounded-full flex items-center justify-center text-lg bg-rose-100 text-rose-600 shrink-0';
             icono.innerHTML = '<i class="fa-solid fa-hand-holding-dollar"></i>';
-            msg.textContent = `Si el cliente desea cancelar el resto en Bolívares (Pago Móvil / Punto), debe pagar exactamente: Bs. ${Number(diferenciaBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            msg.textContent = `Si el cliente desea cancelar el resto en Bolívares (Transferencia / Punto), debe pagar exactamente: Bs. ${Number(diferenciaBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
         } else if (diferenciaUSD < -0.009) {
             // VUELTO / CAMBIO
             const vueltoUSD = Math.abs(diferenciaUSD);
@@ -1795,34 +1890,55 @@
             lbl.textContent = condicionVenta === 'credito' ? 'Total asignado (Inicial + Crédito):' : 'Pago completado:';
             lbl.className = 'text-xs font-bold uppercase tracking-wider block text-emerald-800';
             valUSD.textContent = '$0.00';
-            valUSD.className = 'text-2xl sm:text-3xl font-black text-emerald-600';
-            valBS.textContent = 'Bs. 0,00';
-            valBS.className = 'text-lg sm:text-xl font-black text-emerald-700';
-            icono.className = 'w-10 h-10 rounded-full flex items-center justify-center text-lg bg-emerald-100 text-emerald-600 shrink-0';
-            icono.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
-            msg.textContent = condicionVenta === 'credito' ? 'La distribución de inicial y saldo a crédito cubre la totalidad de la factura.' : 'El monto cobrado cubre exactamente la totalidad de la factura.';
-        }
-    }
-
-    function asignarRestanteMetodo(metodo) {
         const totalUSD = obtenerTotalUSD();
-
         const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
         const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
         const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
         const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
         const crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
 
-        // Monto pagado por otros métodos (excluyendo el seleccionado)
-        let otrosPagosUSD = 0;
-        if (metodo !== 'efectivoUSD') otrosPagosUSD += efUSD;
-        if (metodo !== 'zelleUSD') otrosPagosUSD += zeUSD;
-        if (metodo !== 'pagomovilBS') otrosPagosUSD += (pmBS / TASA_BCV);
-        if (metodo !== 'puntoBS') otrosPagosUSD += (puBS / TASA_BCV);
-        if (metodo !== 'creditoUSD') otrosPagosUSD += crUSD;
+        const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
+        const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
 
-        const restanteUSD = Math.max(0, totalUSD - otrosPagosUSD);
+        const pagadoUSD = efUSD + zeUSD + pmUSD + puUSD + crUSD;
+        const restanteUSD = totalUSD - pagadoUSD;
         const restanteBS = restanteUSD * TASA_BCV;
+
+        const banner = document.getElementById('bannerRestantePago');
+        const txtUSD = document.getElementById('textoRestanteUSD');
+        const txtBS = document.getElementById('textoRestanteBS');
+
+        if (Math.abs(restanteUSD) < 0.009) {
+            banner.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-emerald-50 border-emerald-200 text-emerald-800';
+            txtUSD.textContent = '$0.00';
+            txtBS.textContent = 'Monto exacto cubierto';
+        } else if (restanteUSD > 0) {
+            banner.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-amber-50 border-amber-200 text-amber-900';
+            txtUSD.textContent = `$${restanteUSD.toFixed(2)}`;
+            txtBS.textContent = `Faltan Bs. ${Number(restanteBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        } else {
+            const cambioUSD = Math.abs(restanteUSD);
+            const cambioBS = cambioUSD * TASA_BCV;
+            banner.className = 'p-3 rounded-xl border flex items-center justify-between transition bg-blue-50 border-blue-200 text-blue-900';
+            txtUSD.textContent = `+$${cambioUSD.toFixed(2)}`;
+            txtBS.textContent = `Cambio: Bs. ${Number(cambioBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        }
+    }
+
+    function asignarRestanteMetodo(metodo) {
+        const totalUSD = obtenerTotalUSD();
+        const efUSD = metodo === 'efectivoUSD' ? 0 : (parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0);
+        const zeUSD = metodo === 'zelleUSD' ? 0 : (parseFloat(document.getElementById('pagoZelleUSD').value) || 0);
+        const pmBS = metodo === 'pagomovilBS' ? 0 : (parseFloat(document.getElementById('pagoMovilBS').value) || 0);
+        const puBS = metodo === 'puntoBS' ? 0 : (parseFloat(document.getElementById('pagoPuntoBS').value) || 0);
+        const crUSD = metodo === 'creditoUSD' ? 0 : (parseFloat(document.getElementById('pagoCreditoUSD').value) || 0);
+
+        const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
+        const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
+
+        const otrosPagados = efUSD + zeUSD + pmUSD + puUSD + crUSD;
+        const restanteUSD = Math.max(0, Math.round((totalUSD - otrosPagados) * 100) / 100);
+        const restanteBS = Math.max(0, Math.round((restanteUSD * TASA_BCV) * 100) / 100);
 
         if (metodo === 'efectivoUSD') {
             document.getElementById('pagoEfectivoUSD').value = restanteUSD.toFixed(2);
@@ -1852,6 +1968,7 @@
         const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
         const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
         let crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
+        const refTransferencia = document.getElementById('pagoRefTransferencia') ? document.getElementById('pagoRefTransferencia').value.trim() : '';
 
         const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
         const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
@@ -1873,6 +1990,7 @@
             pagomovil: pmUSD,
             punto: puUSD,
             credito: crUSD,
+            referencia_transferencia: refTransferencia,
             dias_credito: parseInt(document.getElementById('modalDiasCredito').value) || 15,
             caja_id: (cajaActivaDataPOS && cajaActivaDataPOS.id) ? cajaActivaDataPOS.id : null,
             items: carrito.map(it => ({
@@ -1900,7 +2018,8 @@
                     pagoMovilUSD: pmUSD,
                     puntoBS: puBS,
                     puntoUSD: puUSD,
-                    creditoUSD: crUSD
+                    creditoUSD: crUSD,
+                    referencia_transferencia: refTransferencia
                 };
 
                 // Respaldar datos por si se alterna entre formatos
@@ -1996,7 +2115,9 @@
         }
         if (pagos.pagoMovilBS > 0) {
             huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Pago Móvil:</span><strong class="font-mono text-slate-800">Bs. ${Number(pagos.pagoMovilBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.pagoMovilUSD.toFixed(2)})</strong></div>`;
+            const refVal = (pagos && pagos.referencia_transferencia) || (factData && factData.referencia_transferencia) || '';
+            const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Transferencia${refTxt}:</span><strong class="font-mono text-slate-800">Bs. ${Number(pagos.pagoMovilBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.pagoMovilUSD.toFixed(2)})</strong></div>`;
         }
         if (pagos.puntoBS > 0) {
             huboInicial = true;
@@ -2062,7 +2183,7 @@
 
     function mostrarTicket(factData, cliente, items, pagos) {
         document.getElementById('tickNumero').textContent = factData.numero;
-        document.getElementById('tickFecha').textContent = new Date().toLocaleString();
+        document.getElementById('tickFecha').textContent = factData.fecha || new Date().toLocaleString('es-VE');
         document.getElementById('tickCliente').textContent = cliente;
         document.getElementById('tickTotalUSD').textContent = `$${factData.total_usd.toFixed(2)}`;
         document.getElementById('tickTotalBS').textContent = `Bs. ${Number(factData.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
@@ -2104,7 +2225,9 @@
             desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Efectivo USD:</span><span>$${pagos.efectivoUSD.toFixed(2)}</span></div>`;
         }
         if (pagos.pagoMovilBS > 0) {
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Pago Móvil:</span><span>Bs. ${Number(pagos.pagoMovilBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.pagoMovilUSD.toFixed(2)})</span></div>`;
+            const refVal = (pagos && pagos.referencia_transferencia) || (factData && factData.referencia_transferencia) || '';
+            const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Transferencia${refTxt}:</span><span>Bs. ${Number(pagos.pagoMovilBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.pagoMovilUSD.toFixed(2)})</span></div>`;
         }
         if (pagos.puntoBS > 0) {
             desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Punto de Venta:</span><span>Bs. ${Number(pagos.puntoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.puntoUSD.toFixed(2)})</span></div>`;
