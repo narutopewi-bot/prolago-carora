@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, desc, text
 import json
 
-from .database import get_db, engine, Base
+from .database import get_db, engine, Base, BASE_DIR, TARGET_DB
 from .models import (
     Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito, Caja,
     ahora_venezuela, TZ_VENEZUELA
@@ -2134,8 +2134,8 @@ def get_lan_ip():
 
 def crear_autobackup_diario():
     try:
-        base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
-        db_file = os.path.join(base_dir, "prolago.db")
+        base_dir = BASE_DIR
+        db_file = TARGET_DB
         if not os.path.exists(db_file):
             return
         backup_dir = os.path.join(base_dir, "respaldos")
@@ -2159,8 +2159,8 @@ def page_mantenimiento(request: Request, user: Usuario = Depends(get_current_use
 
 @app.get("/api/mantenimiento/diagnostico")
 def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
-    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
-    db_file = os.path.join(base_dir, "prolago.db")
+    base_dir = BASE_DIR
+    db_file = TARGET_DB
     backup_dir = os.path.join(base_dir, "respaldos")
 
     integrity = "OK"
@@ -2203,8 +2203,8 @@ def get_diagnostico(db: Session = Depends(get_db), user: Usuario = Depends(requi
 
 @app.post("/api/mantenimiento/optimizar")
 def optimizar_sistema(db: Session = Depends(get_db), user: Usuario = Depends(require_admin)):
-    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
-    db_file = os.path.join(base_dir, "prolago.db")
+    base_dir = BASE_DIR
+    db_file = TARGET_DB
 
     Base.metadata.create_all(bind=engine)
 
@@ -2223,8 +2223,8 @@ def optimizar_sistema(db: Session = Depends(get_db), user: Usuario = Depends(req
 
 @app.get("/api/mantenimiento/descargar_backup")
 def descargar_backup(user: Usuario = Depends(require_admin)):
-    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
-    db_file = os.path.join(base_dir, "prolago.db")
+    base_dir = BASE_DIR
+    db_file = TARGET_DB
     if not os.path.exists(db_file):
         raise HTTPException(status_code=404, detail="Archivo de base de datos no encontrado")
 
@@ -2246,8 +2246,8 @@ async def restaurar_backup(archivo: UploadFile = File(...), user: Usuario = Depe
     if not archivo.filename.endswith(".db"):
         raise HTTPException(status_code=400, detail="El archivo debe tener extensión .db")
 
-    base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else "."
-    db_file = os.path.join(base_dir, "prolago.db")
+    base_dir = BASE_DIR
+    db_file = TARGET_DB
     backup_dir = os.path.join(base_dir, "respaldos")
     os.makedirs(backup_dir, exist_ok=True)
 

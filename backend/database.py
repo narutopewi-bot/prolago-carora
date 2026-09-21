@@ -6,9 +6,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Si está en entorno empaquetado (PyInstaller .exe), la BD debe guardarse junto al ejecutable
 if getattr(sys, "frozen", False):
-    EXE_DIR = os.path.dirname(sys.executable)
-    BUNDLE_DIR = getattr(sys, "_MEIPASS", EXE_DIR)
-    TARGET_DB = os.path.join(EXE_DIR, "prolago.db")
+    BASE_DIR = os.path.dirname(sys.executable)
+    BUNDLE_DIR = getattr(sys, "_MEIPASS", BASE_DIR)
+    TARGET_DB = os.path.join(BASE_DIR, "prolago.db")
     # Copiar base de datos inicial con 982 artículos si es la primera ejecución
     if not os.path.exists(TARGET_DB):
         BUNDLED_DB = os.path.join(BUNDLE_DIR, "prolago.db")
@@ -19,7 +19,9 @@ if getattr(sys, "frozen", False):
                 pass
     DEFAULT_DB = TARGET_DB.replace("\\", "/")
 else:
-    DEFAULT_DB = "./prolago.db"
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    TARGET_DB = os.path.join(BASE_DIR, "prolago.db")
+    DEFAULT_DB = TARGET_DB.replace("\\", "/")
 
 # Si está en la nube (Render/Railway), DATABASE_URL existirá. Si es local, utiliza SQLite
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB}")

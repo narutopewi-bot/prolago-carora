@@ -9,4 +9,7 @@ dist/
 *.spec
 *.zip
 respaldos/
-
+prolago.db
+*.db
+*.sqlite
+*.sqlite3
