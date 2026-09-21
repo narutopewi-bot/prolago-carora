@@ -285,7 +285,7 @@
     </header>
 
     <!-- CONTENIDO PRINCIPAL (Con margen inferior para barra móvil) -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8 pb-32 lg:pb-8">
+    <main class="flex-1 {% block container_class %}max-w-7xl{% endblock %} w-full mx-auto p-3 sm:p-6 lg:p-8 pb-32 lg:pb-8">
         {% block content %}{% endblock %}
     </main>
 
