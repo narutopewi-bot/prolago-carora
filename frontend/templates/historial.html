@@ -321,9 +321,8 @@
         <!-- Controles Superiores -->
         <div class="flex items-center justify-between border-b pb-3 mb-3 no-print">
             <div class="flex items-center space-x-2">
-                <span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-black uppercase flex items-center">
-                    <i class="fa-solid fa-file-invoice-dollar mr-1.5 text-rose-600"></i>
-                    Venta a Crédito &bull; Formato A4 Media Hoja
+                <span id="mhBadgeHeader" class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-black uppercase flex items-center">
+                    <span id="mhBadgeHeaderTxt" class="flex items-center"><i class="fa-solid fa-file-invoice-dollar mr-1.5 text-rose-600"></i>Venta a Crédito &bull; Formato A4 Media Hoja</span>
                 </span>
             </div>
             <button onclick="cerrarModalComprobanteCredito()" class="text-slate-400 hover:text-slate-600 text-lg">
@@ -345,13 +344,13 @@
                     </div>
                 </div>
 
-                <!-- Recuadro de Control / Factura a Crédito -->
-                <div class="border-2 border-[#8B1E24] rounded-xl p-2.5 bg-rose-50/50 text-right min-w-[200px]">
-                    <span class="text-[10px] font-black uppercase tracking-wider block text-[#8B1E24]">COMPROBANTE A CRÉDITO</span>
+                <!-- Recuadro de Control / Factura -->
+                <div id="mhBoxControl" class="border-2 border-[#8B1E24] rounded-xl p-2.5 bg-rose-50/50 text-right min-w-[200px]">
+                    <span id="mhTipoTitulo" class="text-[10px] font-black uppercase tracking-wider block text-[#8B1E24]">COMPROBANTE A CRÉDITO</span>
                     <span class="text-xs font-black text-slate-800 block">CONTROL N°: <strong id="mhNumero" class="text-sm text-[#8B1E24]"></strong></span>
                     <span class="text-[10px] text-slate-600 block mt-0.5">Emisión: <span id="mhFecha"></span></span>
-                    <div class="mt-1 pt-1 border-t border-rose-200 flex justify-between text-[10px]">
-                        <span class="font-bold text-rose-900">Vence:</span>
+                    <div id="mhFilaVence" class="mt-1 pt-1 border-t border-rose-200 flex justify-between text-[10px]">
+                        <span id="mhLblVence" class="font-bold text-rose-900">Vence:</span>
                         <span id="mhVence" class="font-black text-rose-700"></span>
                     </div>
                 </div>
@@ -393,11 +392,11 @@
                 </tbody>
             </table>
 
-            <!-- RESUMEN FINANCIERO Y SALDO PENDIENTE -->
+            <!-- RESUMEN FINANCIERO Y FORMAS DE PAGO / SALDO -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start border-t border-slate-300 pt-2.5 mb-3">
                 <!-- Abonos iniciales o pagos parciales de contado -->
                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[11px] space-y-1">
-                    <span class="font-bold block uppercase text-slate-600 text-[10px]">Detalle de Cobro Inicial:</span>
+                    <span id="mhTituloDesglose" class="font-bold block uppercase text-slate-600 text-[10px]">Detalle de Cobro Inicial:</span>
                     <div id="mhDesgloseInicial" class="text-slate-700">
                         <span class="text-slate-400 italic">Sin abono inicial (100% a crédito)</span>
                     </div>
@@ -406,8 +405,8 @@
                     </div>
                 </div>
 
-                <!-- Totales y Saldo por Cobrar -->
-                <div class="bg-rose-50/70 border-2 border-rose-300 rounded-xl p-2.5 text-right space-y-1">
+                <!-- Totales y Saldo por Cobrar / Pagado -->
+                <div id="mhBoxTotales" class="bg-rose-50/70 border-2 border-rose-300 rounded-xl p-2.5 text-right space-y-1">
                     <div class="flex justify-between text-xs text-slate-700">
                         <span>Total de la Venta:</span>
                         <strong id="mhTotalUSD" class="font-mono text-slate-900">$0.00</strong>
@@ -416,19 +415,19 @@
                         <span>(-) Abono / Inicial Pagada:</span>
                         <strong id="mhInicialUSD" class="font-mono text-emerald-700">-$0.00</strong>
                     </div>
-                    <div class="border-t-2 border-rose-400 pt-1.5 flex justify-between items-baseline">
-                        <span class="font-black text-rose-950 uppercase text-xs">SALDO A CRÉDITO (DEBE):</span>
+                    <div id="mhFilaSaldo" class="border-t-2 border-rose-400 pt-1.5 flex justify-between items-baseline">
+                        <span id="mhLblSaldo" class="font-black text-rose-950 uppercase text-xs">SALDO A CRÉDITO (DEBE):</span>
                         <span id="mhSaldoUSD" class="text-lg font-black text-rose-700 font-mono">$0.00 USD</span>
                     </div>
-                    <div class="text-[11px] font-bold text-slate-700">
-                        <span>Equiv. Deuda en Bs.: </span><strong id="mhSaldoBS" class="font-mono text-slate-900">Bs. 0,00</strong>
+                    <div id="mhFilaSaldoBS" class="text-[11px] font-bold text-slate-700">
+                        <span id="mhLblSaldoBS">Equiv. Deuda en Bs.: </span><strong id="mhSaldoBS" class="font-mono text-slate-900">Bs. 0,00</strong>
                     </div>
                 </div>
             </div>
 
             <!-- CLÁUSULA LEGAL Y FIRMAS DE CONFORMIDAD -->
             <div class="border-t border-dashed border-slate-400 pt-2.5">
-                <p class="text-[9px] text-slate-500 text-center italic mb-4 leading-tight">
+                <p id="mhClausulaTexto" class="text-[9px] text-slate-500 text-center italic mb-4 leading-tight">
                     "El cliente declara haber recibido la mercancía a entera satisfacción y se compromete formalmente a cancelar a favor de PROLAGO C.A. el saldo pendiente a más tardar en la fecha de vencimiento acordada."
                 </p>
 
@@ -782,15 +781,12 @@
                 }
             }
 
-            // Botón de imprimir A4 Media Hoja si es venta a crédito
-            let btnPrintMediaHoja = '';
-            if (esCredito) {
-                btnPrintMediaHoja = `
-                    <button onclick="abrirComprobanteCreditoHistorial(${f.id})" class="w-8 h-8 rounded-xl inline-flex items-center justify-center text-[#8B1E24] hover:text-[#72181D] hover:bg-rose-50 border border-transparent hover:border-rose-200 transition shadow-xs" title="Imprimir Comprobante Media Hoja A4">
-                        <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
-                    </button>
-                `;
-            }
+            // Botón de imprimir A4 Media Hoja para todas las facturas (Crédito y Contado)
+            const btnPrintMediaHoja = `
+                <button onclick="abrirComprobanteCreditoHistorial(${f.id})" class="w-8 h-8 rounded-xl inline-flex items-center justify-center text-[#8B1E24] hover:text-[#72181D] hover:bg-rose-50 border border-transparent hover:border-rose-200 transition shadow-xs" title="Imprimir Comprobante Media Hoja A4">
+                    <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
+                </button>
+            `;
 
             tr.innerHTML = `
                 <td class="px-3 py-3 font-mono font-bold text-emerald-700 whitespace-nowrap">#${f.numero}</td>
@@ -850,10 +846,11 @@
                 const abonado = (d.total_abonado !== undefined && d.total_abonado !== null) ? d.total_abonado : Math.max(0, credIni - saldoDebe);
 
                 const btnMediaHoja = document.getElementById('btnImprimirMediaHojaDetalle');
+                if (btnMediaHoja) {
+                    btnMediaHoja.classList.remove('hidden');
+                }
 
                 if (esCred) {
-                    btnMediaHoja.classList.remove('hidden');
-
                     if (saldoDebe <= 0.009) {
                         document.getElementById('detCondicionBadge').innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">SALDADO</span>`;
                     } else if (abonado > 0) {
@@ -896,7 +893,6 @@
                         listaAbonos.innerHTML = '';
                     }
                 } else {
-                    btnMediaHoja.classList.add('hidden');
                     document.getElementById('detCondicionBadge').innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">CONTADO</span>`;
                     document.getElementById('detCreditoBox').classList.add('hidden');
                 }
@@ -977,51 +973,142 @@
         const totalBS = d.total_bs || 0;
         const tasa = d.tasa_bcv || 1;
         const pagos = d.pagos || {};
-        const inicialPagos = Math.round(((pagos.efectivo || 0) + (pagos.zelle || 0) + (pagos.pagomovil || 0) + (pagos.punto || 0)) * 100) / 100;
-        let saldoUSD = (d.saldo_pendiente !== undefined && d.saldo_pendiente !== null) ? d.saldo_pendiente : (d.credito_inicial || 0);
-        // Si el saldo pendiente reportado no descuenta la inicial abonada, ajustar al restante real
-        if (inicialPagos > 0 && Math.abs(saldoUSD - totalUSD) < 0.01) {
-            saldoUSD = Math.max(0, Math.round((totalUSD - inicialPagos) * 100) / 100);
-        }
-        const inicialUSD = inicialPagos > 0 ? inicialPagos : Math.max(0, Math.round((totalUSD - saldoUSD) * 100) / 100);
-        const saldoBS = saldoUSD * tasa;
+        const esCred = d.condicion === 'credito' || (pagos.credito > 0) || (d.credito_inicial > 0);
+
+        // Referencias a elementos visuales del comprobante
+        const badgeHeader = document.getElementById('mhBadgeHeader');
+        const badgeHeaderTxt = document.getElementById('mhBadgeHeaderTxt');
+        const boxControl = document.getElementById('mhBoxControl');
+        const tipoTitulo = document.getElementById('mhTipoTitulo');
+        const lblVence = document.getElementById('mhLblVence');
+        const mhVence = document.getElementById('mhVence');
+        const tituloDesglose = document.getElementById('mhTituloDesglose');
+        const boxTotales = document.getElementById('mhBoxTotales');
+        const filaIni = document.getElementById('mhFilaInicial');
+        const filaSaldo = document.getElementById('mhFilaSaldo');
+        const lblSaldo = document.getElementById('mhLblSaldo');
+        const mhSaldoUSD = document.getElementById('mhSaldoUSD');
+        const lblSaldoBS = document.getElementById('mhLblSaldoBS');
+        const mhSaldoBS = document.getElementById('mhSaldoBS');
+        const clausulaTexto = document.getElementById('mhClausulaTexto');
 
         document.getElementById('mhTotalUSD').textContent = `$${totalUSD.toFixed(2)} USD`;
-        document.getElementById('mhInicialUSD').textContent = `-$${inicialUSD.toFixed(2)} USD`;
-        document.getElementById('mhSaldoUSD').textContent = `$${saldoUSD.toFixed(2)} USD`;
-        document.getElementById('mhSaldoBS').textContent = `Bs. ${Number(saldoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
         document.getElementById('mhTasaBCV').textContent = `${tasa.toFixed(2)} Bs./$`;
 
-        const filaIni = document.getElementById('mhFilaInicial');
-        if (inicialUSD > 0.009) {
-            filaIni.classList.remove('hidden');
+        if (esCred) {
+            // Estilos y textos para Venta a Crédito
+            if (badgeHeader) badgeHeader.className = "px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-black uppercase flex items-center";
+            if (badgeHeaderTxt) badgeHeaderTxt.innerHTML = '<i class="fa-solid fa-file-invoice-dollar mr-1.5 text-rose-600"></i>Venta a Crédito &bull; Formato A4 Media Hoja';
+            if (boxControl) boxControl.className = "border-2 border-[#8B1E24] rounded-xl p-2.5 bg-rose-50/50 text-right min-w-[200px]";
+            if (tipoTitulo) {
+                tipoTitulo.textContent = "COMPROBANTE A CRÉDITO";
+                tipoTitulo.className = "text-[10px] font-black uppercase tracking-wider block text-[#8B1E24]";
+            }
+            if (lblVence) {
+                lblVence.textContent = "Vence:";
+                lblVence.className = "font-bold text-rose-900";
+            }
+            if (mhVence) {
+                mhVence.textContent = d.fecha_vencimiento || 'Al vencimiento';
+                mhVence.className = "font-black text-rose-700";
+            }
+            if (tituloDesglose) tituloDesglose.textContent = "Detalle de Cobro Inicial:";
+            if (boxTotales) boxTotales.className = "bg-rose-50/70 border-2 border-rose-300 rounded-xl p-2.5 text-right space-y-1";
+            if (filaSaldo) filaSaldo.className = "border-t-2 border-rose-400 pt-1.5 flex justify-between items-baseline";
+            if (lblSaldo) {
+                lblSaldo.textContent = "SALDO A CRÉDITO (DEBE):";
+                lblSaldo.className = "font-black text-rose-950 uppercase text-xs";
+            }
+            if (mhSaldoUSD) mhSaldoUSD.className = "text-lg font-black text-rose-700 font-mono";
+            if (lblSaldoBS) lblSaldoBS.textContent = "Equiv. Deuda en Bs.: ";
+            if (clausulaTexto) {
+                clausulaTexto.textContent = '"El cliente declara haber recibido la mercancía a entera satisfacción y se compromete formalmente a cancelar a favor de PROLAGO C.A. el saldo pendiente a más tardar en la fecha de vencimiento acordada."';
+            }
+
+            const inicialPagos = Math.round(((pagos.efectivo || 0) + (pagos.zelle || 0) + (pagos.pagomovil || 0) + (pagos.punto || 0)) * 100) / 100;
+            let saldoUSDVal = (d.saldo_pendiente !== undefined && d.saldo_pendiente !== null) ? d.saldo_pendiente : (d.credito_inicial || 0);
+            if (inicialPagos > 0 && Math.abs(saldoUSDVal - totalUSD) < 0.01) {
+                saldoUSDVal = Math.max(0, Math.round((totalUSD - inicialPagos) * 100) / 100);
+            }
+            const inicialUSDVal = inicialPagos > 0 ? inicialPagos : Math.max(0, Math.round((totalUSD - saldoUSDVal) * 100) / 100);
+            const saldoBSVal = saldoUSDVal * tasa;
+
+            document.getElementById('mhInicialUSD').textContent = `-$${inicialUSDVal.toFixed(2)} USD`;
+            if (mhSaldoUSD) mhSaldoUSD.textContent = `$${saldoUSDVal.toFixed(2)} USD`;
+            if (mhSaldoBS) mhSaldoBS.textContent = `Bs. ${Number(saldoBSVal.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+
+            if (filaIni) {
+                if (inicialUSDVal > 0.009) filaIni.classList.remove('hidden');
+                else filaIni.classList.add('hidden');
+            }
         } else {
-            filaIni.classList.add('hidden');
+            // Estilos y textos para Venta de Contado
+            if (badgeHeader) badgeHeader.className = "px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-black uppercase flex items-center";
+            if (badgeHeaderTxt) badgeHeaderTxt.innerHTML = '<i class="fa-solid fa-circle-check mr-1.5 text-emerald-600"></i>Venta de Contado &bull; Formato A4 Media Hoja';
+            if (boxControl) boxControl.className = "border-2 border-emerald-700 rounded-xl p-2.5 bg-emerald-50/50 text-right min-w-[200px]";
+            if (tipoTitulo) {
+                tipoTitulo.textContent = "COMPROBANTE DE VENTA";
+                tipoTitulo.className = "text-[10px] font-black uppercase tracking-wider block text-emerald-800";
+            }
+            if (lblVence) {
+                lblVence.textContent = "Condición:";
+                lblVence.className = "font-bold text-emerald-900";
+            }
+            if (mhVence) {
+                mhVence.textContent = "CONTADO (PAGADO)";
+                mhVence.className = "font-black text-emerald-700";
+            }
+            if (tituloDesglose) tituloDesglose.textContent = "Formas de Pago Recibidas:";
+            if (boxTotales) boxTotales.className = "bg-emerald-50/70 border-2 border-emerald-300 rounded-xl p-2.5 text-right space-y-1";
+            if (filaIni) filaIni.classList.add('hidden');
+            if (filaSaldo) filaSaldo.className = "border-t-2 border-emerald-400 pt-1.5 flex justify-between items-baseline";
+            if (lblSaldo) {
+                lblSaldo.textContent = "ESTADO:";
+                lblSaldo.className = "font-black text-emerald-950 uppercase text-xs";
+            }
+            if (mhSaldoUSD) {
+                mhSaldoUSD.textContent = "PAGADO TOTAL";
+                mhSaldoUSD.className = "text-base font-black text-emerald-700 font-mono";
+            }
+            if (lblSaldoBS) lblSaldoBS.textContent = "Total en Bs.: ";
+            if (mhSaldoBS) mhSaldoBS.textContent = `Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            if (clausulaTexto) {
+                clausulaTexto.textContent = '"El cliente declara haber recibido la mercancía a entera satisfacción y cancelada en su totalidad."';
+            }
         }
 
-        // Desglose de cobro inicial
+        // Desglose de formas de pago
         const desgloseEl = document.getElementById('mhDesgloseInicial');
         desgloseEl.innerHTML = '';
-        let huboInicial = false;
-        if (pagos.efectivo > 0) {
-            huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Efectivo:</span><strong class="font-mono text-slate-800">$${pagos.efectivo.toFixed(2)}</strong></div>`;
+        let huboPagos = false;
+        const ef = (pagos.efectivo !== undefined && pagos.efectivo !== null ? pagos.efectivo : (d.efectivo || 0));
+        const pm = (pagos.pagomovil !== undefined && pagos.pagomovil !== null ? pagos.pagomovil : (d.pagomovil || 0));
+        const pt = (pagos.punto !== undefined && pagos.punto !== null ? pagos.punto : (d.punto || 0));
+        const zl = (pagos.zelle !== undefined && pagos.zelle !== null ? pagos.zelle : (d.zelle || 0));
+
+        if (ef > 0) {
+            huboPagos = true;
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Efectivo:</span><strong class="font-mono text-slate-800">$${ef.toFixed(2)}</strong></div>`;
         }
-        if (pagos.pagomovil > 0) {
-            huboInicial = true;
+        if (pm > 0) {
+            huboPagos = true;
             const refTxt = d.referencia_transferencia ? ` [Ref: ${d.referencia_transferencia}]` : '';
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Transferencia${refTxt}:</span><strong class="font-mono text-slate-800">$${pagos.pagomovil.toFixed(2)}</strong></div>`;
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Transferencia / Pago Móvil${refTxt}:</span><strong class="font-mono text-slate-800">$${pm.toFixed(2)}</strong></div>`;
         }
-        if (pagos.punto > 0) {
-            huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Punto de Venta:</span><strong class="font-mono text-slate-800">$${pagos.punto.toFixed(2)}</strong></div>`;
+        if (pt > 0) {
+            huboPagos = true;
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Punto de Venta:</span><strong class="font-mono text-slate-800">$${pt.toFixed(2)}</strong></div>`;
         }
-        if (pagos.zelle > 0) {
-            huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Zelle:</span><strong class="font-mono text-slate-800">$${pagos.zelle.toFixed(2)}</strong></div>`;
+        if (zl > 0) {
+            huboPagos = true;
+            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Zelle:</span><strong class="font-mono text-slate-800">$${zl.toFixed(2)}</strong></div>`;
         }
-        if (!huboInicial) {
-            desgloseEl.innerHTML = '<span class="text-slate-400 italic">Sin abono inicial (100% a crédito)</span>';
+        if (!huboPagos) {
+            if (esCred) {
+                desgloseEl.innerHTML = '<span class="text-slate-400 italic">Sin abono inicial (100% a crédito)</span>';
+            } else {
+                desgloseEl.innerHTML = '<span class="text-emerald-700 font-bold">Cancelado de Contado</span>';
+            }
         }
 
         document.getElementById('modalComprobanteCredito').classList.remove('hidden');
