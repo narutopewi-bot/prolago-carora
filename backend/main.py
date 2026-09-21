@@ -31,9 +31,13 @@ from .auth import (
     hash_password, verify_password, create_session, check_admin_password,
     ACTIVE_SESSIONS, get_current_user, require_user, require_admin
 )
+from .pg_migrator import migrate_sqlite_to_pg_if_needed
 
 # Inicializar tablas
 Base.metadata.create_all(bind=engine)
+
+# Migración automática si está conectado a PostgreSQL nuevo
+migrate_sqlite_to_pg_if_needed()
 
 # Auto-migración segura de columnas nuevas y ajustes
 with engine.connect() as conn:
