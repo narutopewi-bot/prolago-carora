@@ -70,23 +70,48 @@
 
         body.imprimiendo-media-hoja #seccionComprobanteMediaHoja {
             visibility: visible !important;
-            display: block !important;
-            position: relative !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
             width: 100% !important;
-            max-width: 195mm !important;
-            max-height: 140mm !important;
+            max-width: 200mm !important;
+            height: 288mm !important;
+            max-height: 288mm !important;
             margin: 0 auto !important;
-            padding: 3mm 5mm !important;
+            padding: 0 !important;
             background: white !important;
             color: black !important;
-            border: 2px solid #000 !important;
-            border-radius: 4px !important;
             box-sizing: border-box !important;
-            font-family: Arial, Helvetica, sans-serif !important;
             page-break-inside: avoid !important;
             page-break-after: avoid !important;
             break-inside: avoid !important;
             break-after: avoid !important;
+            overflow: hidden !important;
+        }
+
+        .comprobante-mitad-a4 {
+            box-sizing: border-box !important;
+            border: 1.5px solid #1e293b !important;
+            border-radius: 6px !important;
+            background: white !important;
+            height: 139mm !important;
+            max-height: 139mm !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+
+        .divisor-corte-a4 {
+            height: 6mm !important;
+            max-height: 6mm !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
 
         /* ---------------------------------------------------- */
@@ -753,7 +778,7 @@
             <div class="flex items-center space-x-2">
                 <span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-black uppercase flex items-center">
                     <i class="fa-solid fa-file-invoice-dollar mr-1.5 text-rose-600"></i>
-                    Venta a Crédito &bull; Formato A4 Media Hoja
+                    Comprobante A4 &bull; Original y Copia (1 Hoja)
                 </span>
             </div>
             <button onclick="cerrarModalComprobanteCredito()" class="text-slate-400 hover:text-slate-600 text-lg">
@@ -761,121 +786,9 @@
             </button>
         </div>
 
-        <!-- CONTENEDOR DE IMPRESIÓN FORMATO MEDIA HOJA A4 -->
-        <div id="seccionComprobanteMediaHoja" class="border-2 border-slate-800 bg-white p-4 sm:p-5 rounded-xl shadow-sm text-slate-900 text-xs">
-            
-            <!-- ENCABEZADO CORPORATIVO PROLAGO C.A. -->
-            <div class="flex items-start justify-between border-b-2 border-slate-800 pb-3 mb-3">
-                <div class="flex items-center space-x-3">
-                    <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-14 h-14 object-cover rounded-xl border border-slate-300">
-                    <div>
-                        <h2 class="font-black text-base uppercase tracking-wider text-slate-900">PROLAGO C.A.</h2>
-                        <p class="text-[10px] font-bold text-[#8B1E24] uppercase leading-tight">Medicina Veterinaria y Alimentos Concentrados</p>
-                        <p class="text-[10px] text-slate-600">Carora, Estado Lara &bull; RIF: J-50493821-0</p>
-                    </div>
-                </div>
-
-                <!-- Recuadro de Control / Factura a Crédito -->
-                <div class="border-2 border-[#8B1E24] rounded-xl p-2.5 bg-rose-50/50 text-right min-w-[200px]">
-                    <span class="text-[10px] font-black uppercase tracking-wider block text-[#8B1E24]">COMPROBANTE A CRÉDITO</span>
-                    <span class="text-xs font-black text-slate-800 block">CONTROL N°: <strong id="mhNumero" class="text-sm text-[#8B1E24]"></strong></span>
-                    <span class="text-[10px] text-slate-600 block mt-0.5">Emisión: <span id="mhFecha"></span></span>
-                    <div class="mt-1 pt-1 border-t border-rose-200 flex justify-between text-[10px]">
-                        <span class="font-bold text-rose-900">Vence:</span>
-                        <span id="mhVence" class="font-black text-rose-700"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DATOS DEL CLIENTE / RECEPTOR -->
-            <div class="bg-slate-50 border border-slate-300 rounded-xl p-3 mb-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <div>
-                    <span class="text-slate-500 font-bold block text-[10px] uppercase">Cliente / Razón Social:</span>
-                    <strong id="mhCliente" class="text-slate-900 text-xs"></strong>
-                </div>
-                <div>
-                    <span class="text-slate-500 font-bold block text-[10px] uppercase">C.I. / RIF:</span>
-                    <strong id="mhCedula" class="text-slate-800 font-mono"></strong>
-                </div>
-                <div>
-                    <span class="text-slate-500 font-bold block text-[10px] uppercase">Teléfono de Contacto:</span>
-                    <span id="mhTelefono" class="text-slate-800 font-semibold"></span>
-                </div>
-                <div>
-                    <span class="text-slate-500 font-bold block text-[10px] uppercase">Dirección de Entrega:</span>
-                    <span id="mhDireccion" class="text-slate-800"></span>
-                </div>
-            </div>
-
-            <!-- TABLA DE ARTÍCULOS DESPACHADOS A CRÉDITO -->
-            <table class="w-full text-left border border-slate-300 mb-3 text-xs">
-                <thead class="bg-slate-100 text-slate-700 uppercase font-black text-[10px] border-b border-slate-300">
-                    <tr>
-                        <th class="py-1.5 px-2 w-12 text-center">Cód.</th>
-                        <th class="py-1.5 px-2 w-14 text-center">Cant.</th>
-                        <th class="py-1.5 px-2">Descripción del Producto</th>
-                        <th class="py-1.5 px-2 text-right w-24">P. Unit. ($)</th>
-                        <th class="py-1.5 px-2 text-right w-24">Subtotal ($)</th>
-                    </tr>
-                </thead>
-                <tbody id="mhItems" class="divide-y divide-slate-200">
-                    <!-- Ítems dinámicos -->
-                </tbody>
-            </table>
-
-            <!-- RESUMEN FINANCIERO Y SALDO PENDIENTE -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start border-t border-slate-300 pt-2.5 mb-3">
-                <!-- Abonos iniciales o pagos parciales de contado -->
-                <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[11px] space-y-1">
-                    <span class="font-bold block uppercase text-slate-600 text-[10px]">Detalle de Cobro Inicial:</span>
-                    <div id="mhDesgloseInicial" class="text-slate-700">
-                        <span class="text-slate-400 italic">Sin abono inicial (100% a crédito)</span>
-                    </div>
-                    <div class="pt-1 text-[10px] text-slate-500">
-                        <span>Tasa Oficial BCV: </span><strong id="mhTasaBCV"></strong>
-                    </div>
-                </div>
-
-                <!-- Totales y Saldo por Cobrar -->
-                <div class="bg-rose-50/70 border-2 border-rose-300 rounded-xl p-2.5 text-right space-y-1">
-                    <div class="flex justify-between text-xs text-slate-700">
-                        <span>Total de la Venta:</span>
-                        <strong id="mhTotalUSD" class="font-mono text-slate-900">$0.00</strong>
-                    </div>
-                    <div class="flex justify-between text-xs text-emerald-800 font-semibold" id="mhFilaInicial">
-                        <span>(-) Abono / Inicial Pagada:</span>
-                        <strong id="mhInicialUSD" class="font-mono text-emerald-700">-$0.00</strong>
-                    </div>
-                    <div class="border-t-2 border-rose-400 pt-1.5 flex justify-between items-baseline">
-                        <span class="font-black text-rose-950 uppercase text-xs">SALDO A CRÉDITO (DEBE):</span>
-                        <span id="mhSaldoUSD" class="text-lg font-black text-rose-700 font-mono">$0.00 USD</span>
-                    </div>
-                    <div class="text-[11px] font-bold text-slate-700">
-                        <span>Equiv. Deuda en Bs.: </span><strong id="mhSaldoBS" class="font-mono text-slate-900">Bs. 0,00</strong>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CLÁUSULA LEGAL Y FIRMAS DE CONFORMIDAD -->
-            <div class="border-t border-dashed border-slate-400 pt-2.5">
-                <p class="text-[9px] text-slate-500 text-center italic mb-4 leading-tight">
-                    "El cliente declara haber recibido la mercancía a entera satisfacción y se compromete formalmente a cancelar a favor de PROLAGO C.A. el saldo pendiente a más tardar en la fecha de vencimiento acordada."
-                </p>
-
-                <div class="grid grid-cols-2 gap-8 pt-4 text-center text-[10px]">
-                    <div>
-                        <div class="border-b border-slate-700 w-3/4 mx-auto mb-1"></div>
-                        <span class="font-bold text-slate-800 block uppercase">Firma del Cliente</span>
-                        <span class="text-slate-500">Recibí Conforme &bull; C.I./RIF: ____________</span>
-                    </div>
-                    <div>
-                        <div class="border-b border-slate-700 w-3/4 mx-auto mb-1"></div>
-                        <span class="font-bold text-slate-800 block uppercase">Por Prolago C.A.</span>
-                        <span class="text-slate-500">Despachado y Entregado</span>
-                    </div>
-                </div>
-            </div>
-
+        <!-- CONTENEDOR DE IMPRESIÓN FORMATO MEDIA HOJA A4 (ORIGINAL Y COPIA EN 1 HOJA) -->
+        <div id="seccionComprobanteMediaHoja" class="w-full space-y-2">
+            <!-- Se llena dinámicamente con Original + Línea de corte + Copia -->
         </div>
 
         <!-- Botones de Acción -->
@@ -2298,85 +2211,290 @@
     }
 
     // ========================================================
-    // COMPROBANTE DE VENTA A CRÉDITO (FORMATO A4 MEDIA HOJA)
+    // COMPROBANTE DE VENTA A4 DOBLE (ORIGINAL Y COPIA EN 1 HOJA)
     // ========================================================
-    function mostrarComprobanteCredito(factData, cliente, items, pagos) {
-        document.getElementById('mhNumero').textContent = '#' + factData.numero;
-        document.getElementById('mhFecha').textContent = factData.fecha || new Date().toLocaleString();
-        document.getElementById('mhVence').textContent = factData.fecha_vencimiento || 'Al vencimiento';
+    function construirComprobanteMitad(d, tipoCopia) {
+        const items = d.items || [];
+        const numItems = items.length;
+        let densidad = 'normal';
+        if (numItems >= 4 && numItems <= 6) densidad = 'compacta';
+        else if (numItems >= 7) densidad = 'ultracompacta';
 
-        document.getElementById('mhCliente').textContent = factData.cliente_nombre || cliente;
-        document.getElementById('mhCedula').textContent = factData.cliente_cedula || 'V/J - Sin Cédula';
-        document.getElementById('mhTelefono').textContent = factData.cliente_telefono || 'No registrado';
-        document.getElementById('mhDireccion').textContent = factData.cliente_direccion || 'Carora, Edo. Lara';
+        const pagos = d.pagos || {};
+        const esCred = d.condicion === 'credito' || (pagos.credito > 0) || (pagos.creditoUSD > 0) || (d.credito_inicial > 0) || (d.saldo_pendiente > 0.009);
 
-        // Render ítems en tabla de media hoja
-        const tbody = document.getElementById('mhItems');
-        tbody.innerHTML = '';
-        items.forEach(it => {
-            const subt = it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="py-1 px-2 font-mono font-bold text-center text-slate-500">${it.codigo || '-'}</td>
-                <td class="py-1 px-2 font-bold text-center">${it.cantidad}</td>
-                <td class="py-1 px-2 font-semibold text-slate-800">${it.nombre}</td>
-                <td class="py-1 px-2 text-right font-mono">$${it.precio.toFixed(2)}</td>
-                <td class="py-1 px-2 text-right font-mono font-bold text-slate-900">$${subt.toFixed(2)}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+        const totalUSD = d.total_usd || 0;
+        const totalBS = d.total_bs || 0;
+        const tasa = d.tasa_bcv || 1;
 
-        // Totales y Saldos
-        const totalUSD = factData.total_usd;
-        const totalBS = factData.total_bs;
-        const tasa = factData.tasa_bcv;
-        const pagosEfectivos = Math.round(((pagos.efectivoUSD || 0) + (pagos.zelleUSD || 0) + (pagos.pagoMovilUSD || 0) + (pagos.puntoUSD || 0)) * 100) / 100;
-        let saldoUSD = (factData.saldo_pendiente !== undefined && factData.saldo_pendiente !== null) ? factData.saldo_pendiente : (factData.credito || 0);
-        if (pagosEfectivos > 0 && Math.abs(saldoUSD - totalUSD) < 0.01) {
-            saldoUSD = Math.max(0, Math.round((totalUSD - pagosEfectivos) * 100) / 100);
+        const ef = (pagos.efectivo !== undefined ? pagos.efectivo : (pagos.efectivoUSD !== undefined ? pagos.efectivoUSD : (d.efectivo || 0)));
+        const pm = (pagos.pagomovil !== undefined ? pagos.pagomovil : (pagos.pagoMovilUSD !== undefined ? pagos.pagoMovilUSD : (d.pagomovil || 0)));
+        const pt = (pagos.punto !== undefined ? pagos.punto : (pagos.puntoUSD !== undefined ? pagos.puntoUSD : (d.punto || 0)));
+        const zl = (pagos.zelle !== undefined ? pagos.zelle : (pagos.zelleUSD !== undefined ? pagos.zelleUSD : (d.zelle || 0)));
+        const refVal = d.referencia_transferencia || pagos.referencia_transferencia || '';
+        const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
+
+        const inicialPagos = Math.round((ef + pm + pt + zl) * 100) / 100;
+        let saldoUSD = (d.saldo_pendiente !== undefined && d.saldo_pendiente !== null) ? d.saldo_pendiente : (d.credito_inicial || pagos.creditoUSD || 0);
+        if (inicialPagos > 0 && Math.abs(saldoUSD - totalUSD) < 0.01) {
+            saldoUSD = Math.max(0, Math.round((totalUSD - inicialPagos) * 100) / 100);
         }
-        const inicialUSD = factData.inicial_abonada !== undefined ? factData.inicial_abonada : (pagosEfectivos > 0 ? pagosEfectivos : Math.max(0, Math.round((totalUSD - saldoUSD) * 100) / 100));
+        const inicialUSD = (d.inicial_abonada !== undefined && d.inicial_abonada !== null) ? d.inicial_abonada : (inicialPagos > 0 ? inicialPagos : Math.max(0, Math.round((totalUSD - saldoUSD) * 100) / 100));
         const saldoBS = saldoUSD * tasa;
 
-        document.getElementById('mhTotalUSD').textContent = `$${totalUSD.toFixed(2)} USD`;
-        document.getElementById('mhInicialUSD').textContent = `-$${inicialUSD.toFixed(2)} USD`;
-        document.getElementById('mhSaldoUSD').textContent = `$${saldoUSD.toFixed(2)} USD`;
-        document.getElementById('mhSaldoBS').textContent = `Bs. ${Number(saldoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
-        document.getElementById('mhTasaBCV').textContent = `${tasa.toFixed(2)} Bs./$`;
+        let pCard = 'p-2.5';
+        let wLogo = 'w-10 h-10';
+        let textBase = 'text-[11px]';
+        let padTabla = 'py-1 px-1.5';
+        let mbBloque = 'mb-1.5';
+        let padFirmas = 'pt-2 mb-2';
+        let textClausula = 'text-[8.5px]';
 
-        const filaIni = document.getElementById('mhFilaInicial');
-        if (inicialUSD > 0.009) {
-            filaIni.classList.remove('hidden');
+        if (densidad === 'compacta') {
+            pCard = 'p-2';
+            wLogo = 'w-8 h-8';
+            textBase = 'text-[10px]';
+            padTabla = 'py-0.5 px-1';
+            mbBloque = 'mb-1';
+            padFirmas = 'pt-1 mb-1';
+            textClausula = 'text-[8px]';
+        } else if (densidad === 'ultracompacta') {
+            pCard = 'p-1.5';
+            wLogo = 'w-7 h-7';
+            textBase = 'text-[9px]';
+            padTabla = 'py-0 px-1 text-[8.5px]';
+            mbBloque = 'mb-0.5';
+            padFirmas = 'pt-0.5 mb-0.5';
+            textClausula = 'text-[7.5px]';
+        }
+
+        let badgeTitulo = '';
+        let boxControlBorde = '';
+        let boxControlBg = '';
+        let venceHtml = '';
+        let boxTotalesBorde = '';
+        let boxTotalesBg = '';
+        let boxTotalesSaldoHtml = '';
+
+        if (esCred) {
+            boxControlBorde = 'border-[#8B1E24]';
+            boxControlBg = 'bg-rose-50/60';
+            venceHtml = `
+                <div class="mt-0.5 pt-0.5 border-t border-rose-200 flex justify-between text-[9px]">
+                    <span class="font-bold text-rose-900">Vence:</span>
+                    <span class="font-black text-rose-700">${d.fecha_vencimiento || 'Al vencimiento'}</span>
+                </div>
+            `;
+            if (tipoCopia === 'ORIGINAL') {
+                badgeTitulo = `<span class="text-[9px] font-black uppercase tracking-wider block text-[#8B1E24] bg-rose-100/90 px-1.5 py-0.5 rounded border border-rose-200">COMPROBANTE A CRÉDITO &bull; ORIGINAL CLIENTE</span>`;
+            } else {
+                badgeTitulo = `<span class="text-[9px] font-black uppercase tracking-wider block text-slate-800 bg-slate-200/90 px-1.5 py-0.5 rounded border border-slate-300">COMPROBANTE A CRÉDITO &bull; COPIA ADMINISTRACIÓN</span>`;
+            }
+            boxTotalesBorde = 'border-rose-300';
+            boxTotalesBg = 'bg-rose-50/70';
+            boxTotalesSaldoHtml = `
+                ${inicialUSD > 0.009 ? `
+                <div class="flex justify-between text-emerald-800 font-semibold text-[10px]">
+                    <span>(-) Inicial Pagada:</span>
+                    <strong class="font-mono text-emerald-700">-$${inicialUSD.toFixed(2)}</strong>
+                </div>` : ''}
+                <div class="border-t border-rose-400 pt-0.5 flex justify-between items-baseline">
+                    <span class="font-black text-rose-950 uppercase text-[10px]">SALDO A CRÉDITO (DEBE):</span>
+                    <span class="text-sm font-black text-rose-700 font-mono">$${saldoUSD.toFixed(2)} USD</span>
+                </div>
+                <div class="text-[9px] font-bold text-slate-700">
+                    <span>Equiv. Deuda en Bs.: </span><strong class="font-mono text-slate-900">Bs. ${Number(saldoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</strong>
+                </div>
+            `;
         } else {
-            filaIni.classList.add('hidden');
+            boxControlBorde = 'border-emerald-700';
+            boxControlBg = 'bg-emerald-50/60';
+            venceHtml = `
+                <div class="mt-0.5 pt-0.5 border-t border-emerald-200 flex justify-between text-[9px]">
+                    <span class="font-bold text-emerald-900">Condición:</span>
+                    <span class="font-black text-emerald-700">CONTADO (PAGADO)</span>
+                </div>
+            `;
+            if (tipoCopia === 'ORIGINAL') {
+                badgeTitulo = `<span class="text-[9px] font-black uppercase tracking-wider block text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded border border-emerald-200">COMPROBANTE DE VENTA &bull; ORIGINAL CLIENTE</span>`;
+            } else {
+                badgeTitulo = `<span class="text-[9px] font-black uppercase tracking-wider block text-slate-800 bg-slate-200/90 px-1.5 py-0.5 rounded border border-slate-300">COMPROBANTE DE VENTA &bull; COPIA ADMINISTRACIÓN</span>`;
+            }
+            boxTotalesBorde = 'border-emerald-300';
+            boxTotalesBg = 'bg-emerald-50/70';
+            boxTotalesSaldoHtml = `
+                <div class="border-t border-emerald-400 pt-0.5 flex justify-between items-baseline">
+                    <span class="font-black text-emerald-950 uppercase text-[10px]">ESTADO DE PAGO:</span>
+                    <span class="text-xs font-black text-emerald-700 font-mono">PAGADO TOTAL</span>
+                </div>
+                <div class="text-[9px] font-bold text-slate-700">
+                    <span>Total Facturado en Bs.: </span><strong class="font-mono text-slate-900">Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</strong>
+                </div>
+            `;
         }
 
-        // Desglose de cobro inicial
-        const desgloseEl = document.getElementById('mhDesgloseInicial');
-        desgloseEl.innerHTML = '';
-        let huboInicial = false;
-        if (pagos.efectivoUSD > 0) {
-            huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Efectivo:</span><strong class="font-mono text-slate-800">$${pagos.efectivoUSD.toFixed(2)}</strong></div>`;
-        }
-        if (pagos.pagoMovilBS > 0) {
-            huboInicial = true;
-            const refVal = (pagos && pagos.referencia_transferencia) || (factData && factData.referencia_transferencia) || '';
-            const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Transferencia${refTxt}:</span><strong class="font-mono text-slate-800">Bs. ${Number(pagos.pagoMovilBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.pagoMovilUSD.toFixed(2)})</strong></div>`;
-        }
-        if (pagos.puntoBS > 0) {
-            huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Punto de Venta:</span><strong class="font-mono text-slate-800">Bs. ${Number(pagos.puntoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.puntoUSD.toFixed(2)})</strong></div>`;
-        }
-        if (pagos.zelleUSD > 0) {
-            huboInicial = true;
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>Zelle:</span><strong class="font-mono text-slate-800">$${pagos.zelleUSD.toFixed(2)}</strong></div>`;
-        }
-        if (!huboInicial) {
-            desgloseEl.innerHTML = '<span class="text-slate-400 italic">Sin abono inicial (100% a crédito)</span>';
+        const itemsFilasHtml = items.map(it => {
+            const subt = it.subtotal || (it.cantidad * it.precio * (1 - (it.descuento || 0) / 100));
+            return `
+                <tr>
+                    <td class="${padTabla} font-mono font-bold text-center text-slate-500">${it.codigo || '-'}</td>
+                    <td class="${padTabla} font-bold text-center">${it.cantidad}</td>
+                    <td class="${padTabla} font-semibold text-slate-800 truncate max-w-[220px]">${it.nombre}</td>
+                    <td class="${padTabla} text-right font-mono">$${(it.precio || 0).toFixed(2)}</td>
+                    <td class="${padTabla} text-right font-mono font-bold text-slate-900">$${subt.toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        let desglosePagosHtml = '';
+        let huboPagos = false;
+        if (ef > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Efectivo:</span><strong class="font-mono text-slate-800">$${ef.toFixed(2)}</strong></div>`; }
+        if (pm > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Transferencia${refTxt}:</span><strong class="font-mono text-slate-800">$${pm.toFixed(2)}</strong></div>`; }
+        if (pt > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Punto:</span><strong class="font-mono text-slate-800">$${pt.toFixed(2)}</strong></div>`; }
+        if (zl > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Zelle:</span><strong class="font-mono text-slate-800">$${zl.toFixed(2)}</strong></div>`; }
+        if (!huboPagos) {
+            desglosePagosHtml = esCred
+                ? '<span class="text-slate-400 italic">Sin abono inicial (100% a crédito)</span>'
+                : '<span class="text-emerald-700 font-bold">Cancelado de Contado</span>';
         }
 
+        const clausulaTexto = esCred
+            ? '"El cliente declara haber recibido la mercancía a entera satisfacción y se compromete formalmente a cancelar a favor de PROLAGO C.A. el saldo pendiente a más tardar en la fecha de vencimiento acordada."'
+            : '"El cliente declara haber recibido la mercancía a entera satisfacción y cancelada en su totalidad."';
+
+        return `
+            <div class="comprobante-mitad-a4 border-2 border-slate-800 bg-white ${pCard} rounded-xl shadow-xs text-slate-900 ${textBase}">
+                <!-- ENCABEZADO -->
+                <div class="flex items-start justify-between border-b border-slate-800 pb-1.5 ${mbBloque}">
+                    <div class="flex items-center space-x-2.5">
+                        <img src="/static/img/logo.jpg" alt="Logo Prolago" class="${wLogo} object-cover rounded-lg border border-slate-300">
+                        <div>
+                            <h2 class="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-900 leading-none">PROLAGO C.A.</h2>
+                            <p class="text-[8.5px] font-bold text-[#8B1E24] uppercase leading-tight mt-0.5">Medicina Veterinaria y Alimentos Concentrados</p>
+                            <p class="text-[8.5px] text-slate-500">Carora, Estado Lara &bull; RIF: J-50493821-0</p>
+                        </div>
+                    </div>
+
+                    <!-- Recuadro de Control -->
+                    <div class="border-2 ${boxControlBorde} rounded-lg p-1.5 ${boxControlBg} text-right min-w-[170px]">
+                        ${badgeTitulo}
+                        <span class="text-[10px] font-black text-slate-800 block mt-0.5">CONTROL N°: <strong class="text-xs text-[#8B1E24]">#${d.numero}</strong></span>
+                        <span class="text-[8.5px] text-slate-600 block">Emisión: ${d.fecha || ''}</span>
+                        ${venceHtml}
+                    </div>
+                </div>
+
+                <!-- DATOS DEL CLIENTE -->
+                <div class="bg-slate-50 border border-slate-300 rounded-lg p-1.5 ${mbBloque} grid grid-cols-2 sm:grid-cols-4 gap-1 text-[10px]">
+                    <div>
+                        <span class="text-slate-500 font-bold block text-[8px] uppercase">Cliente:</span>
+                        <strong class="text-slate-900 truncate block">${d.cliente_nombre || 'CLIENTE GENERAL'}</strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-bold block text-[8px] uppercase">C.I. / RIF:</span>
+                        <span class="text-slate-800 font-mono font-bold">${d.cliente_cedula || 'V/J - Sin Cédula'}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-bold block text-[8px] uppercase">Teléfono:</span>
+                        <span class="text-slate-800 font-semibold">${d.cliente_telefono || 'No registrado'}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-bold block text-[8px] uppercase">Dirección:</span>
+                        <span class="text-slate-800 truncate block">${d.cliente_direccion || 'Carora, Edo. Lara'}</span>
+                    </div>
+                </div>
+
+                <!-- TABLA DE ARTÍCULOS -->
+                <table class="w-full text-left border border-slate-300 ${mbBloque}">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-black text-[9px] border-b border-slate-300">
+                        <tr>
+                            <th class="py-1 px-1.5 w-10 text-center">Cód.</th>
+                            <th class="py-1 px-1.5 w-12 text-center">Cant.</th>
+                            <th class="py-1 px-1.5">Descripción del Producto</th>
+                            <th class="py-1 px-1.5 text-right w-20">P. Unit. ($)</th>
+                            <th class="py-1 px-1.5 text-right w-20">Subtotal ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        ${itemsFilasHtml}
+                    </tbody>
+                </table>
+
+                <!-- RESUMEN FINANCIERO -->
+                <div class="grid grid-cols-2 gap-2 items-start border-t border-slate-300 pt-1.5 ${mbBloque}">
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-[9.5px] space-y-0.5">
+                        <span class="font-bold block uppercase text-slate-600 text-[8.5px]">${esCred ? 'Detalle de Cobro Inicial:' : 'Formas de Pago Recibidas:'}</span>
+                        <div class="text-slate-700">${desglosePagosHtml}</div>
+                        <div class="pt-0.5 text-[8.5px] text-slate-500">
+                            <span>Tasa Oficial BCV: </span><strong>${tasa.toFixed(2)} Bs./$</strong>
+                        </div>
+                    </div>
+
+                    <div class="${boxTotalesBg} border-2 ${boxTotalesBorde} rounded-lg p-1.5 text-right space-y-0.5">
+                        <div class="flex justify-between text-[10px] text-slate-700">
+                            <span>Total de la Venta:</span>
+                            <strong class="font-mono text-slate-900">$${totalUSD.toFixed(2)}</strong>
+                        </div>
+                        ${boxTotalesSaldoHtml}
+                    </div>
+                </div>
+
+                <!-- FIRMAS Y CONFORMIDAD -->
+                <div class="border-t border-dashed border-slate-300 pt-1 mt-auto">
+                    <p class="${textClausula} text-slate-500 text-center italic mb-1 leading-tight">${clausulaTexto}</p>
+                    <div class="grid grid-cols-2 gap-4 ${padFirmas} text-center text-[9px]">
+                        <div>
+                            <div class="border-b border-slate-700 w-3/4 mx-auto mb-0.5"></div>
+                            <span class="font-bold text-slate-800 block uppercase">Firma del Cliente</span>
+                            <span class="text-slate-500 text-[8px]">Recibí Conforme &bull; C.I./RIF: ____________</span>
+                        </div>
+                        <div>
+                            <div class="border-b border-slate-700 w-3/4 mx-auto mb-0.5"></div>
+                            <span class="font-bold text-slate-800 block uppercase">Por Prolago C.A.</span>
+                            <span class="text-slate-500 text-[8px]">Despachado y Entregado</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function mostrarComprobanteCredito(factData, cliente, items, pagos) {
+        const normData = {
+            numero: factData.numero,
+            fecha: factData.fecha || new Date().toLocaleString('es-VE'),
+            fecha_vencimiento: factData.fecha_vencimiento,
+            cliente_nombre: cliente || factData.cliente_nombre || 'CLIENTE GENERAL',
+            cliente_cedula: factData.cliente_cedula || factData.cedula || 'V/J - Sin Cédula',
+            cliente_telefono: factData.cliente_telefono || factData.telefono || 'No registrado',
+            cliente_direccion: factData.cliente_direccion || factData.direccion || 'Carora, Edo. Lara',
+            total_usd: factData.total_usd,
+            total_bs: factData.total_bs,
+            tasa_bcv: factData.tasa_bcv,
+            condicion: factData.condicion,
+            saldo_pendiente: factData.saldo_pendiente,
+            credito: factData.credito,
+            inicial_abonada: factData.inicial_abonada,
+            items: items || [],
+            pagos: pagos || {},
+            referencia_transferencia: factData.referencia_transferencia || (pagos && pagos.referencia_transferencia)
+        };
+
+        const htmlOrig = construirComprobanteMitad(normData, 'ORIGINAL');
+        const htmlCopia = construirComprobanteMitad(normData, 'COPIA');
+        const divisor = `
+            <div class="divisor-corte-a4 flex items-center justify-center my-1 select-none">
+                <span class="border-b-2 border-dashed border-slate-400 flex-1"></span>
+                <span class="px-2 font-mono text-[9px] font-bold text-slate-500 flex items-center space-x-1 uppercase bg-white">
+                    <i class="fa-solid fa-scissors text-slate-700"></i>
+                    <span>LÍNEA DE CORTE &bull; CORTAR AQUÍ (ORIGINAL ARRIBA / COPIA ABAJO)</span>
+                    <i class="fa-solid fa-scissors fa-flip-horizontal text-slate-700"></i>
+                </span>
+                <span class="border-b-2 border-dashed border-slate-400 flex-1"></span>
+            </div>
+        `;
+
+        document.getElementById('seccionComprobanteMediaHoja').innerHTML = htmlOrig + divisor + htmlCopia;
         document.getElementById('modalComprobanteCredito').classList.remove('hidden');
     }
 
@@ -2399,7 +2517,7 @@
     }
 
     // ========================================================
-    // FORMATOS DE IMPRESIÓN TÉRMICA (58mm Y 80mm)
+    // FORMATOS DE IMPRESIÓN TÉRMICA (58mm Y 80mm) - DOBLE (ORIGINAL Y COPIA)
     // ========================================================
     function seleccionarFormatoImpresion(fmt) {
         formatoImpresion = fmt;
@@ -2417,74 +2535,153 @@
         if (fmt === '80') {
             ticketEl.classList.remove('formato-58mm');
             ticketEl.classList.add('formato-80mm');
-            btn80.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
-            btn58.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
+            if (btn80) btn80.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
+            if (btn58) btn58.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
         } else {
             ticketEl.classList.remove('formato-80mm');
             ticketEl.classList.add('formato-58mm');
-            btn58.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
-            btn80.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
+            if (btn58) btn58.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
+            if (btn80) btn80.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
         }
     }
 
-    function mostrarTicket(factData, cliente, items, pagos) {
-        document.getElementById('tickNumero').textContent = factData.numero;
-        document.getElementById('tickFecha').textContent = factData.fecha || new Date().toLocaleString('es-VE');
-        document.getElementById('tickCliente').textContent = cliente;
-        document.getElementById('tickTotalUSD').textContent = `$${factData.total_usd.toFixed(2)}`;
-        document.getElementById('tickTotalBS').textContent = `Bs. ${Number(factData.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
-        document.getElementById('tickTasa').textContent = `${factData.tasa_bcv.toFixed(2)} Bs./$`;
+    function construirBloqueTicket(factData, cliente, items, pagos, tipoCopia) {
+        const esCred = factData.condicion === 'credito' || (pagos && (pagos.creditoUSD > 0 || pagos.credito > 0)) || (factData.saldo_pendiente > 0.009);
+        const badgeCopia = tipoCopia === 'ORIGINAL'
+            ? `<div class="bg-slate-900 text-white font-black py-0.5 px-2 text-center text-[10px] tracking-widest uppercase mb-1.5 rounded">*** ORIGINAL - CLIENTE ***</div>`
+            : `<div class="bg-slate-700 text-white font-black py-0.5 px-2 text-center text-[10px] tracking-widest uppercase mb-1.5 rounded">*** COPIA - ADMINISTRACIÓN / CAJA ***</div>`;
 
-        // Identificación clara de condición en el recibo
-        const boxCondicion = document.getElementById('tickCondicionBox');
-        if (factData.condicion === 'credito') {
-            boxCondicion.className = 'p-1.5 rounded text-center font-bold text-[10px] uppercase bg-rose-50 border border-rose-300 text-rose-900 my-2';
-            boxCondicion.innerHTML = `
-                <div>*** VENTA A CRÉDITO ***</div>
-                <div class="text-[9px] font-semibold text-rose-700 mt-0.5">Saldo Pendiente: $${factData.saldo_pendiente.toFixed(2)} USD</div>
-                ${factData.fecha_vencimiento ? `<div class="text-[8px] font-normal text-slate-500">Vencimiento: ${factData.fecha_vencimiento}</div>` : ''}
+        const fechaStr = factData.fecha || new Date().toLocaleString('es-VE');
+        const totalUSD = factData.total_usd || 0;
+        const totalBS = factData.total_bs || 0;
+        const tasa = factData.tasa_bcv || 1;
+
+        let condicionHtml = '';
+        if (esCred) {
+            const saldoUSD = (factData.saldo_pendiente !== undefined && factData.saldo_pendiente !== null) ? factData.saldo_pendiente : (pagos.creditoUSD || 0);
+            condicionHtml = `
+                <div class="p-1 rounded text-center font-bold text-[10px] uppercase bg-rose-50 border border-rose-300 text-rose-900 my-1.5">
+                    <div>*** VENTA A CRÉDITO ***</div>
+                    <div class="text-[9px] font-semibold text-rose-700 mt-0.5">Saldo Pendiente: $${saldoUSD.toFixed(2)} USD</div>
+                    ${factData.fecha_vencimiento ? `<div class="text-[8px] font-normal text-slate-500">Vencimiento: ${factData.fecha_vencimiento}</div>` : ''}
+                </div>
             `;
         } else {
-            boxCondicion.className = 'p-1.5 rounded text-center font-bold text-[10px] uppercase bg-emerald-50 border border-emerald-300 text-emerald-900 my-2';
-            boxCondicion.innerHTML = `<div>*** VENTA AL CONTADO (PAGADA) ***</div>`;
-        }
-
-        // Render ítems
-        const tbody = document.getElementById('tickItems');
-        tbody.innerHTML = '';
-        items.forEach(it => {
-            const subt = it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="py-1 font-bold">${it.cantidad}</td>
-                <td class="py-1">${it.nombre}</td>
-                <td class="py-1 text-right font-mono">$${it.precio.toFixed(2)}</td>
-                <td class="py-1 text-right font-mono font-bold">$${subt.toFixed(2)}</td>
+            condicionHtml = `
+                <div class="p-1 rounded text-center font-bold text-[10px] uppercase bg-emerald-50 border border-emerald-300 text-emerald-900 my-1.5">
+                    <div>*** VENTA AL CONTADO (PAGADA) ***</div>
+                </div>
             `;
-            tbody.appendChild(tr);
-        });
-
-        // Desglose de pagos en ticket
-        const desgloseEl = document.getElementById('tickDesglosePagos');
-        desgloseEl.innerHTML = '';
-        if (pagos.efectivoUSD > 0) {
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Efectivo USD:</span><span>$${pagos.efectivoUSD.toFixed(2)}</span></div>`;
-        }
-        if (pagos.pagoMovilBS > 0) {
-            const refVal = (pagos && pagos.referencia_transferencia) || (factData && factData.referencia_transferencia) || '';
-            const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Transferencia${refTxt}:</span><span>Bs. ${Number(pagos.pagoMovilBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.pagoMovilUSD.toFixed(2)})</span></div>`;
-        }
-        if (pagos.puntoBS > 0) {
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Punto de Venta:</span><span>Bs. ${Number(pagos.puntoBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${pagos.puntoUSD.toFixed(2)})</span></div>`;
-        }
-        if (pagos.zelleUSD > 0) {
-            desgloseEl.innerHTML += `<div class="flex justify-between"><span>- Zelle:</span><span>$${pagos.zelleUSD.toFixed(2)}</span></div>`;
-        }
-        if (pagos.creditoUSD > 0) {
-            desgloseEl.innerHTML += `<div class="flex justify-between font-bold text-rose-800"><span>- Saldo a Crédito:</span><span>$${pagos.creditoUSD.toFixed(2)}</span></div>`;
         }
 
+        const itemsRows = (items || []).map(it => {
+            const subt = it.subtotal || (it.cantidad * it.precio * (1 - (it.descuento || 0) / 100));
+            return `
+                <tr>
+                    <td class="py-0.5 font-bold">${it.cantidad}</td>
+                    <td class="py-0.5 truncate max-w-[140px]">${it.nombre}</td>
+                    <td class="py-0.5 text-right font-mono">$${(it.precio || 0).toFixed(2)}</td>
+                    <td class="py-0.5 text-right font-mono font-bold">$${subt.toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        let pagosHtml = '';
+        const ef = (pagos && (pagos.efectivoUSD !== undefined ? pagos.efectivoUSD : pagos.efectivo)) || 0;
+        const pmBS = (pagos && pagos.pagoMovilBS) || 0;
+        const pmUSD = (pagos && (pagos.pagoMovilUSD !== undefined ? pagos.pagoMovilUSD : pagos.pagomovil)) || 0;
+        const ptBS = (pagos && pagos.puntoBS) || 0;
+        const ptUSD = (pagos && (pagos.puntoUSD !== undefined ? pagos.puntoUSD : pagos.punto)) || 0;
+        const zl = (pagos && (pagos.zelleUSD !== undefined ? pagos.zelleUSD : pagos.zelle)) || 0;
+        const cred = (pagos && (pagos.creditoUSD !== undefined ? pagos.creditoUSD : pagos.credito)) || 0;
+        const refVal = (pagos && pagos.referencia_transferencia) || factData.referencia_transferencia || '';
+        const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
+
+        if (ef > 0) pagosHtml += `<div class="flex justify-between"><span>- Efectivo USD:</span><span>$${ef.toFixed(2)}</span></div>`;
+        if (pmUSD > 0 || pmBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Transferencia${refTxt}:</span><span>${pmBS > 0 ? `Bs. ${Number(pmBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${pmUSD.toFixed(2)})</span></div>`;
+        if (ptUSD > 0 || ptBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Punto de Venta:</span><span>${ptBS > 0 ? `Bs. ${Number(ptBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${ptUSD.toFixed(2)})</span></div>`;
+        if (zl > 0) pagosHtml += `<div class="flex justify-between"><span>- Zelle:</span><span>$${zl.toFixed(2)}</span></div>`;
+        if (cred > 0) pagosHtml += `<div class="flex justify-between font-bold text-rose-800"><span>- Saldo a Crédito:</span><span>$${cred.toFixed(2)}</span></div>`;
+        if (!pagosHtml) pagosHtml = '<div class="text-slate-500 italic">Pago registrado</div>';
+
+        return `
+            <div class="ticket-bloque border-b border-dashed border-slate-300 pb-2 mb-2">
+                ${badgeCopia}
+                <div class="text-center border-b border-dashed border-slate-400 pb-1.5 mb-1.5">
+                    <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-10 h-10 mx-auto rounded-lg mb-1 object-cover border border-slate-200">
+                    <h2 class="font-black text-sm uppercase tracking-wider">PROLAGO C.A.</h2>
+                    <p class="text-[9px] font-bold text-slate-800 leading-tight">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
+                    <p class="text-[10px] text-slate-600">Carora, Lara &bull; RIF: J-50493821-0</p>
+                    <div class="mt-1 font-bold text-xs">
+                        FACTURA N°: <span>#${factData.numero}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500">${fechaStr}</div>
+                </div>
+
+                <div class="border-b border-dashed border-slate-400 pb-1.5 mb-1.5 text-[11px] space-y-0.5">
+                    <p><strong>CLIENTE:</strong> <span>${cliente || factData.cliente_nombre || 'CLIENTE GENERAL'}</span></p>
+                    ${condicionHtml}
+                </div>
+
+                <table class="w-full text-left mb-1.5">
+                    <thead>
+                        <tr class="border-b border-slate-300 text-[10px] uppercase font-bold">
+                            <th class="py-0.5">Cant</th>
+                            <th class="py-0.5">Prod</th>
+                            <th class="py-0.5 text-right">P.U.</th>
+                            <th class="py-0.5 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-[10px]">
+                        ${itemsRows}
+                    </tbody>
+                </table>
+
+                <div class="border-t border-dashed border-slate-400 pt-1.5 space-y-0.5 text-right font-bold text-xs">
+                    <div class="flex justify-between items-center text-sm font-black">
+                        <span>TOTAL ($):</span>
+                        <span class="text-emerald-700">$${totalUSD.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-800">
+                        <span>TOTAL (BS.):</span>
+                        <span>Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] text-slate-500 font-normal">
+                        <span>Tasa BCV:</span>
+                        <span>${tasa.toFixed(2)} Bs./$</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-dashed border-slate-400 pt-1.5 mt-1.5 text-[10px] space-y-0.5">
+                    <span class="font-bold block text-slate-700 uppercase">Detalle de Pago:</span>
+                    <div class="text-slate-600">${pagosHtml}</div>
+                </div>
+
+                <div class="mt-2 pt-1 border-t border-dashed border-slate-400 text-center text-[9px] text-slate-500">
+                    <p class="font-bold uppercase">¡Gracias por su compra!</p>
+                    <p class="text-[8px]">Conserve este comprobante para cualquier reclamo</p>
+                </div>
+            </div>
+        `;
+    }
+
+    function mostrarTicket(factData, cliente, items, pagos) {
+        ultimaFacturaData = factData;
+        ultimoClienteNombre = cliente;
+        ultimosItems = items;
+        ultimosPagos = pagos;
+
+        const htmlOriginal = construirBloqueTicket(factData, cliente, items, pagos, 'ORIGINAL');
+        const htmlCopia = construirBloqueTicket(factData, cliente, items, pagos, 'COPIA');
+        const divisorTicket = `
+            <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-slate-600 font-mono text-[9px] font-black text-slate-700 select-none">
+                - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
+                ✂ CORTAR AQUÍ &bull; SEGUNDA COPIA ABAJO ✂<br>
+                - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            </div>
+        `;
+
+        document.getElementById('seccionTicketImprimir').innerHTML = htmlOriginal + divisorTicket + htmlCopia;
         aplicarFormatoImpresion(formatoImpresion);
         document.getElementById('modalTicket').classList.remove('hidden');
     }
