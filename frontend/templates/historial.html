@@ -457,8 +457,8 @@
                 <!-- Desglose de Pagos -->
                 <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                     <div class="flex justify-between items-center pb-1 border-b border-slate-200">
-                        <span class="text-[10px] font-bold text-slate-600 uppercase">Formas de Pago ($)</span>
-                        <button type="button" onclick="cuadrarPagosMod()" class="text-[10px] text-amber-700 hover:text-amber-800 font-bold underline">
+                        <span class="text-[10px] font-bold text-slate-600 uppercase">Formas de Pago</span>
+                        <button type="button" onclick="cuadrarPagosMod()" class="text-[10px] text-amber-700 hover:text-amber-800 font-bold underline cursor-pointer">
                             Cuadrar al Total
                         </button>
                     </div>
@@ -467,25 +467,29 @@
                         <div>
                             <span class="text-[10px] text-slate-500 font-semibold block">Efectivo ($):</span>
                             <input type="number" step="0.01" min="0" id="modPagoEfectivo" oninput="recalcularTotalesMod(false)"
-                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono focus:ring-1 focus:ring-slate-400 focus:outline-none">
+                            <span id="modEqEfectivoBS" class="text-[9.5px] text-slate-400 font-mono block mt-0.5">≈ Bs. 0,00</span>
                         </div>
                         <div>
                             <span class="text-[10px] text-purple-600 font-semibold block">Zelle ($):</span>
                             <input type="number" step="0.01" min="0" id="modPagoZelle" oninput="recalcularTotalesMod(false)"
-                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono focus:ring-1 focus:ring-purple-400 focus:outline-none">
+                            <span id="modEqZelleBS" class="text-[9.5px] text-purple-400 font-mono block mt-0.5">≈ Bs. 0,00</span>
                         </div>
                         <div>
-                            <span class="text-[10px] text-blue-600 font-semibold block">Transferencia ($):</span>
+                            <span class="text-[10px] text-blue-600 font-bold block">Pago Móvil / Transf. (Bs.):</span>
                             <input type="number" step="0.01" min="0" id="modPagoPagomovil" oninput="recalcularTotalesMod(false)"
-                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                                class="w-full px-2 py-1 bg-white border border-blue-300 rounded-lg text-xs font-bold font-mono text-blue-900 focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                            <span id="modEqPagomovilUSD" class="text-[9.5px] text-blue-600 font-bold font-mono block mt-0.5">≈ $0.00 USD</span>
                         </div>
                         <div>
-                            <span class="text-[10px] text-amber-600 font-semibold block">Punto de Venta ($):</span>
+                            <span class="text-[10px] text-amber-600 font-bold block">Punto de Venta (Bs.):</span>
                             <input type="number" step="0.01" min="0" id="modPagoPunto" oninput="recalcularTotalesMod(false)"
-                                class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono">
+                                class="w-full px-2 py-1 bg-white border border-amber-300 rounded-lg text-xs font-bold font-mono text-amber-900 focus:ring-1 focus:ring-amber-500 focus:outline-none">
+                            <span id="modEqPuntoUSD" class="text-[9.5px] text-amber-600 font-bold font-mono block mt-0.5">≈ $0.00 USD</span>
                         </div>
                         <div class="col-span-2">
-                            <span class="text-[10px] text-blue-800 font-semibold block">N° Ref. Transferencia:</span>
+                            <span class="text-[10px] text-blue-800 font-semibold block">N° Ref. Transferencia / Pago Móvil:</span>
                             <input type="text" id="modRefTransferencia" placeholder="Ej: 481920 (Opcional)"
                                 class="w-full px-2 py-1 bg-white border border-blue-200 rounded-lg text-xs font-mono uppercase">
                         </div>
@@ -493,9 +497,12 @@
 
                     <div id="modFilaCredito" class="pt-1 border-t border-slate-200">
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] text-rose-600 font-bold uppercase">Monto a Crédito ($):</span>
+                            <div>
+                                <span class="text-[10px] text-rose-600 font-bold uppercase block">Monto a Crédito ($):</span>
+                                <span id="modEqCreditoBS" class="text-[9.5px] text-rose-400 font-mono block">≈ Bs. 0,00</span>
+                            </div>
                             <input type="number" step="0.01" min="0" id="modPagoCredito" oninput="recalcularTotalesMod(false)"
-                                class="w-24 px-2 py-1 bg-white border border-rose-300 text-rose-700 rounded-lg text-xs font-black font-mono text-right">
+                                class="w-28 px-2 py-1 bg-white border border-rose-300 text-rose-700 rounded-lg text-xs font-black font-mono text-right">
                         </div>
                     </div>
                 </div>
@@ -1333,12 +1340,19 @@
             document.getElementById('modFacturaCondicion').value = facturaModActual.condicion;
 
             // Pagos
+            const tasa = facturaModActual.tasa_bcv || TASA_BCV;
             const pagos = d.pagos || {};
-            document.getElementById('modPagoEfectivo').value = pagos.efectivo || 0;
-            document.getElementById('modPagoZelle').value = pagos.zelle || 0;
-            document.getElementById('modPagoPagomovil').value = pagos.pagomovil || 0;
-            document.getElementById('modPagoPunto').value = pagos.punto || 0;
-            document.getElementById('modPagoCredito').value = pagos.credito || 0;
+            document.getElementById('modPagoEfectivo').value = (pagos.efectivo !== undefined && pagos.efectivo !== null && pagos.efectivo > 0) ? Number(pagos.efectivo).toFixed(2) : '0.00';
+            document.getElementById('modPagoZelle').value = (pagos.zelle !== undefined && pagos.zelle !== null && pagos.zelle > 0) ? Number(pagos.zelle).toFixed(2) : '0.00';
+
+            // Convertir de USD a Bs. para la interfaz de Pago Móvil y Punto de Venta
+            const pmUSD = pagos.pagomovil || 0;
+            const ptUSD = pagos.punto || 0;
+            const pmBs = pmUSD > 0 ? (pmUSD * tasa) : 0;
+            const ptBs = ptUSD > 0 ? (ptUSD * tasa) : 0;
+            document.getElementById('modPagoPagomovil').value = pmBs > 0 ? Number(pmBs.toFixed(2)) : '0.00';
+            document.getElementById('modPagoPunto').value = ptBs > 0 ? Number(ptBs.toFixed(2)) : '0.00';
+            document.getElementById('modPagoCredito').value = (pagos.credito !== undefined && pagos.credito !== null && pagos.credito > 0) ? Number(pagos.credito).toFixed(2) : '0.00';
             if (document.getElementById('modRefTransferencia')) {
                 document.getElementById('modRefTransferencia').value = d.referencia_transferencia || '';
             }
@@ -1368,7 +1382,7 @@
             filaCred.classList.remove('hidden');
         } else {
             filaCred.classList.add('hidden');
-            document.getElementById('modPagoCredito').value = 0;
+            document.getElementById('modPagoCredito').value = '0.00';
         }
         recalcularTotalesMod(false);
     }
@@ -1450,11 +1464,32 @@
 
         const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
         const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
-        const pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
-        const pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+        const pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
+        const ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
         const cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
-        const sumPagos = Math.round((ef + ze + pm + pt + cr) * 100) / 100;
 
+        // Conversión a USD de los pagos en Bolívares
+        const pmUSD = tasa > 0 ? (pmBs / tasa) : 0;
+        const ptUSD = tasa > 0 ? (ptBs / tasa) : 0;
+
+        // Actualizar badges equivalentes en tiempo real
+        if (document.getElementById('modEqEfectivoBS')) {
+            document.getElementById('modEqEfectivoBS').textContent = `≈ Bs. ${Number((ef * tasa).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        }
+        if (document.getElementById('modEqZelleBS')) {
+            document.getElementById('modEqZelleBS').textContent = `≈ Bs. ${Number((ze * tasa).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        }
+        if (document.getElementById('modEqPagomovilUSD')) {
+            document.getElementById('modEqPagomovilUSD').textContent = `≈ $${pmUSD.toFixed(2)} USD`;
+        }
+        if (document.getElementById('modEqPuntoUSD')) {
+            document.getElementById('modEqPuntoUSD').textContent = `≈ $${ptUSD.toFixed(2)} USD`;
+        }
+        if (document.getElementById('modEqCreditoBS')) {
+            document.getElementById('modEqCreditoBS').textContent = `≈ Bs. ${Number((cr * tasa).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        }
+
+        const sumPagos = Math.round((ef + ze + pmUSD + ptUSD + cr) * 100) / 100;
         const diff = Math.round((totalUSD - sumPagos) * 100) / 100;
         const alerta = document.getElementById('modAlertaDiferencia');
         if (alerta) {
@@ -1462,34 +1497,37 @@
                 alerta.classList.remove('hidden');
                 if (diff < 0) {
                     // El total de la factura es MENOR a los pagos recibidos => Hay que devolver dinero al cliente
-                    const devolucion = Math.abs(diff);
+                    const devolucionUSD = Math.abs(diff);
+                    const devolucionBS = Math.round(devolucionUSD * tasa * 100) / 100;
                     alerta.className = "text-[11px] text-amber-900 font-bold bg-amber-100/90 p-2.5 rounded-xl border border-amber-300 text-left space-y-1 shadow-sm";
                     alerta.innerHTML = `
                         <div class="flex items-center text-amber-800 font-black">
                             <i class="fa-solid fa-hand-holding-dollar mr-1.5 text-base text-amber-600"></i>
-                            <span>DEVOLUCIÓN AL CLIENTE: $${devolucion.toFixed(2)} USD</span>
+                            <span>DEVOLUCIÓN AL CLIENTE: $${devolucionUSD.toFixed(2)} USD (Bs. ${Number(devolucionBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})})</span>
                         </div>
                         <p class="text-[10px] text-slate-700 leading-tight font-medium">
-                            Quitaste artículos de la venta. Debes devolver <strong>$${devolucion.toFixed(2)}</strong> al cliente de la gaveta de caja física y descontarlo en <strong>Efectivo</strong> (o pulsar <em>'Cuadrar al Total'</em>) para que tu arqueo de caja cuadre.
+                            Quitaste artículos de la venta. Debes devolver <strong>$${devolucionUSD.toFixed(2)} USD</strong> (o <strong>Bs. ${Number(devolucionBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</strong>) al cliente de la gaveta de caja física y descontarlo en <strong>Efectivo</strong> (o pulsar <em>'Cuadrar al Total'</em>) para que tu arqueo de caja cuadre.
                         </p>
                     `;
                 } else {
                     // El total de la factura es MAYOR a los pagos recibidos => Falta cobrar dinero al cliente
+                    const restanteUSD = diff;
+                    const restanteBS = Math.round(restanteUSD * tasa * 100) / 100;
                     alerta.className = "text-[11px] text-emerald-900 font-bold bg-emerald-100/90 p-2.5 rounded-xl border border-emerald-300 text-left space-y-1 shadow-sm";
                     alerta.innerHTML = `
                         <div class="flex items-center text-emerald-800 font-black">
                             <i class="fa-solid fa-circle-plus mr-1.5 text-base text-emerald-600"></i>
-                            <span>RESTANTE POR COBRAR: $${diff.toFixed(2)} USD</span>
+                            <span>RESTANTE POR COBRAR: $${restanteUSD.toFixed(2)} USD (Bs. ${Number(restanteBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})})</span>
                         </div>
                         <p class="text-[10px] text-slate-700 leading-tight font-medium">
-                            Agregaste artículos a la venta. Debes cobrar <strong>$${diff.toFixed(2)}</strong> adicionales al cliente e ingresarlo en Efectivo, Pago Móvil, Punto o Zelle para registrar el ingreso en caja.
+                            Agregaste artículos a la venta. Debes cobrar <strong>$${restanteUSD.toFixed(2)} USD</strong> (o <strong>Bs. ${Number(restanteBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</strong>) adicionales al cliente e ingresarlo en Efectivo, Pago Móvil (Bs.), Punto (Bs.) o Zelle para registrar el ingreso en caja.
                         </p>
                     `;
                 }
             } else {
                 alerta.classList.remove('hidden');
                 alerta.className = "text-[10px] text-emerald-800 font-black bg-emerald-50 p-2 rounded-xl border border-emerald-300 text-center";
-                alerta.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> Pagos perfectamente cuadrados con el total ($${totalUSD.toFixed(2)})`;
+                alerta.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> Pagos perfectamente cuadrados con el total ($${totalUSD.toFixed(2)} USD | Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})})`;
             }
         }
     }
@@ -1501,31 +1539,46 @@
             totalUSD += it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
         });
         totalUSD = Math.round(totalUSD * 100) / 100;
+        const tasa = facturaModActual.tasa_bcv || TASA_BCV;
 
         const condicion = document.getElementById('modFacturaCondicion').value;
-        if (condicion === 'credito') {
-            const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
-            const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
-            const pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
-            const pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
-            const abono = ef + ze + pm + pt;
-            const resto = Math.max(0, Math.round((totalUSD - abono) * 100) / 100);
-            document.getElementById('modPagoCredito').value = resto;
-        } else {
-            const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
-            const pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
-            const pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
-            const otros = ze + pm + pt;
+        const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+        const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
+        const pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
+        const ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+        const pmUSD = tasa > 0 ? (pmBs / tasa) : 0;
+        const ptUSD = tasa > 0 ? (ptBs / tasa) : 0;
 
-            if (otros > 0 && totalUSD >= otros) {
-                document.getElementById('modPagoEfectivo').value = Math.max(0, Math.round((totalUSD - otros) * 100) / 100);
-            } else {
-                document.getElementById('modPagoEfectivo').value = totalUSD;
-                document.getElementById('modPagoZelle').value = 0;
-                document.getElementById('modPagoPagomovil').value = 0;
-                document.getElementById('modPagoPunto').value = 0;
+        if (condicion === 'credito') {
+            const abono = ef + ze + pmUSD + ptUSD;
+            const resto = Math.max(0, Math.round((totalUSD - abono) * 100) / 100);
+            document.getElementById('modPagoCredito').value = resto.toFixed(2);
+        } else {
+            // Si el pago era 100% Pago Móvil, cuadrar en Pago Móvil (Bs.)
+            if (ef === 0 && ze === 0 && ptBs === 0 && pmBs > 0) {
+                document.getElementById('modPagoPagomovil').value = (totalUSD * tasa).toFixed(2);
             }
-            document.getElementById('modPagoCredito').value = 0;
+            // Si el pago era 100% Punto de Venta, cuadrar en Punto (Bs.)
+            else if (ef === 0 && ze === 0 && pmBs === 0 && ptBs > 0) {
+                document.getElementById('modPagoPunto').value = (totalUSD * tasa).toFixed(2);
+            }
+            // Si el pago era 100% Zelle, cuadrar en Zelle ($)
+            else if (ef === 0 && pmBs === 0 && ptBs === 0 && ze > 0) {
+                document.getElementById('modPagoZelle').value = totalUSD.toFixed(2);
+            }
+            // Caso mixto o estándar: ajustar la diferencia en Efectivo ($)
+            else {
+                const otros = ze + pmUSD + ptUSD;
+                if (otros > 0 && totalUSD >= otros) {
+                    document.getElementById('modPagoEfectivo').value = Math.max(0, Math.round((totalUSD - otros) * 100) / 100).toFixed(2);
+                } else {
+                    document.getElementById('modPagoEfectivo').value = totalUSD.toFixed(2);
+                    document.getElementById('modPagoZelle').value = '0.00';
+                    document.getElementById('modPagoPagomovil').value = '0.00';
+                    document.getElementById('modPagoPunto').value = '0.00';
+                }
+            }
+            document.getElementById('modPagoCredito').value = '0.00';
         }
         recalcularTotalesMod(false);
     }
@@ -1601,40 +1654,46 @@
         }
 
         const condicion = document.getElementById('modFacturaCondicion').value;
+        const tasa = facturaModActual.tasa_bcv || TASA_BCV;
         let ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
         let ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
-        let pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
-        let pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+        let pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
+        let ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
         let cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
+
+        let pmUSD = tasa > 0 ? Math.round((pmBs / tasa) * 100) / 100 : 0;
+        let ptUSD = tasa > 0 ? Math.round((ptBs / tasa) * 100) / 100 : 0;
 
         let totalMod = 0;
         facturaModActual.items.forEach(it => {
             totalMod += it.cantidad * it.precio * (1 - (it.descuento || 0) / 100);
         });
         totalMod = Math.round(totalMod * 100) / 100;
-        const inicialAbonada = ef + ze + pm + pt;
+        const totalModBS = Math.round(totalMod * tasa * 100) / 100;
+        const inicialAbonada = ef + ze + pmUSD + ptUSD;
 
         if (condicion === 'credito') {
             if (cr === 0 || Math.abs((inicialAbonada + cr) - totalMod) > 0.05) {
                 cr = Math.max(0, Math.round((totalMod - inicialAbonada) * 100) / 100);
-                document.getElementById('modPagoCredito').value = cr;
+                document.getElementById('modPagoCredito').value = cr.toFixed(2);
             }
         } else {
             // Validación de pagos para ventas de Contado
-            const sumPagosContado = Math.round((ef + ze + pm + pt) * 100) / 100;
+            const sumPagosContado = Math.round((ef + ze + pmUSD + ptUSD) * 100) / 100;
             const diffContado = Math.round((totalMod - sumPagosContado) * 100) / 100;
 
             if (diffContado < -0.05) {
                 // Hay dinero de más en pagos => Devolución de dinero al cliente
-                const devolucionMonto = Math.abs(diffContado);
+                const devolucionUSD = Math.abs(diffContado);
+                const devolucionBS = Math.round(devolucionUSD * tasa * 100) / 100;
                 const confirmDev = await Swal.fire({
                     title: '¿Confirmar Devolución al Cliente?',
                     html: `
                         <div class="text-left text-xs space-y-2.5">
-                            <p class="text-slate-700">El nuevo total de la factura es de <strong>$${totalMod.toFixed(2)} USD</strong> y en pagos registrados hay <strong>$${sumPagosContado.toFixed(2)} USD</strong>.</p>
+                            <p class="text-slate-700">El nuevo total de la factura es de <strong>$${totalMod.toFixed(2)} USD</strong> (Bs. ${Number(totalModBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}) y en pagos registrados hay <strong>$${sumPagosContado.toFixed(2)} USD</strong>.</p>
                             <div class="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 font-bold">
                                 <i class="fa-solid fa-hand-holding-dollar mr-1.5 text-amber-600"></i>
-                                Debes entregar <strong>$${devolucionMonto.toFixed(2)} USD</strong> de vuelto al cliente de la gaveta de caja física.
+                                Debes entregar <strong>$${devolucionUSD.toFixed(2)} USD</strong> (o <strong>Bs. ${Number(devolucionBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</strong>) de vuelto al cliente de la gaveta de caja física.
                             </div>
                             <p class="text-slate-500 italic">¿Deseas cuadrar automáticamente el pago en caja a $${totalMod.toFixed(2)} para que tu arqueo coincida con el dinero físico restante?</p>
                         </div>
@@ -1650,20 +1709,24 @@
                 cuadrarPagosMod();
                 ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
                 ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
-                pm = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
-                pt = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+                pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
+                ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+                pmUSD = tasa > 0 ? Math.round((pmBs / tasa) * 100) / 100 : 0;
+                ptUSD = tasa > 0 ? Math.round((ptBs / tasa) * 100) / 100 : 0;
             } else if (diffContado > 0.05) {
                 // Hay dinero faltante por cobrar
+                const restanteUSD = diffContado;
+                const restanteBS = Math.round(restanteUSD * tasa * 100) / 100;
                 await Swal.fire({
                     title: 'Falta Registrar Cobro',
                     html: `
                         <div class="text-left text-xs space-y-2.5">
-                            <p class="text-slate-700">El nuevo total modificado es de <strong>$${totalMod.toFixed(2)} USD</strong> pero solo tienes registrados <strong>$${sumPagosContado.toFixed(2)} USD</strong> en pagos.</p>
+                            <p class="text-slate-700">El nuevo total modificado es de <strong>$${totalMod.toFixed(2)} USD</strong> (Bs. ${Number(totalModBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}) pero solo tienes registrados <strong>$${sumPagosContado.toFixed(2)} USD</strong> en pagos.</p>
                             <div class="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 font-bold">
                                 <i class="fa-solid fa-triangle-exclamation mr-1.5 text-rose-600"></i>
-                                Faltan <strong>$${diffContado.toFixed(2)} USD</strong> por registrar.
+                                Faltan <strong>$${restanteUSD.toFixed(2)} USD</strong> (o <strong>Bs. ${Number(restanteBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</strong>) por registrar.
                             </div>
-                            <p class="text-slate-600 font-medium">Por favor ingresa en qué método (Efectivo, Pago Móvil, Punto o Zelle) te canceló el cliente los <strong>$${diffContado.toFixed(2)} USD</strong> restantes para que tu caja no quede con faltante.</p>
+                            <p class="text-slate-600 font-medium">Por favor ingresa en qué método (Efectivo $, Pago Móvil Bs., Punto Bs. o Zelle $) te canceló el cliente los <strong>$${restanteUSD.toFixed(2)} USD</strong> restantes para que tu caja no quede con faltante.</p>
                         </div>
                     `,
                     icon: 'error',
@@ -1698,8 +1761,8 @@
             condicion,
             efectivo: ef,
             zelle: ze,
-            pagomovil: pm,
-            punto: pt,
+            pagomovil: pmUSD,
+            punto: ptUSD,
             credito: cr,
             referencia_transferencia: document.getElementById('modRefTransferencia') ? document.getElementById('modRefTransferencia').value.trim() : '',
             items: itemsPayload,
