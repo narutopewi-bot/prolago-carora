@@ -193,21 +193,21 @@
     <!-- TABLA HISTORIAL -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs min-w-[850px]">
-                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+            <table class="w-full text-left text-xs min-w-[1350px]">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
                     <tr>
-                        <th class="px-4 py-3.5">Factura N°</th>
-                        <th class="px-3 py-3.5 text-center">Condición</th>
-                        <th class="px-4 py-3.5">Fecha y Hora</th>
-                        <th class="px-4 py-3.5">Cliente</th>
-                        <th class="px-3 py-3.5 text-right">Efectivo ($)</th>
-                        <th class="px-3 py-3.5 text-right">Zelle ($)</th>
-                        <th class="px-3 py-3.5 text-right">Transferencia ($)</th>
-                        <th class="px-3 py-3.5 text-right">Punto ($)</th>
-                        <th class="px-3 py-3.5 text-right font-bold text-rose-600">Crédito / Debe ($)</th>
-                        <th class="px-4 py-3.5 text-right">Total ($)</th>
-                        <th class="px-4 py-3.5 text-right">Total (Bs.)</th>
-                        <th class="px-3 py-3.5 text-center">Acciones</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap min-w-[100px]">Factura N°</th>
+                        <th class="px-3 py-3.5 text-center whitespace-nowrap min-w-[120px]">Condición</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap min-w-[160px]">Fecha y Hora</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap min-w-[200px]">Cliente</th>
+                        <th class="px-3 py-3.5 text-right whitespace-nowrap min-w-[105px]">Efectivo ($)</th>
+                        <th class="px-3 py-3.5 text-right whitespace-nowrap min-w-[100px]">Zelle ($)</th>
+                        <th class="px-3 py-3.5 text-right whitespace-nowrap min-w-[140px]">Transferencia ($)</th>
+                        <th class="px-3 py-3.5 text-right whitespace-nowrap min-w-[100px]">Punto ($)</th>
+                        <th class="px-3 py-3.5 text-right font-bold text-rose-600 whitespace-nowrap min-w-[130px]">Crédito / Debe ($)</th>
+                        <th class="px-4 py-3.5 text-right whitespace-nowrap min-w-[110px]">Total ($)</th>
+                        <th class="px-4 py-3.5 text-right whitespace-nowrap min-w-[140px]">Total (Bs.)</th>
+                        <th class="px-4 py-3.5 text-center whitespace-nowrap min-w-[160px]">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaHistorialBody" class="divide-y divide-slate-100">
@@ -785,37 +785,39 @@
             let btnPrintMediaHoja = '';
             if (esCredito) {
                 btnPrintMediaHoja = `
-                    <button onclick="abrirComprobanteCreditoHistorial(${f.id})" class="text-[#8B1E24] hover:text-[#72181D] hover:bg-rose-50 p-1.5 rounded-lg transition ml-1" title="Imprimir Comprobante Media Hoja A4">
-                        <i class="fa-solid fa-file-invoice-dollar text-sm"></i>
+                    <button onclick="abrirComprobanteCreditoHistorial(${f.id})" class="w-8 h-8 rounded-xl inline-flex items-center justify-center text-[#8B1E24] hover:text-[#72181D] hover:bg-rose-50 border border-transparent hover:border-rose-200 transition shadow-xs" title="Imprimir Comprobante Media Hoja A4">
+                        <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
                     </button>
                 `;
             }
 
             tr.innerHTML = `
-                <td class="px-4 py-3 font-mono font-bold text-emerald-700">#${f.numero}</td>
-                <td class="px-3 py-3 text-center">${badgeCondicion}</td>
-                <td class="px-4 py-3 text-slate-500 whitespace-nowrap">${fFecha}</td>
-                <td class="px-4 py-3 font-semibold text-slate-800">${f.cliente_nombre}</td>
-                <td class="px-3 py-3 text-right font-mono text-slate-600">${f.efectivo ? '$' + f.efectivo.toFixed(2) : '-'}</td>
-                <td class="px-3 py-3 text-right font-mono text-purple-600">${f.zelle ? '$' + f.zelle.toFixed(2) : '-'}</td>
-                <td class="px-3 py-3 text-right font-mono text-blue-600">
+                <td class="px-4 py-3.5 font-mono font-bold text-emerald-700 whitespace-nowrap">#${f.numero}</td>
+                <td class="px-3 py-3.5 text-center whitespace-nowrap">${badgeCondicion}</td>
+                <td class="px-4 py-3.5 text-slate-500 whitespace-nowrap">${fFecha}</td>
+                <td class="px-4 py-3.5 font-semibold text-slate-800">${f.cliente_nombre}</td>
+                <td class="px-3 py-3.5 text-right font-mono text-slate-600 whitespace-nowrap">${f.efectivo ? '$' + f.efectivo.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3.5 text-right font-mono text-purple-600 whitespace-nowrap">${f.zelle ? '$' + f.zelle.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3.5 text-right font-mono text-blue-600 whitespace-nowrap">
                     ${f.pagomovil ? `$${f.pagomovil.toFixed(2)}${f.referencia_transferencia ? `<div class="text-[9px] text-blue-500 font-bold">Ref: ${f.referencia_transferencia}</div>` : ''}` : '-'}
                 </td>
-                <td class="px-3 py-3 text-right font-mono text-amber-600">${f.punto ? '$' + f.punto.toFixed(2) : '-'}</td>
-                <td class="px-3 py-3 text-right font-mono">${celdaCredito}</td>
-                <td class="px-4 py-3 text-right font-mono font-black text-slate-900 text-sm">$${f.total.toFixed(2)}</td>
-                <td class="px-4 py-3 text-right font-mono text-slate-500 whitespace-nowrap">Bs. ${Number(totalBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
-                <td class="px-3 py-3 text-center whitespace-nowrap space-x-1">
-                    <button onclick="verDetalleFactura(${f.id})" class="text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 p-1.5 rounded-lg transition" title="Ver detalle">
-                        <i class="fa-solid fa-eye"></i>
-                    </button>
-                    <button onclick="intentarModificarFactura(${f.id})" class="text-slate-400 hover:text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg transition" title="Modificar Factura">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </button>
-                    ${btnPrintMediaHoja}
-                    <button onclick="intentarEliminarFactura(${f.id}, '${f.numero}')" class="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition" title="Anular / Eliminar Factura">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
+                <td class="px-3 py-3.5 text-right font-mono text-amber-600 whitespace-nowrap">${f.punto ? '$' + f.punto.toFixed(2) : '-'}</td>
+                <td class="px-3 py-3.5 text-right font-mono whitespace-nowrap">${celdaCredito}</td>
+                <td class="px-4 py-3.5 text-right font-mono font-black text-slate-900 text-sm whitespace-nowrap">$${f.total.toFixed(2)}</td>
+                <td class="px-4 py-3.5 text-right font-mono text-slate-500 whitespace-nowrap">Bs. ${Number(totalBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                    <div class="inline-flex items-center justify-center space-x-1.5">
+                        <button onclick="verDetalleFactura(${f.id})" class="w-8 h-8 rounded-xl inline-flex items-center justify-center text-slate-500 hover:text-cyan-600 hover:bg-cyan-50 border border-transparent hover:border-cyan-200 transition shadow-xs" title="Ver detalle">
+                            <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
+                        <button onclick="intentarModificarFactura(${f.id})" class="w-8 h-8 rounded-xl inline-flex items-center justify-center text-slate-500 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition shadow-xs" title="Modificar Factura">
+                            <i class="fa-solid fa-pen-to-square text-xs"></i>
+                        </button>
+                        ${btnPrintMediaHoja}
+                        <button onclick="intentarEliminarFactura(${f.id}, '${f.numero}')" class="w-8 h-8 rounded-xl inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition shadow-xs" title="Anular / Eliminar Factura">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
