@@ -6,10 +6,8 @@ venv/
 .vscode/
 build/
 dist/
+# Respaldos locales excluidos
+respaldos/
 *.spec
 *.zip
-respaldos/
-prolago.db
-*.db
-*.sqlite
-*.sqlite3
+
