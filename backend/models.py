@@ -81,6 +81,7 @@ class Caja(Base):
     total_ventas = Column(Float, default=0.0)
 
     # Renglones en Bolívares registrados en el turno
+    ventas_efectivo_bs = Column(Float, default=0.0)
     ventas_pagomovil_bs = Column(Float, default=0.0)
     ventas_punto_bs = Column(Float, default=0.0)
     total_ventas_bs = Column(Float, default=0.0)
@@ -180,6 +181,7 @@ class Factura(Base):
     fecha_vencimiento = Column(DateTime, nullable=True)
     
     efectivo = Column(Float, default=0.0)
+    efectivo_bs = Column(Float, default=0.0)
     zelle = Column(Float, default=0.0)
     pagomovil = Column(Float, default=0.0)
     punto = Column(Float, default=0.0)

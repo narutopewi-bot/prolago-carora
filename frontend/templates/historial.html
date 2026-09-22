@@ -471,6 +471,12 @@
                             <span id="modEqEfectivoBS" class="text-[9.5px] text-slate-400 font-mono block mt-0.5">≈ Bs. 0,00</span>
                         </div>
                         <div>
+                            <span class="text-[10px] text-emerald-700 font-bold block">Efectivo (Bs.):</span>
+                            <input type="number" step="0.01" min="0" id="modPagoEfectivoBS" oninput="recalcularTotalesMod(false)"
+                                class="w-full px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-bold font-mono text-emerald-900 focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                            <span id="modEqEfectivoBS_USD" class="text-[9.5px] text-emerald-600 font-bold font-mono block mt-0.5">≈ $0.00 USD</span>
+                        </div>
+                        <div>
                             <span class="text-[10px] text-purple-600 font-semibold block">Zelle ($):</span>
                             <input type="number" step="0.01" min="0" id="modPagoZelle" oninput="recalcularTotalesMod(false)"
                                 class="w-full px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold font-mono focus:ring-1 focus:ring-purple-400 focus:outline-none">
@@ -636,7 +642,8 @@
 
         filtradas.forEach(f => {
             totalFact += (f.total || 0);
-            totalCont += (f.efectivo || 0) + (f.zelle || 0) + (f.pagomovil || 0) + (f.punto || 0);
+            const efBsUSD = (f.efectivo_bs && f.tasa_bcv > 0) ? (f.efectivo_bs / f.tasa_bcv) : 0;
+            totalCont += (f.efectivo || 0) + efBsUSD + (f.zelle || 0) + (f.pagomovil || 0) + (f.punto || 0);
             const saldo = (f.saldo_pendiente !== undefined && f.saldo_pendiente !== null) ? f.saldo_pendiente : (f.credito || 0);
             if (saldo > 0) totalDebe += saldo;
         });
@@ -713,7 +720,10 @@
                 <td class="px-2.5 py-3 text-center whitespace-nowrap">${badgeCondicion}</td>
                 <td class="px-3 py-3 text-slate-500 whitespace-nowrap">${fFecha}</td>
                 <td class="px-3.5 py-3 font-semibold text-slate-800">${f.cliente_nombre}</td>
-                <td class="px-2.5 py-3 text-right font-mono text-slate-600 whitespace-nowrap">${f.efectivo ? '$' + f.efectivo.toFixed(2) : '-'}</td>
+                <td class="px-2.5 py-3 text-right font-mono text-slate-600 whitespace-nowrap">
+                    ${(f.efectivo && f.efectivo > 0) ? '$' + f.efectivo.toFixed(2) : ((f.efectivo_bs && f.efectivo_bs > 0) ? '' : '-')}
+                    ${(f.efectivo_bs && f.efectivo_bs > 0) ? `<div class="text-[9px] text-emerald-600 font-bold">Bs. ${Number(f.efectivo_bs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</div>` : ''}
+                </td>
                 <td class="px-2.5 py-3 text-right font-mono text-purple-600 whitespace-nowrap">${f.zelle ? '$' + f.zelle.toFixed(2) : '-'}</td>
                 <td class="px-2.5 py-3 text-right font-mono text-blue-600 whitespace-nowrap">
                     ${f.pagomovil ? `$${f.pagomovil.toFixed(2)}${f.referencia_transferencia ? `<div class="text-[9px] text-blue-500 font-bold">Ref: ${f.referencia_transferencia}</div>` : ''}` : '-'}
@@ -1343,6 +1353,9 @@
             const tasa = facturaModActual.tasa_bcv || TASA_BCV;
             const pagos = d.pagos || {};
             document.getElementById('modPagoEfectivo').value = (pagos.efectivo !== undefined && pagos.efectivo !== null && pagos.efectivo > 0) ? Number(pagos.efectivo).toFixed(2) : '0.00';
+            if (document.getElementById('modPagoEfectivoBS')) {
+                document.getElementById('modPagoEfectivoBS').value = (pagos.efectivo_bs !== undefined && pagos.efectivo_bs !== null && pagos.efectivo_bs > 0) ? Number(pagos.efectivo_bs).toFixed(2) : '0.00';
+            }
             document.getElementById('modPagoZelle').value = (pagos.zelle !== undefined && pagos.zelle !== null && pagos.zelle > 0) ? Number(pagos.zelle).toFixed(2) : '0.00';
 
             // Convertir de USD a Bs. para la interfaz de Pago Móvil y Punto de Venta
@@ -1463,18 +1476,23 @@
         document.getElementById('modResumenTotalBS').textContent = `Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
 
         const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+        const efBs = (document.getElementById('modPagoEfectivoBS') ? parseFloat(document.getElementById('modPagoEfectivoBS').value) : 0) || 0;
         const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
         const pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
         const ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
         const cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
 
         // Conversión a USD de los pagos en Bolívares
+        const efBsUSD = tasa > 0 ? (efBs / tasa) : 0;
         const pmUSD = tasa > 0 ? (pmBs / tasa) : 0;
         const ptUSD = tasa > 0 ? (ptBs / tasa) : 0;
 
         // Actualizar badges equivalentes en tiempo real
         if (document.getElementById('modEqEfectivoBS')) {
             document.getElementById('modEqEfectivoBS').textContent = `≈ Bs. ${Number((ef * tasa).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+        }
+        if (document.getElementById('modEqEfectivoBS_USD')) {
+            document.getElementById('modEqEfectivoBS_USD').textContent = `≈ $${efBsUSD.toFixed(2)} USD`;
         }
         if (document.getElementById('modEqZelleBS')) {
             document.getElementById('modEqZelleBS').textContent = `≈ Bs. ${Number((ze * tasa).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
@@ -1489,7 +1507,7 @@
             document.getElementById('modEqCreditoBS').textContent = `≈ Bs. ${Number((cr * tasa).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
         }
 
-        const sumPagos = Math.round((ef + ze + pmUSD + ptUSD + cr) * 100) / 100;
+        const sumPagos = Math.round((ef + efBsUSD + ze + pmUSD + ptUSD + cr) * 100) / 100;
         const diff = Math.round((totalUSD - sumPagos) * 100) / 100;
         const alerta = document.getElementById('modAlertaDiferencia');
         if (alerta) {
@@ -1543,36 +1561,45 @@
 
         const condicion = document.getElementById('modFacturaCondicion').value;
         const ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+        const efBs = (document.getElementById('modPagoEfectivoBS') ? parseFloat(document.getElementById('modPagoEfectivoBS').value) : 0) || 0;
         const ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
         const pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
         const ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+        const efBsUSD = tasa > 0 ? (efBs / tasa) : 0;
         const pmUSD = tasa > 0 ? (pmBs / tasa) : 0;
         const ptUSD = tasa > 0 ? (ptBs / tasa) : 0;
 
         if (condicion === 'credito') {
-            const abono = ef + ze + pmUSD + ptUSD;
+            const abono = ef + efBsUSD + ze + pmUSD + ptUSD;
             const resto = Math.max(0, Math.round((totalUSD - abono) * 100) / 100);
             document.getElementById('modPagoCredito').value = resto.toFixed(2);
         } else {
             // Si el pago era 100% Pago Móvil, cuadrar en Pago Móvil (Bs.)
-            if (ef === 0 && ze === 0 && ptBs === 0 && pmBs > 0) {
+            if (ef === 0 && efBs === 0 && ze === 0 && ptBs === 0 && pmBs > 0) {
                 document.getElementById('modPagoPagomovil').value = (totalUSD * tasa).toFixed(2);
             }
             // Si el pago era 100% Punto de Venta, cuadrar en Punto (Bs.)
-            else if (ef === 0 && ze === 0 && pmBs === 0 && ptBs > 0) {
+            else if (ef === 0 && efBs === 0 && ze === 0 && pmBs === 0 && ptBs > 0) {
                 document.getElementById('modPagoPunto').value = (totalUSD * tasa).toFixed(2);
             }
+            // Si el pago era 100% Efectivo Bs., cuadrar en Efectivo (Bs.)
+            else if (ef === 0 && ze === 0 && pmBs === 0 && ptBs === 0 && efBs > 0) {
+                if (document.getElementById('modPagoEfectivoBS')) {
+                    document.getElementById('modPagoEfectivoBS').value = (totalUSD * tasa).toFixed(2);
+                }
+            }
             // Si el pago era 100% Zelle, cuadrar en Zelle ($)
-            else if (ef === 0 && pmBs === 0 && ptBs === 0 && ze > 0) {
+            else if (ef === 0 && efBs === 0 && pmBs === 0 && ptBs === 0 && ze > 0) {
                 document.getElementById('modPagoZelle').value = totalUSD.toFixed(2);
             }
             // Caso mixto o estándar: ajustar la diferencia en Efectivo ($)
             else {
-                const otros = ze + pmUSD + ptUSD;
+                const otros = efBsUSD + ze + pmUSD + ptUSD;
                 if (otros > 0 && totalUSD >= otros) {
                     document.getElementById('modPagoEfectivo').value = Math.max(0, Math.round((totalUSD - otros) * 100) / 100).toFixed(2);
                 } else {
                     document.getElementById('modPagoEfectivo').value = totalUSD.toFixed(2);
+                    if (document.getElementById('modPagoEfectivoBS')) document.getElementById('modPagoEfectivoBS').value = '0.00';
                     document.getElementById('modPagoZelle').value = '0.00';
                     document.getElementById('modPagoPagomovil').value = '0.00';
                     document.getElementById('modPagoPunto').value = '0.00';
@@ -1656,11 +1683,13 @@
         const condicion = document.getElementById('modFacturaCondicion').value;
         const tasa = facturaModActual.tasa_bcv || TASA_BCV;
         let ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+        let efBs = (document.getElementById('modPagoEfectivoBS') ? parseFloat(document.getElementById('modPagoEfectivoBS').value) : 0) || 0;
         let ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
         let pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
         let ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
         let cr = parseFloat(document.getElementById('modPagoCredito').value) || 0;
 
+        let efBsUSD = tasa > 0 ? Math.round((efBs / tasa) * 100) / 100 : 0;
         let pmUSD = tasa > 0 ? Math.round((pmBs / tasa) * 100) / 100 : 0;
         let ptUSD = tasa > 0 ? Math.round((ptBs / tasa) * 100) / 100 : 0;
 
@@ -1670,7 +1699,7 @@
         });
         totalMod = Math.round(totalMod * 100) / 100;
         const totalModBS = Math.round(totalMod * tasa * 100) / 100;
-        const inicialAbonada = ef + ze + pmUSD + ptUSD;
+        const inicialAbonada = ef + efBsUSD + ze + pmUSD + ptUSD;
 
         if (condicion === 'credito') {
             if (cr === 0 || Math.abs((inicialAbonada + cr) - totalMod) > 0.05) {
@@ -1679,7 +1708,7 @@
             }
         } else {
             // Validación de pagos para ventas de Contado
-            const sumPagosContado = Math.round((ef + ze + pmUSD + ptUSD) * 100) / 100;
+            const sumPagosContado = Math.round((ef + efBsUSD + ze + pmUSD + ptUSD) * 100) / 100;
             const diffContado = Math.round((totalMod - sumPagosContado) * 100) / 100;
 
             if (diffContado < -0.05) {
@@ -1708,9 +1737,11 @@
                 if (!confirmDev.isConfirmed) return;
                 cuadrarPagosMod();
                 ef = parseFloat(document.getElementById('modPagoEfectivo').value) || 0;
+                efBs = (document.getElementById('modPagoEfectivoBS') ? parseFloat(document.getElementById('modPagoEfectivoBS').value) : 0) || 0;
                 ze = parseFloat(document.getElementById('modPagoZelle').value) || 0;
                 pmBs = parseFloat(document.getElementById('modPagoPagomovil').value) || 0;
                 ptBs = parseFloat(document.getElementById('modPagoPunto').value) || 0;
+                efBsUSD = tasa > 0 ? Math.round((efBs / tasa) * 100) / 100 : 0;
                 pmUSD = tasa > 0 ? Math.round((pmBs / tasa) * 100) / 100 : 0;
                 ptUSD = tasa > 0 ? Math.round((ptBs / tasa) * 100) / 100 : 0;
             } else if (diffContado > 0.05) {
@@ -1726,7 +1757,7 @@
                                 <i class="fa-solid fa-triangle-exclamation mr-1.5 text-rose-600"></i>
                                 Faltan <strong>$${restanteUSD.toFixed(2)} USD</strong> (o <strong>Bs. ${Number(restanteBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</strong>) por registrar.
                             </div>
-                            <p class="text-slate-600 font-medium">Por favor ingresa en qué método (Efectivo $, Pago Móvil Bs., Punto Bs. o Zelle $) te canceló el cliente los <strong>$${restanteUSD.toFixed(2)} USD</strong> restantes para que tu caja no quede con faltante.</p>
+                            <p class="text-slate-600 font-medium">Por favor ingresa en qué método (Efectivo $, Efectivo Bs., Pago Móvil Bs., Punto Bs. o Zelle $) te canceló el cliente los <strong>$${restanteUSD.toFixed(2)} USD</strong> restantes para que tu caja no quede con faltante.</p>
                         </div>
                     `,
                     icon: 'error',
@@ -1760,6 +1791,7 @@
             cliente_nombre,
             condicion,
             efectivo: ef,
+            efectivo_bs: efBs,
             zelle: ze,
             pagomovil: pmUSD,
             punto: ptUSD,

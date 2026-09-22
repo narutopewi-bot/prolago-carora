@@ -59,6 +59,7 @@ class FacturaCreate(BaseModel):
     cliente_id: Optional[int] = None
     condicion: Optional[str] = "contado" # 'contado' o 'credito'
     efectivo: Optional[float] = 0.0
+    efectivo_bs: Optional[float] = 0.0
     zelle: Optional[float] = 0.0
     pagomovil: Optional[float] = 0.0
     punto: Optional[float] = 0.0
@@ -136,6 +137,7 @@ class FacturaUpdate(BaseModel):
     cliente_id: Optional[int] = None
     condicion: Optional[str] = None
     efectivo: Optional[float] = None
+    efectivo_bs: Optional[float] = None
     zelle: Optional[float] = None
     pagomovil: Optional[float] = None
     punto: Optional[float] = None
@@ -151,6 +153,7 @@ class CajaApertura(BaseModel):
     monto_apertura_usd: float = 0.0
     monto_apertura_bs: Optional[float] = 0.0
     observaciones: Optional[str] = ""
+    admin_password: Optional[str] = ""
 
 class CajaCierre(BaseModel):
     caja_id: Optional[int] = None

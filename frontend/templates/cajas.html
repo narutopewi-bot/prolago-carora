@@ -211,6 +211,20 @@
             </div>
 
             <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Clave de Administrador <span class="text-rose-600">*</span></span>
+                    <span class="text-[10px] text-amber-600 font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i>Requerida</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-key"></i>
+                    </span>
+                    <input type="password" id="abrirAdminClave" required placeholder="Ingrese la clave del administrador"
+                        class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                </div>
+            </div>
+
+            <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Observaciones / Nota</label>
                 <input type="text" id="abrirObservaciones" placeholder="Ej: Billete de 20 para vuelto..."
                     class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
@@ -368,6 +382,7 @@
             <div class="border-t border-b border-dashed border-slate-400 py-2 space-y-1 text-[11px]">
                 <div class="flex justify-between"><span>Fondo Inicial ($):</span><strong id="tcFondoBase">$0.00</strong></div>
                 <div class="flex justify-between"><span>Ventas Efectivo:</span><span id="tcVentasEf">$0.00</span></div>
+                <div class="flex justify-between font-bold" id="tcFilaVentasEfBs"><span>Ventas Efectivo Bs.:</span><span id="tcVentasEfBs" class="text-slate-900 font-mono">Bs. 0,00</span></div>
                 <div class="flex justify-between"><span>Ventas Zelle:</span><span id="tcVentasZelle">$0.00</span></div>
                 <div class="flex justify-between font-bold"><span>Ventas Transferencia:</span><span id="tcVentasPM" class="text-slate-900 font-mono">Bs. 0,00</span></div>
                 <div class="flex justify-between font-bold"><span>Ventas Punto:</span><span id="tcVentasPunto" class="text-slate-900 font-mono">Bs. 0,00</span></div>
@@ -625,9 +640,10 @@
                         <!-- Métricas en vivo de la caja -->
                         <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50/50">
                             <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
-                                <span class="text-[10px] font-bold text-emerald-700 uppercase block">Efectivo ($)</span>
+                                <span class="text-[10px] font-bold text-emerald-700 uppercase block">Efectivo ($ / Bs)</span>
                                 <span class="text-base font-black text-emerald-800 mt-0.5 block font-mono">$${(c.ventas_efectivo + c.abonos_efectivo).toFixed(2)}</span>
-                                <span class="text-[9px] text-slate-400">Ventas + Abonos</span>
+                                <span class="text-[10px] font-extrabold text-emerald-600 block">Bs. ${(c.ventas_efectivo_bs || 0).toLocaleString('es-VE', {minimumFractionDigits: 2})}</span>
+                                <span class="text-[9px] text-slate-400">Ventas Físicas</span>
                             </div>
 
                             <div class="p-2.5 bg-white rounded-xl border border-slate-200 text-center">
@@ -788,6 +804,7 @@
         document.getElementById('abrirMontoUSD').value = '0.00';
         document.getElementById('abrirMontoBS').value = '0.00';
         document.getElementById('abrirObservaciones').value = '';
+        if (document.getElementById('abrirAdminClave')) document.getElementById('abrirAdminClave').value = '';
 
         // Preseleccionar siguiente caja libre
         const ocupadas = estadoCajaGlobal.cajas_ocupadas_nombres || (estadoCajaGlobal.cajas_abiertas || []).map(c => c.nombre_caja);
@@ -823,9 +840,16 @@
         const montoUSD = parseFloat(document.getElementById('abrirMontoUSD').value) || 0;
         const montoBS = parseFloat(document.getElementById('abrirMontoBS').value) || 0;
         const obs = document.getElementById('abrirObservaciones').value.trim();
+        const adminClave = (document.getElementById('abrirAdminClave') ? document.getElementById('abrirAdminClave').value : '').trim();
 
         const btn = document.getElementById('btnConfirmarAbrirCaja');
         btn.disabled = true;
+
+        if (!adminClave) {
+            Swal.fire('Atención', 'Debe ingresar la clave del administrador para autorizar la apertura de caja', 'warning');
+            btn.disabled = false;
+            return;
+        }
 
         try {
             const res = await fetch('/api/cajas/abrir', {
@@ -835,7 +859,8 @@
                     nombre_caja: nombreCaja,
                     monto_apertura_usd: montoUSD,
                     monto_apertura_bs: montoBS,
-                    observaciones: obs
+                    observaciones: obs,
+                    admin_password: adminClave
                 })
             });
             if (res.ok) {
@@ -1002,6 +1027,9 @@
 
                 document.getElementById('tcFondoBase').textContent = `$${c.monto_apertura_usd.toFixed(2)}`;
                 document.getElementById('tcVentasEf').textContent = `$${c.ventas_efectivo.toFixed(2)}`;
+                if (document.getElementById('tcVentasEfBs')) {
+                    document.getElementById('tcVentasEfBs').textContent = `Bs. ${formatearBs(c.ventas_efectivo_bs || 0)}`;
+                }
                 document.getElementById('tcVentasZelle').textContent = `$${c.ventas_zelle.toFixed(2)}`;
                 document.getElementById('tcVentasPM').textContent = `Bs. ${formatearBs(pmBs)} ($${(c.ventas_pagomovil || 0).toFixed(2)})`;
                 document.getElementById('tcVentasPunto').textContent = `Bs. ${formatearBs(puntoBs)} ($${(c.ventas_punto || 0).toFixed(2)})`;

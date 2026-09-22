@@ -87,6 +87,16 @@ with engine.connect() as conn:
     except Exception:
         pass
     try:
+        conn.execute(text("ALTER TABLE facturas ADD COLUMN efectivo_bs FLOAT DEFAULT 0.0"))
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute(text("ALTER TABLE cajas ADD COLUMN ventas_efectivo_bs FLOAT DEFAULT 0.0"))
+        conn.commit()
+    except Exception:
+        pass
+    try:
         conn.execute(text("ALTER TABLE cajas ADD COLUMN total_ventas_bs FLOAT DEFAULT 0.0"))
         conn.commit()
     except Exception:
@@ -534,10 +544,12 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
 
     # Validar formas de pago
     efectivo = round(payload.efectivo or 0.0, 2)
+    efectivo_bs = round(payload.efectivo_bs or 0.0, 2)
     zelle = round(payload.zelle or 0.0, 2)
     pagomovil = round(payload.pagomovil or 0.0, 2)
     punto = round(payload.punto or 0.0, 2)
-    inicial_abonada = round(efectivo + zelle + pagomovil + punto, 2)
+    efectivo_bs_usd = round(efectivo_bs / tasa_bcv, 2) if (efectivo_bs > 0 and tasa_bcv > 0) else 0.0
+    inicial_abonada = round(efectivo + efectivo_bs_usd + zelle + pagomovil + punto, 2)
 
     condicion = (payload.condicion or ("credito" if (payload.credito or 0.0) > 0 else "contado")).strip().lower()
 
@@ -576,6 +588,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         tasa_bcv=tasa_bcv,
         condicion=condicion,
         efectivo=efectivo,
+        efectivo_bs=efectivo_bs,
         zelle=zelle,
         pagomovil=pagomovil,
         punto=punto,
@@ -607,6 +620,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         "total_bs": round(factura.total * tasa_bcv, 2),
         "tasa_bcv": tasa_bcv,
         "efectivo": factura.efectivo or 0.0,
+        "efectivo_bs": factura.efectivo_bs or 0.0,
         "zelle": factura.zelle or 0.0,
         "pagomovil": factura.pagomovil or 0.0,
         "punto": factura.punto or 0.0,
@@ -673,6 +687,7 @@ def list_facturas(
             "total": f.total or 0.0,
             "tasa_bcv": f.tasa_bcv or 1.0,
             "efectivo": f.efectivo or 0.0,
+            "efectivo_bs": f.efectivo_bs or 0.0,
             "zelle": f.zelle or 0.0,
             "pagomovil": f.pagomovil or 0.0,
             "punto": f.punto or 0.0,
@@ -730,6 +745,7 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
         "referencia_transferencia": factura.referencia_transferencia or "",
         "pagos": {
             "efectivo": factura.efectivo,
+            "efectivo_bs": factura.efectivo_bs or 0.0,
             "zelle": factura.zelle,
             "pagomovil": factura.pagomovil,
             "punto": factura.punto,
@@ -824,13 +840,15 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
 
         # Actualizar desglose de formas de pago
         if payload.efectivo is not None: factura.efectivo = round(payload.efectivo, 2)
+        if payload.efectivo_bs is not None: factura.efectivo_bs = round(payload.efectivo_bs, 2)
         if payload.zelle is not None: factura.zelle = round(payload.zelle, 2)
         if payload.pagomovil is not None: factura.pagomovil = round(payload.pagomovil, 2)
         if payload.punto is not None: factura.punto = round(payload.punto, 2)
         if payload.credito is not None: factura.credito = round(payload.credito, 2)
         if payload.referencia_transferencia is not None: factura.referencia_transferencia = payload.referencia_transferencia.strip().upper()
 
-        suma_pagos = round((factura.efectivo or 0.0) + (factura.zelle or 0.0) + (factura.pagomovil or 0.0) + (factura.punto or 0.0), 2)
+        efectivo_bs_usd = round((factura.efectivo_bs or 0.0) / tasa_bcv, 2) if ((factura.efectivo_bs or 0.0) > 0 and tasa_bcv > 0) else 0.0
+        suma_pagos = round((factura.efectivo or 0.0) + efectivo_bs_usd + (factura.zelle or 0.0) + (factura.pagomovil or 0.0) + (factura.punto or 0.0), 2)
         
         if factura.condicion == "contado":
             factura.credito = 0.0
@@ -1221,7 +1239,7 @@ def calcular_metricas_caja(caja: Caja, db: Session) -> Caja:
     # Métricas exactas en Bolívares (usando la tasa histórica de cada factura, o la tasa del turno)
     ventas_pagomovil_bs = sum(round((f.pagomovil or 0.0) * (f.tasa_bcv or tasa_caja), 2) for f in facturas)
     ventas_punto_bs = sum(round((f.punto or 0.0) * (f.tasa_bcv or tasa_caja), 2) for f in facturas)
-    ventas_efectivo_bs = sum(round((f.efectivo or 0.0) * (f.tasa_bcv or tasa_caja), 2) for f in facturas)
+    ventas_efectivo_bs = sum((f.efectivo_bs or 0.0) for f in facturas)
     total_ventas_bs = sum(round((f.total or 0.0) * (f.tasa_bcv or tasa_caja), 2) for f in facturas)
     
     abonos_efectivo = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'efectivo')
@@ -1242,6 +1260,7 @@ def calcular_metricas_caja(caja: Caja, db: Session) -> Caja:
     caja.ventas_credito = round(ventas_credito, 2)
     caja.total_ventas = round(total_ventas, 2)
 
+    caja.ventas_efectivo_bs = round(ventas_efectivo_bs, 2)
     caja.ventas_pagomovil_bs = round(ventas_pagomovil_bs, 2)
     caja.ventas_punto_bs = round(ventas_punto_bs, 2)
     caja.total_ventas_bs = round(total_ventas_bs, 2)
@@ -1292,7 +1311,7 @@ def serializar_caja(caja: Caja, db: Session, detalle: bool = False):
 
         "ventas_pagomovil_bs": getattr(caja, "ventas_pagomovil_bs", 0.0) or round((caja.ventas_pagomovil or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         "ventas_punto_bs": getattr(caja, "ventas_punto_bs", 0.0) or round((caja.ventas_punto or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
-        "ventas_efectivo_bs": getattr(caja, "ventas_efectivo_bs", 0.0) or round((caja.ventas_efectivo or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
+        "ventas_efectivo_bs": round(float(getattr(caja, "ventas_efectivo_bs", 0.0) or 0.0), 2),
         "total_ventas_bs": getattr(caja, "total_ventas_bs", 0.0) or round((caja.total_ventas or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         "abonos_pagomovil_bs": getattr(caja, "abonos_pagomovil_bs", 0.0) or round((caja.abonos_pagomovil or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         "abonos_punto_bs": getattr(caja, "abonos_punto_bs", 0.0) or round((caja.abonos_punto or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
@@ -1385,6 +1404,20 @@ def get_caja_estado(
 def abrir_caja(payload: CajaApertura, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     if not user.tiene_permiso("cajas") and not user.tiene_permiso("pos"):
         raise HTTPException(status_code=403, detail="No tienes permiso para abrir caja")
+
+    # 0. Validar clave de administrador obligatoria para autorizar la apertura de caja
+    admin_pass = (payload.admin_password or "").strip()
+    if not admin_pass:
+        raise HTTPException(
+            status_code=403,
+            detail="Se requiere la clave del administrador para autorizar la apertura de caja."
+        )
+    admin_auth = check_admin_password(db, admin_pass)
+    if not admin_auth:
+        raise HTTPException(
+            status_code=403,
+            detail="Clave de administrador incorrecta. Se requiere autorización válida para abrir la caja."
+        )
 
     nombre_caja = (payload.nombre_caja or "Caja 1").strip()
     if not nombre_caja:

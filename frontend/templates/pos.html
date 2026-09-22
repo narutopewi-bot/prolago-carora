@@ -553,6 +553,30 @@
                 </div>
             </div>
 
+            <!-- 2. EFECTIVO BOLÍVARES (BS.) -->
+            <div class="p-3 bg-emerald-50/50 hover:bg-emerald-50 rounded-xl border border-emerald-200 transition">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="font-bold text-emerald-900 flex items-center">
+                        <i class="fa-solid fa-money-bill-wave text-emerald-600 mr-2 text-sm shrink-0"></i>
+                        Efectivo Bolívares (en billetes Bs.)
+                    </span>
+                    <button type="button" onclick="asignarRestanteMetodo('efectivoBS')" class="text-[10px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded font-bold transition">
+                        Pagar restante en Bs.
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                    <div class="sm:col-span-8 relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-slate-400">Bs.</span>
+                        <input type="number" step="0.01" id="pagoEfectivoBS" oninput="calcularDesdeBolivares('pagoEfectivoBS', 'eqEfectivoBSUSD')" placeholder="0.00"
+                            class="w-full pl-10 pr-3 py-2 bg-white border border-emerald-300 rounded-lg font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-4 text-right">
+                        <span class="text-[10px] text-slate-500 block">Equivale a:</span>
+                        <span id="eqEfectivoBSUSD" class="font-mono font-black text-emerald-700 text-xs">$0.00 USD</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- 2. TRANSFERENCIA (BOLÍVARES) -->
             <div class="p-3 bg-blue-50/50 hover:bg-blue-50 rounded-xl border border-blue-200 transition space-y-2">
                 <div class="flex items-center justify-between mb-1">
@@ -913,6 +937,20 @@
             </div>
 
             <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Clave de Administrador <span class="text-rose-600">*</span></span>
+                    <span class="text-[10px] text-amber-600 font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i>Requerida</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-key"></i>
+                    </span>
+                    <input type="password" id="abrirAdminClavePOS" required placeholder="Ingrese la clave del administrador"
+                        class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
+                </div>
+            </div>
+
+            <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Observaciones</label>
                 <input type="text" id="abrirObservacionesPOS" placeholder="Ej: Turno de la mañana..."
                     class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
@@ -1201,6 +1239,7 @@
     function abrirModalAbrirCajaPOS() {
         document.getElementById('abrirMontoUSDPOS').value = '0.00';
         document.getElementById('abrirObservacionesPOS').value = '';
+        if (document.getElementById('abrirAdminClavePOS')) document.getElementById('abrirAdminClavePOS').value = '';
 
         const ocupadas = cajasOcupadasGlobalPOS || [];
         let sugerida = 'Caja 1';
@@ -1233,9 +1272,16 @@
         const nombreCaja = (document.getElementById('abrirNombreCajaPOS').value || 'Caja 1').trim();
         const montoUSD = parseFloat(document.getElementById('abrirMontoUSDPOS').value) || 0;
         const obs = document.getElementById('abrirObservacionesPOS').value.trim();
+        const adminClave = (document.getElementById('abrirAdminClavePOS') ? document.getElementById('abrirAdminClavePOS').value : '').trim();
 
         const btn = document.getElementById('btnConfirmarAbrirCajaPOS');
         btn.disabled = true;
+
+        if (!adminClave) {
+            Swal.fire('Atención', 'Debe ingresar la clave del administrador para autorizar la apertura de caja', 'warning');
+            btn.disabled = false;
+            return;
+        }
 
         try {
             const res = await fetch('/api/cajas/abrir', {
@@ -1244,7 +1290,8 @@
                 body: JSON.stringify({
                     nombre_caja: nombreCaja,
                     monto_apertura_usd: montoUSD,
-                    observaciones: obs
+                    observaciones: obs,
+                    admin_password: adminClave
                 })
             });
             if (res.ok) {
@@ -1944,6 +1991,8 @@
             
             // Por defecto en crédito, el monto va a crédito
             document.getElementById('pagoEfectivoUSD').value = '';
+            document.getElementById('pagoEfectivoBS').value = '';
+            document.getElementById('eqEfectivoBSUSD').textContent = '$0.00 USD';
             document.getElementById('pagoZelleUSD').value = '';
             document.getElementById('pagoMovilBS').value = '';
             document.getElementById('eqMovilUSD').textContent = '$0.00 USD';
@@ -1958,6 +2007,8 @@
 
             // Por defecto en contado, se espera cobro inmediato
             document.getElementById('pagoEfectivoUSD').value = '';
+            document.getElementById('pagoEfectivoBS').value = '';
+            document.getElementById('eqEfectivoBSUSD').textContent = '$0.00 USD';
             document.getElementById('pagoZelleUSD').value = '';
             document.getElementById('pagoMovilBS').value = '';
             document.getElementById('eqMovilUSD').textContent = '$0.00 USD';
@@ -1977,6 +2028,8 @@
     function asignarTodoACredito() {
         const totalUSD = obtenerTotalUSD();
         document.getElementById('pagoEfectivoUSD').value = '';
+        document.getElementById('pagoEfectivoBS').value = '';
+        document.getElementById('eqEfectivoBSUSD').textContent = '$0.00 USD';
         document.getElementById('pagoZelleUSD').value = '';
         document.getElementById('pagoMovilBS').value = '';
         document.getElementById('eqMovilUSD').textContent = '$0.00 USD';
@@ -1990,12 +2043,14 @@
         if (condicionVenta === 'credito' && (forzar || document.activeElement !== document.getElementById('pagoCreditoUSD'))) {
             const totalUSD = obtenerTotalUSD();
             const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+            const efBS = parseFloat(document.getElementById('pagoEfectivoBS').value) || 0;
             const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
             const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
             const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
+            const efBS_USD = efBS > 0 ? (efBS / TASA_BCV) : 0;
             const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
             const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
-            const inicialUSD = efUSD + zeUSD + pmUSD + puUSD;
+            const inicialUSD = efUSD + efBS_USD + zeUSD + pmUSD + puUSD;
             const creditoRestante = Math.max(0, Math.round((totalUSD - inicialUSD) * 100) / 100);
             document.getElementById('pagoCreditoUSD').value = creditoRestante.toFixed(2);
         }
@@ -2018,16 +2073,18 @@
         const totalUSD = obtenerTotalUSD();
 
         const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+        const efBS = parseFloat(document.getElementById('pagoEfectivoBS').value) || 0;
         const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
         const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
         const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
         const crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
 
         // Convertir pagos en Bs. a USD
+        const efBS_USD = efBS > 0 ? (efBS / TASA_BCV) : 0;
         const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
         const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
 
-        const totalPagadoUSD = efUSD + zeUSD + pmUSD + puUSD + crUSD;
+        const totalPagadoUSD = efUSD + efBS_USD + zeUSD + pmUSD + puUSD + crUSD;
         const diferenciaUSD = totalUSD - totalPagadoUSD;
         const diferenciaBS = diferenciaUSD * TASA_BCV;
 
@@ -2049,7 +2106,7 @@
             valBS.className = 'text-lg sm:text-xl font-black text-rose-700';
             icono.className = 'w-10 h-10 rounded-full flex items-center justify-center text-lg bg-rose-100 text-rose-600 shrink-0';
             icono.innerHTML = '<i class="fa-solid fa-hand-holding-dollar"></i>';
-            msg.textContent = `Si el cliente desea cancelar el resto en Bolívares (Transferencia / Punto), debe pagar exactamente: Bs. ${Number(diferenciaBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            msg.textContent = `Si el cliente desea cancelar el resto en Bolívares (Efectivo / Transferencia / Punto), debe pagar exactamente: Bs. ${Number(diferenciaBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
         } else if (diferenciaUSD < -0.009) {
             // VUELTO / CAMBIO
             const vueltoUSD = Math.abs(diferenciaUSD);
@@ -2083,6 +2140,7 @@
         const totalUSD = obtenerTotalUSD();
 
         const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+        const efBS = parseFloat(document.getElementById('pagoEfectivoBS').value) || 0;
         const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
         const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
         const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
@@ -2091,9 +2149,10 @@
         // Monto pagado por otros métodos (excluyendo el seleccionado)
         let otrosPagosUSD = 0;
         if (metodo !== 'efectivoUSD') otrosPagosUSD += efUSD;
+        if (metodo !== 'efectivoBS') otrosPagosUSD += (efBS > 0 ? (efBS / TASA_BCV) : 0);
         if (metodo !== 'zelleUSD') otrosPagosUSD += zeUSD;
-        if (metodo !== 'pagomovilBS') otrosPagosUSD += (pmBS / TASA_BCV);
-        if (metodo !== 'puntoBS') otrosPagosUSD += (puBS / TASA_BCV);
+        if (metodo !== 'pagomovilBS') otrosPagosUSD += (pmBS > 0 ? (pmBS / TASA_BCV) : 0);
+        if (metodo !== 'puntoBS') otrosPagosUSD += (puBS > 0 ? (puBS / TASA_BCV) : 0);
         if (metodo !== 'creditoUSD') otrosPagosUSD += crUSD;
 
         const restanteUSD = Math.max(0, totalUSD - otrosPagosUSD);
@@ -2101,6 +2160,9 @@
 
         if (metodo === 'efectivoUSD') {
             document.getElementById('pagoEfectivoUSD').value = restanteUSD > 0 ? restanteUSD.toFixed(2) : '';
+        } else if (metodo === 'efectivoBS') {
+            document.getElementById('pagoEfectivoBS').value = restanteBS > 0 ? restanteBS.toFixed(2) : '';
+            calcularDesdeBolivares('pagoEfectivoBS', 'eqEfectivoBSUSD');
         } else if (metodo === 'zelleUSD') {
             document.getElementById('pagoZelleUSD').value = restanteUSD > 0 ? restanteUSD.toFixed(2) : '';
         } else if (metodo === 'pagomovilBS') {
@@ -2123,17 +2185,19 @@
 
         const clienteNombre = document.getElementById('clienteNombre').value.trim() || 'CLIENTE DE CONTADO';
         const efUSD = parseFloat(document.getElementById('pagoEfectivoUSD').value) || 0;
+        const efBS = parseFloat(document.getElementById('pagoEfectivoBS').value) || 0;
         const zeUSD = parseFloat(document.getElementById('pagoZelleUSD').value) || 0;
         const pmBS = parseFloat(document.getElementById('pagoMovilBS').value) || 0;
         const puBS = parseFloat(document.getElementById('pagoPuntoBS').value) || 0;
         let crUSD = parseFloat(document.getElementById('pagoCreditoUSD').value) || 0;
         const refTransferencia = document.getElementById('pagoRefTransferencia') ? document.getElementById('pagoRefTransferencia').value.trim() : '';
 
+        const efBS_USD = efBS > 0 ? (efBS / TASA_BCV) : 0;
         const pmUSD = pmBS > 0 ? (pmBS / TASA_BCV) : 0;
         const puUSD = puBS > 0 ? (puBS / TASA_BCV) : 0;
 
         const totalUSD = obtenerTotalUSD();
-        const inicialUSD = efUSD + zeUSD + pmUSD + puUSD;
+        const inicialUSD = efUSD + efBS_USD + zeUSD + pmUSD + puUSD;
 
         // Si es a crédito: el crédito real es el total menos la inicial abonada
         if (condicionVenta === 'credito') {
@@ -2145,6 +2209,7 @@
             cliente_nombre: clienteNombre,
             condicion: condicionVenta,
             efectivo: efUSD,
+            efectivo_bs: efBS,
             zelle: zeUSD,
             pagomovil: pmUSD,
             punto: puUSD,
@@ -2172,6 +2237,7 @@
                 cerrarModalCobrar();
                 const pagosRealizados = {
                     efectivoUSD: efUSD,
+                    efectivoBS: efBS,
                     zelleUSD: zeUSD,
                     pagoMovilBS: pmBS,
                     pagoMovilUSD: pmUSD,
@@ -2211,7 +2277,7 @@
     }
 
     // ========================================================
-    // COMPROBANTE DE VENTA A4 DOBLE (ORIGINAL Y COPIA EN 1 HOJA)
+    // MOTOR DE IMPRESIÓN Y FORMATOS: MEDIA HOJA (A4) Y TICKET
     // ========================================================
     function construirComprobanteMitad(d, tipoCopia) {
         const items = d.items || [];
@@ -2228,13 +2294,15 @@
         const tasa = d.tasa_bcv || 1;
 
         const ef = (pagos.efectivo !== undefined ? pagos.efectivo : (pagos.efectivoUSD !== undefined ? pagos.efectivoUSD : (d.efectivo || 0)));
+        const efBS = (pagos.efectivo_bs !== undefined ? pagos.efectivo_bs : (pagos.efectivoBS !== undefined ? pagos.efectivoBS : (d.efectivo_bs || 0)));
+        const efBS_USD = (efBS > 0 && tasa > 0) ? (efBS / tasa) : 0;
         const pm = (pagos.pagomovil !== undefined ? pagos.pagomovil : (pagos.pagoMovilUSD !== undefined ? pagos.pagoMovilUSD : (d.pagomovil || 0)));
         const pt = (pagos.punto !== undefined ? pagos.punto : (pagos.puntoUSD !== undefined ? pagos.puntoUSD : (d.punto || 0)));
         const zl = (pagos.zelle !== undefined ? pagos.zelle : (pagos.zelleUSD !== undefined ? pagos.zelleUSD : (d.zelle || 0)));
         const refVal = d.referencia_transferencia || pagos.referencia_transferencia || '';
         const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
 
-        const inicialPagos = Math.round((ef + pm + pt + zl) * 100) / 100;
+        const inicialPagos = Math.round((ef + efBS_USD + pm + pt + zl) * 100) / 100;
         let saldoUSD = (d.saldo_pendiente !== undefined && d.saldo_pendiente !== null) ? d.saldo_pendiente : (d.credito_inicial || pagos.creditoUSD || 0);
         if (inicialPagos > 0 && Math.abs(saldoUSD - totalUSD) < 0.01) {
             saldoUSD = Math.max(0, Math.round((totalUSD - inicialPagos) * 100) / 100);
@@ -2348,7 +2416,8 @@
 
         let desglosePagosHtml = '';
         let huboPagos = false;
-        if (ef > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Efectivo:</span><strong class="font-mono text-slate-800">$${ef.toFixed(2)}</strong></div>`; }
+        if (ef > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Efectivo ($):</span><strong class="font-mono text-slate-800">$${ef.toFixed(2)}</strong></div>`; }
+        if (efBS > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Efectivo (Bs.):</span><strong class="font-mono text-slate-800">Bs. ${Number(efBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${efBS_USD.toFixed(2)})</strong></div>`; }
         if (pm > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Transferencia${refTxt}:</span><strong class="font-mono text-slate-800">$${pm.toFixed(2)}</strong></div>`; }
         if (pt > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Punto:</span><strong class="font-mono text-slate-800">$${pt.toFixed(2)}</strong></div>`; }
         if (zl > 0) { huboPagos = true; desglosePagosHtml += `<div class="flex justify-between"><span>Zelle:</span><strong class="font-mono text-slate-800">$${zl.toFixed(2)}</strong></div>`; }
@@ -2588,6 +2657,8 @@
 
         let pagosHtml = '';
         const ef = (pagos && (pagos.efectivoUSD !== undefined ? pagos.efectivoUSD : pagos.efectivo)) || 0;
+        const efBS = (pagos && (pagos.efectivoBS !== undefined ? pagos.efectivoBS : (pagos.efectivo_bs !== undefined ? pagos.efectivo_bs : 0))) || 0;
+        const efBS_USD = (efBS > 0 && tasa > 0) ? (efBS / tasa) : 0;
         const pmBS = (pagos && pagos.pagoMovilBS) || 0;
         const pmUSD = (pagos && (pagos.pagoMovilUSD !== undefined ? pagos.pagoMovilUSD : pagos.pagomovil)) || 0;
         const ptBS = (pagos && pagos.puntoBS) || 0;
@@ -2598,6 +2669,7 @@
         const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
 
         if (ef > 0) pagosHtml += `<div class="flex justify-between"><span>- Efectivo USD:</span><span>$${ef.toFixed(2)}</span></div>`;
+        if (efBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Efectivo Bs.:</span><span>Bs. ${Number(efBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${efBS_USD.toFixed(2)})</span></div>`;
         if (pmUSD > 0 || pmBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Transferencia${refTxt}:</span><span>${pmBS > 0 ? `Bs. ${Number(pmBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${pmUSD.toFixed(2)})</span></div>`;
         if (ptUSD > 0 || ptBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Punto de Venta:</span><span>${ptBS > 0 ? `Bs. ${Number(ptBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${ptUSD.toFixed(2)})</span></div>`;
         if (zl > 0) pagosHtml += `<div class="flex justify-between"><span>- Zelle:</span><span>$${zl.toFixed(2)}</span></div>`;
