@@ -264,7 +264,11 @@ def list_articulos(
             query = query.filter(Articulo.nombre.ilike(s))
             
     if categoria and categoria != "TODAS":
-        query = query.filter(Articulo.categoria == categoria)
+        c_str = categoria.strip()
+        if c_str.lower().startswith("ferr"):
+            query = query.filter(Articulo.categoria.ilike("%ferr%"))
+        else:
+            query = query.filter(or_(Articulo.categoria == c_str, Articulo.categoria.ilike(c_str)))
         
     if solo_stock:
         query = query.filter(Articulo.stock > 0)
@@ -336,6 +340,20 @@ def get_articulo(codigo: int, db: Session = Depends(get_db), user: Usuario = Dep
         raise HTTPException(status_code=404, detail="Artículo no encontrado")
     return item
 
+def normalizar_categoria(cat: Optional[str]) -> str:
+    if not cat:
+        return "Otra"
+    c = cat.strip().upper()
+    if "ALIM" in c:
+        return "Alimento"
+    if "MED" in c:
+        return "Medicina"
+    if "FERR" in c:
+        return "Ferretería"
+    if "OTR" in c:
+        return "Otra"
+    return cat.strip()
+
 @app.post("/api/articulos")
 def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     if not (user.rol == "admin" or user.tiene_permiso("inventario") or user.tiene_permiso("compras")):
@@ -355,7 +373,7 @@ def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user
     item = Articulo(
         codigo=payload.codigo,
         nombre=payload.nombre.strip().upper(),
-        categoria=(payload.categoria or "GENERAL").strip().upper(),
+        categoria=normalizar_categoria(payload.categoria),
         marca=(payload.marca or "").strip().upper(),
         proveedor=(payload.proveedor or "").strip().upper(),
         costo=payload.costo or 0.0,
@@ -385,7 +403,7 @@ def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(
     sugerido = round(costo_final + (costo_final * rent / 100.0) + (payload.mas or 0.0), 2)
 
     item.nombre = payload.nombre.strip().upper()
-    item.categoria = (payload.categoria or "GENERAL").strip().upper()
+    item.categoria = normalizar_categoria(payload.categoria)
     item.marca = (payload.marca or "").strip().upper()
     item.proveedor = (payload.proveedor or "").strip().upper()
     item.costo = payload.costo or 0.0

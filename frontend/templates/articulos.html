@@ -215,7 +215,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Categoría</label>
-                    <input type="text" id="artCategoria" value="GENERAL" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase">
+                    <select id="artCategoria" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold bg-white text-slate-800 cursor-pointer">
+                        <option value="Alimento">Alimento</option>
+                        <option value="Medicina">Medicina</option>
+                        <option value="Ferretería">Ferretería</option>
+                        <option value="Otra">Otra</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Marca</label>
@@ -565,11 +570,22 @@
 
                 const selCat = document.getElementById('filtroCategoria');
                 selCat.innerHTML = '<option value="TODAS">Todas las Categorías</option>';
-                Array.from(categoriasUnicas).sort().forEach(c => {
+                const catsBase = ['Alimento', 'Medicina', 'Ferretería', 'Otra'];
+                catsBase.forEach(cb => {
                     const opt = document.createElement('option');
-                    opt.value = c;
-                    opt.textContent = c;
+                    opt.value = cb;
+                    opt.textContent = cb;
                     selCat.appendChild(opt);
+                });
+                Array.from(categoriasUnicas).sort().forEach(c => {
+                    const cNorm = (c || '').trim().toLowerCase();
+                    const existe = catsBase.some(cb => cb.toLowerCase() === cNorm || (cb === 'Ferretería' && cNorm.includes('ferr')));
+                    if (!existe && c) {
+                        const opt = document.createElement('option');
+                        opt.value = c;
+                        opt.textContent = c;
+                        selCat.appendChild(opt);
+                    }
                 });
 
                 filtrarArticulos();
@@ -586,7 +602,12 @@
 
         const filtrados = todosLosArticulos.filter(a => {
             const matchTxt = !txt || a.nombre.toLowerCase().includes(txt) || String(a.codigo).includes(txt) || (a.marca && a.marca.toLowerCase().includes(txt));
-            const matchCat = cat === 'TODAS' || a.categoria === cat;
+            const aCat = (a.categoria || '').trim().toLowerCase();
+            const catBuscada = (cat || '').trim().toLowerCase();
+            const matchCat = cat === 'TODAS' || 
+                aCat === catBuscada || 
+                (catBuscada === 'ferretería' && aCat.includes('ferr')) ||
+                (catBuscada === 'otra' && !['alimento', 'medicina', 'ferretería', 'ferreteria'].some(x => aCat.includes(x.substring(0, 4))));
             const matchStock = !soloStock || a.stock > 0;
             return matchTxt && matchCat && matchStock;
         });
@@ -678,6 +699,7 @@
         document.getElementById('tituloModalArticulo').textContent = "Registrar Nuevo Artículo";
         document.getElementById('artCodigo').readOnly = false;
         document.getElementById('formArticulo').reset();
+        document.getElementById('artCategoria').value = "Alimento";
         document.getElementById('lblStockModal').textContent = "Stock Inicial";
         document.getElementById('artStockAlerta').value = 5;
         document.getElementById('artRent').value = 20;
@@ -694,7 +716,24 @@
         document.getElementById('artCodigo').value = art.codigo;
         document.getElementById('artCodigo').readOnly = true;
         document.getElementById('artNombre').value = art.nombre;
-        document.getElementById('artCategoria').value = art.categoria || 'GENERAL';
+        
+        const catNorm = (art.categoria || '').trim().toLowerCase();
+        if (catNorm.includes('alim')) {
+            document.getElementById('artCategoria').value = 'Alimento';
+        } else if (catNorm.includes('med')) {
+            document.getElementById('artCategoria').value = 'Medicina';
+        } else if (catNorm.includes('ferr')) {
+            document.getElementById('artCategoria').value = 'Ferretería';
+        } else if (catNorm.includes('otr')) {
+            document.getElementById('artCategoria').value = 'Otra';
+        } else {
+            let optExist = Array.from(document.getElementById('artCategoria').options).find(o => o.value.toLowerCase() === catNorm);
+            if (optExist) {
+                document.getElementById('artCategoria').value = optExist.value;
+            } else {
+                document.getElementById('artCategoria').value = 'Otra';
+            }
+        }
         document.getElementById('artMarca').value = art.marca || '';
         document.getElementById('artProveedor').value = art.proveedor || '';
         document.getElementById('artCosto').value = art.costo || 0;
