@@ -36,7 +36,7 @@
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                             <i class="fa-solid fa-user"></i>
                         </span>
-                        <input type="text" id="username" required autocomplete="username" placeholder="admin o cajero"
+                        <input type="text" id="username" required autocomplete="username" placeholder="Ingrese su usuario"
                             class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-sm focus:ring-2 focus:ring-[#8B1E24] focus:border-[#8B1E24] focus:bg-white focus:outline-none transition">
                     </div>
                 </div>
@@ -58,19 +58,6 @@
                     <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </form>
-
-            <!-- Acceso Rápido / Información -->
-            <div class="mt-6 pt-6 border-t border-slate-100 text-center">
-                <p class="text-xs text-slate-500 mb-2 font-medium">Credenciales iniciales:</p>
-                <div class="flex justify-center space-x-2 text-xs">
-                    <button onclick="completarLogin('admin', 'admin123')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-mono transition">
-                        admin / admin123
-                    </button>
-                    <button onclick="completarLogin('cajero', 'cajero123')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-mono transition">
-                        cajero / cajero123
-                    </button>
-                </div>
-            </div>
         </div>
 
         <p class="text-center text-slate-400 text-xs mt-6 font-medium">
@@ -79,11 +66,6 @@
     </div>
 
     <script>
-        function completarLogin(u, p) {
-            document.getElementById('username').value = u;
-            document.getElementById('password').value = p;
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             const userInp = document.getElementById('username');
             const passInp = document.getElementById('password');

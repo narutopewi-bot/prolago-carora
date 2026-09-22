@@ -2106,15 +2106,15 @@ def delete_usuario(id: int, db: Session = Depends(get_db), user: Usuario = Depen
 def get_user_first_allowed_url(user: Usuario) -> str:
     modulo_urls = [
         ("pos", "/"),
+        ("compras", "/compras"),
         ("cajas", "/cajas"),
         ("inventario", "/inventario"),
-        ("compras", "/compras"),
-        ("despachos", "/despachos"),
+        ("reportes", "/reportes"),
         ("creditos", "/creditos"),
         ("historial", "/historial"),
-        ("clientes", "/clientes"),
-        ("reportes", "/reportes"),
         ("precios", "/precios"),
+        ("despachos", "/despachos"),
+        ("clientes", "/clientes"),
         ("mantenimiento", "/mantenimiento"),
         ("usuarios", "/usuarios"),
     ]

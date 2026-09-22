@@ -91,6 +91,11 @@
                         <i class="fa-solid fa-cash-register mr-1.5 text-emerald-300 shrink-0 w-4 text-center"></i><span>Ventas</span>
                     </a>
                     {% endif %}
+                    {% if not user or user.tiene_permiso('compras') %}
+                    <a href="/compras" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_compras %}{% endblock %}">
+                        <i class="fa-solid fa-truck-ramp-box mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Compras</span>
+                    </a>
+                    {% endif %}
                     {% if not user or user.tiene_permiso('cajas') %}
                     <a href="/cajas" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_cajas %}{% endblock %}">
                         <i class="fa-solid fa-vault mr-1.5 text-emerald-400 shrink-0 w-4 text-center"></i><span>Cajas</span>
@@ -129,12 +134,6 @@
                         </button>
                         <div id="dropdownMasMenu" class="hidden absolute right-0 top-full mt-2 w-56 bg-gradient-to-b from-[#470506] to-[#2b0203] border border-white/20 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl divide-y divide-white/10 text-xs">
                             <div class="py-1">
-                                {% if not user or user.tiene_permiso('compras') %}
-                                <a href="/compras" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_compras %}{% endblock %}">
-                                    <i class="fa-solid fa-truck-ramp-box text-amber-300 w-5 text-center"></i>
-                                    <span>Compras</span>
-                                </a>
-                                {% endif %}
                                 {% if not user or user.tiene_permiso('despachos') %}
                                 <a href="/despachos" class="px-3 py-2 rounded-lg transition hover:bg-white/15 text-white flex items-center space-x-2 {% block nav_despachos %}{% endblock %}">
                                     <i class="fa-solid fa-truck-fast text-purple-300 w-5 text-center"></i>
@@ -225,12 +224,27 @@
 
             {% if not user or user.tiene_permiso('pos') %}
             <a href="/" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-cash-register mr-2.5 text-emerald-300 w-5 text-center"></i><span>Punto de Venta</span>
+                <i class="fa-solid fa-cash-register mr-2.5 text-emerald-300 w-5 text-center"></i><span>Punto de Venta (Ventas)</span>
+            </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('compras') %}
+            <a href="/compras" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Recepción de Compras</span>
+            </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('cajas') %}
+            <a href="/cajas" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-vault mr-2.5 text-emerald-400 w-5 text-center"></i><span>Control de Cajas y Turnos</span>
             </a>
             {% endif %}
             {% if not user or user.tiene_permiso('inventario') %}
             <a href="/inventario" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-boxes-stacked mr-2.5 text-blue-300 w-5 text-center"></i><span>Inventario y Precios</span>
+            </a>
+            {% endif %}
+            {% if not user or user.tiene_permiso('reportes') %}
+            <a href="/reportes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                <i class="fa-solid fa-chart-pie mr-2.5 text-yellow-300 w-5 text-center"></i><span>Reportes Gerenciales</span>
             </a>
             {% endif %}
             {% if not user or user.tiene_permiso('creditos') %}
@@ -246,11 +260,6 @@
             <a href="/precios" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-tags mr-2.5 text-amber-300 w-5 text-center"></i><span>Verificador de Precios (F2)</span>
             </a>
-            {% if not user or user.tiene_permiso('compras') %}
-            <a href="/compras" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Recepción de Compras</span>
-            </a>
-            {% endif %}
             {% if not user or user.tiene_permiso('despachos') %}
             <a href="/despachos" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-truck-fast mr-2.5 text-purple-300 w-5 text-center"></i><span>Despachos y Salidas</span>
@@ -259,16 +268,6 @@
             {% if not user or user.tiene_permiso('clientes') %}
             <a href="/clientes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
                 <i class="fa-solid fa-users mr-2.5 text-pink-300 w-5 text-center"></i><span>Directorio de Clientes</span>
-            </a>
-            {% endif %}
-            {% if not user or user.tiene_permiso('cajas') %}
-            <a href="/cajas" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-vault mr-2.5 text-emerald-400 w-5 text-center"></i><span>Control de Cajas y Turnos</span>
-            </a>
-            {% endif %}
-            {% if not user or user.tiene_permiso('reportes') %}
-            <a href="/reportes" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-chart-pie mr-2.5 text-yellow-300 w-5 text-center"></i><span>Reportes Gerenciales</span>
             </a>
             {% endif %}
             {% if not user or user.tiene_permiso('mantenimiento') %}
