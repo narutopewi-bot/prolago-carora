@@ -201,21 +201,21 @@
         <form id="formArticulo" onsubmit="guardarArticulo(event)" class="space-y-4 text-xs">
             <input type="hidden" id="esEdicion" value="false">
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Código</label>
-                    <input type="number" id="artCodigo" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
+                    <input type="number" id="artCodigo" required class="w-full px-3 py-2 h-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-bold">
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block font-bold text-slate-700 mb-1">Descripción / Nombre</label>
-                    <input type="text" id="artNombre" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase font-semibold">
+                    <input type="text" id="artNombre" required class="w-full px-3 py-2 h-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase font-semibold">
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Categoría</label>
-                    <select id="artCategoria" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold bg-white text-slate-800 cursor-pointer">
+                    <select id="artCategoria" class="w-full px-3 py-2 h-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold bg-white text-slate-800 cursor-pointer">
                         <option value="Alimento">Alimento</option>
                         <option value="Medicina">Medicina</option>
                         <option value="Ferretería">Ferretería</option>
@@ -224,33 +224,33 @@
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Marca</label>
-                    <input type="text" id="artMarca" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase">
+                    <input type="text" id="artMarca" class="w-full px-3 py-2 h-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Proveedor</label>
-                    <input type="text" id="artProveedor" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase">
+                    <input type="text" id="artProveedor" class="w-full px-3 py-2 h-10 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 uppercase">
                 </div>
             </div>
 
             <!-- Precios y Costos -->
             <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <p class="font-bold text-slate-700 uppercase tracking-wider text-[11px]">Estructura de Precios ($ USD)</p>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div>
-                        <label class="block text-slate-500 mb-1">Costo Base ($)</label>
-                        <input type="number" step="any" min="0" id="artCosto" oninput="recalcularModalPrecios()" value="0.00" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
+                    <div class="flex flex-col justify-end">
+                        <label class="block text-slate-600 mb-1 text-center text-[11px] font-semibold h-8 flex items-end justify-center leading-tight">Costo Base ($)</label>
+                        <input type="number" step="any" min="0" id="artCosto" oninput="recalcularModalPrecios()" value="0.00" class="w-full px-2.5 py-1.5 h-9 border border-slate-300 rounded-lg text-center font-bold">
                     </div>
-                    <div>
-                        <label class="block text-slate-500 mb-1">Flete ($)</label>
-                        <input type="number" step="any" min="0" id="artFlete" oninput="recalcularModalPrecios()" value="0.00" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                    <div class="flex flex-col justify-end">
+                        <label class="block text-slate-600 mb-1 text-center text-[11px] font-semibold h-8 flex items-end justify-center leading-tight">Flete ($)</label>
+                        <input type="number" step="any" min="0" id="artFlete" oninput="recalcularModalPrecios()" value="0.00" class="w-full px-2.5 py-1.5 h-9 border border-slate-300 rounded-lg text-center font-bold">
                     </div>
-                    <div>
-                        <label class="block text-slate-500 mb-1">Recargo Extra (más)</label>
-                        <input type="number" step="any" min="0" id="artMas" oninput="recalcularModalPrecios()" value="0.00" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                    <div class="flex flex-col justify-end">
+                        <label class="block text-slate-600 mb-1 text-center text-[11px] font-semibold h-8 flex items-end justify-center leading-tight">Recargo Extra ($)</label>
+                        <input type="number" step="any" min="0" id="artMas" oninput="recalcularModalPrecios()" value="0.00" class="w-full px-2.5 py-1.5 h-9 border border-slate-300 rounded-lg text-center font-bold">
                     </div>
-                    <div>
-                        <label class="block text-slate-500 mb-1">Rentabilidad (%)</label>
-                        <input type="number" step="any" id="artRent" oninput="recalcularModalPrecios()" value="20" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-center font-bold">
+                    <div class="flex flex-col justify-end">
+                        <label class="block text-slate-600 mb-1 text-center text-[11px] font-semibold h-8 flex items-end justify-center leading-tight">Rentabilidad (%)</label>
+                        <input type="number" step="any" id="artRent" oninput="recalcularModalPrecios()" value="20" class="w-full px-2.5 py-1.5 h-9 border border-slate-300 rounded-lg text-center font-bold">
                     </div>
                 </div>
 
