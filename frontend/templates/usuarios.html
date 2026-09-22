@@ -629,15 +629,20 @@
                 const res = await fetch(`/api/usuarios/${id}`, {
                     method: 'DELETE'
                 });
-                const d = await res.json();
+                let d = {};
+                try {
+                    d = await res.json();
+                } catch (_) {
+                    d = { detail: 'Error al procesar la respuesta del servidor' };
+                }
                 if (res.ok) {
-                    Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
+                    Swal.fire('Eliminado', 'El usuario ha sido eliminado exitosamente.', 'success');
                     cargarUsuarios();
                 } else {
-                    Swal.fire('Error', d.detail || 'No se pudo eliminar el usuario.', 'error');
+                    Swal.fire('Error al eliminar', d.detail || 'No se pudo eliminar el usuario.', 'error');
                 }
             } catch (e) {
-                Swal.fire('Error', 'Fallo de red', 'error');
+                Swal.fire('Error', 'Fallo de comunicación con el servidor', 'error');
             }
         }
     }

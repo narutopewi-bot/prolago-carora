@@ -1440,6 +1440,20 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
     if not user.tiene_permiso("cajas") and not user.tiene_permiso("pos"):
         raise HTTPException(status_code=403, detail="No tienes permiso para cerrar caja")
 
+    # 0. Validar clave de administrador obligatoria para autorizar el cierre de caja
+    admin_pass = (payload.admin_password or "").strip()
+    if not admin_pass:
+        raise HTTPException(
+            status_code=403,
+            detail="Se requiere la clave del administrador para autorizar el cierre de caja."
+        )
+    admin_auth = check_admin_password(db, admin_pass)
+    if not admin_auth:
+        raise HTTPException(
+            status_code=403,
+            detail="Clave de administrador incorrecta. Se requiere autorización válida para cerrar la caja."
+        )
+
     caja = None
     if payload.caja_id:
         caja = db.query(Caja).filter(Caja.id == payload.caja_id, Caja.estado == "abierta").first()
@@ -2072,8 +2086,18 @@ def delete_usuario(id: int, db: Session = Depends(get_db), user: Usuario = Depen
         if total_admins <= 1:
             raise HTTPException(status_code=400, detail="No se puede eliminar el único administrador activo")
     
-    db.delete(u)
-    db.commit()
+    try:
+        # Desvincular referencias históricas en facturas y cajas para proteger integridad sin violar claves foráneas
+        db.query(Factura).filter(Factura.usuario_id == u.id).update({Factura.usuario_id: None}, synchronize_session=False)
+        db.query(Caja).filter(Caja.usuario_apertura_id == u.id).update({Caja.usuario_apertura_id: None}, synchronize_session=False)
+        db.query(Caja).filter(Caja.usuario_cierre_id == u.id).update({Caja.usuario_cierre_id: None}, synchronize_session=False)
+        db.delete(u)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"[ERROR delete_usuario]: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al eliminar usuario: {str(e)}")
+
     return {"status": "ok", "mensaje": "Usuario eliminado exitosamente"}
 
 # ==========================================

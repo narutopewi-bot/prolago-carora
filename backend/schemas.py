@@ -162,5 +162,6 @@ class CajaCierre(BaseModel):
     declarado_pagomovil: Optional[float] = 0.0
     declarado_punto: Optional[float] = 0.0
     observaciones: Optional[str] = ""
+    admin_password: Optional[str] = ""
 
 

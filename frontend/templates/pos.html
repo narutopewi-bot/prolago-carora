@@ -1031,6 +1031,27 @@
                     class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
             </div>
 
+            <!-- AUTORIZACIÓN: CLAVE DE ADMINISTRADOR -->
+            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-3 space-y-1.5">
+                <label class="block text-xs font-black text-rose-800 uppercase tracking-wider flex items-center justify-between">
+                    <span class="flex items-center space-x-1.5">
+                        <i class="fa-solid fa-shield-halved text-rose-600"></i>
+                        <span>Clave de Administrador</span>
+                        <span class="text-rose-600">*</span>
+                    </span>
+                    <span class="text-[10px] text-rose-600 font-semibold">Requerida</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-rose-400 text-xs">
+                        <i class="fa-solid fa-key"></i>
+                    </span>
+                    <input type="password" id="posCierreAdminClave" required autocomplete="current-password"
+                        placeholder="Ingrese la clave del administrador para autorizar el cierre"
+                        class="w-full pl-8 pr-3.5 py-2 bg-white border border-rose-300 rounded-xl text-slate-800 text-xs font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                </div>
+                <p class="text-[10px] text-rose-600 font-medium">Se requiere autorización del administrador para cerrar el turno de caja.</p>
+            </div>
+
             <div class="pt-2 flex justify-end space-x-2">
                 <button type="button" onclick="cerrarModalCerrarCajaPOS()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
                     Cancelar
@@ -1341,6 +1362,7 @@
 
         document.getElementById('posCierreDeclaradoEf').value = '';
         document.getElementById('posCierreObservaciones').value = '';
+        if (document.getElementById('posCierreAdminClave')) document.getElementById('posCierreAdminClave').value = '';
 
         calcularDiferenciasCierrePOS();
         document.getElementById('modalCerrarCajaPOS').classList.remove('hidden');
@@ -1348,6 +1370,7 @@
 
     function cerrarModalCerrarCajaPOS() {
         document.getElementById('modalCerrarCajaPOS').classList.add('hidden');
+        if (document.getElementById('posCierreAdminClave')) document.getElementById('posCierreAdminClave').value = '';
     }
 
     function calcularDiferenciasCierrePOS() {
@@ -1378,7 +1401,13 @@
         e.preventDefault();
         const ef = parseFloat(document.getElementById('posCierreDeclaradoEf').value) || 0;
         const obs = document.getElementById('posCierreObservaciones').value.trim();
+        const adminClave = (document.getElementById('posCierreAdminClave') ? document.getElementById('posCierreAdminClave').value.trim() : '');
         const idCajaCerrar = cajaActivaDataPOS ? cajaActivaDataPOS.id : null;
+
+        if (!adminClave) {
+            Swal.fire('Clave requerida', 'Debe ingresar la clave del administrador para autorizar el cierre de caja.', 'warning');
+            return;
+        }
 
         const btn = document.getElementById('btnConfirmarCerrarCajaPOS');
         btn.disabled = true;
@@ -1390,7 +1419,8 @@
                 body: JSON.stringify({
                     caja_id: idCajaCerrar,
                     declarado_efectivo: ef,
-                    observaciones: obs
+                    observaciones: obs,
+                    admin_password: adminClave
                 })
             });
             if (res.ok) {
