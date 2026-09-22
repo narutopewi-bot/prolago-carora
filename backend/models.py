@@ -188,6 +188,8 @@ class Factura(Base):
     referencia_transferencia = Column(String(100), default="")
     
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    usuario_nombre = Column(String(100), default="")
+    usuario = relationship("Usuario", foreign_keys=[usuario_id])
     caja_id = Column(Integer, ForeignKey("cajas.id"), nullable=True)
     caja = relationship("Caja", back_populates="facturas")
     items = relationship("DetalleFactura", back_populates="factura", cascade="all, delete-orphan")

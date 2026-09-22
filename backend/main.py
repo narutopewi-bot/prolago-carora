@@ -56,6 +56,8 @@ ejecutar_ddl_seguro("ALTER TABLE usuarios ADD COLUMN permisos TEXT DEFAULT '*'")
 ejecutar_ddl_seguro("ALTER TABLE facturas ADD COLUMN caja_id INTEGER")
 ejecutar_ddl_seguro("ALTER TABLE facturas ADD COLUMN referencia_transferencia VARCHAR(100) DEFAULT ''")
 ejecutar_ddl_seguro("ALTER TABLE facturas ADD COLUMN efectivo_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE facturas ADD COLUMN usuario_nombre VARCHAR(100) DEFAULT ''")
+ejecutar_ddl_seguro("UPDATE facturas SET usuario_nombre = (SELECT nombre FROM usuarios WHERE usuarios.id = facturas.usuario_id) WHERE (usuario_nombre IS NULL OR usuario_nombre = '') AND usuario_id IS NOT NULL")
 ejecutar_ddl_seguro("ALTER TABLE abonos_credito ADD COLUMN caja_id INTEGER")
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN nombre_caja VARCHAR(50) DEFAULT 'Caja 1'")
 ejecutar_ddl_seguro("UPDATE cajas SET nombre_caja = 'Caja 1' WHERE nombre_caja IS NULL OR nombre_caja = ''")
@@ -561,6 +563,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         estado_credito=estado_credito,
         fecha_vencimiento=fecha_venc,
         usuario_id=user.id,
+        usuario_nombre=(user.nombre or user.username or "Administrador").strip(),
         caja_id=caja_id,
         items=detalles
     )
@@ -608,13 +611,19 @@ def list_facturas(
     fecha_inicio: Optional[str] = None,
     fecha_fin: Optional[str] = None,
     condicion: Optional[str] = None,
+    usuario_id: Optional[int] = None,
+    usuario_nombre: Optional[str] = None,
     db: Session = Depends(get_db),
     user: Usuario = Depends(require_user)
 ):
     query = db.query(Factura)
     if search:
         s = f"%{search.strip()}%"
-        query = query.filter(or_(Factura.numero.ilike(s), Factura.cliente_nombre.ilike(s)))
+        query = query.filter(or_(
+            Factura.numero.ilike(s),
+            Factura.cliente_nombre.ilike(s),
+            Factura.usuario_nombre.ilike(s)
+        ))
     if fecha_inicio and fecha_inicio.strip():
         try:
             dt_inicio = datetime.strptime(fecha_inicio.strip(), "%Y-%m-%d")
@@ -631,6 +640,15 @@ def list_facturas(
         c = condicion.strip().lower()
         if c in ["contado", "credito"]:
             query = query.filter(Factura.condicion == c)
+    if usuario_id:
+        query = query.filter(Factura.usuario_id == usuario_id)
+    elif usuario_nombre and usuario_nombre.strip() and usuario_nombre.strip().upper() != "TODOS":
+        u_str = f"%{usuario_nombre.strip()}%"
+        query = query.filter(or_(
+            Factura.usuario_nombre.ilike(u_str),
+            Factura.usuario.has(Usuario.nombre.ilike(u_str)),
+            Factura.usuario.has(Usuario.username.ilike(u_str))
+        ))
 
     total = query.count()
     facturas = query.order_by(Factura.fecha.desc()).offset(offset).limit(limit).all()
@@ -640,12 +658,21 @@ def list_facturas(
         cred = f.credito or 0.0
         saldo = f.saldo_pendiente if f.saldo_pendiente is not None else cred
         abonado = round(max(0.0, cred - saldo), 2)
+        usuario_nom = f.usuario_nombre
+        if not usuario_nom and f.usuario:
+            usuario_nom = f.usuario.nombre or f.usuario.username
+        if not usuario_nom:
+            usuario_nom = "Administrador"
+
         items.append({
             "id": f.id,
             "numero": f.numero,
             "fecha": f.fecha.isoformat() if f.fecha else "",
             "fecha_formateada": f.fecha.strftime("%d/%m/%Y %I:%M %p") if f.fecha else "",
             "cliente_nombre": f.cliente_nombre or "CLIENTE DE CONTADO",
+            "usuario_id": f.usuario_id,
+            "usuario_nombre": usuario_nom.strip(),
+            "usuario_username": f.usuario.username if f.usuario else "",
             "condicion": f.condicion or "contado",
             "total": f.total or 0.0,
             "tasa_bcv": f.tasa_bcv or 1.0,
@@ -677,6 +704,12 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
     if not cli and factura.cliente_nombre:
         cli = db.query(Cliente).filter(Cliente.nombre == factura.cliente_nombre).first()
     
+    usuario_nom = factura.usuario_nombre
+    if not usuario_nom and factura.usuario:
+        usuario_nom = factura.usuario.nombre or factura.usuario.username
+    if not usuario_nom:
+        usuario_nom = "Administrador"
+
     abonos_list = [
         {
             "id": ab.id,
@@ -702,6 +735,9 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
         "cliente_cedula": cli.cedula_rif if cli else "",
         "cliente_telefono": cli.telefono if cli else "",
         "cliente_direccion": cli.direccion if cli else "",
+        "usuario_id": factura.usuario_id,
+        "usuario_nombre": usuario_nom.strip(),
+        "usuario_username": factura.usuario.username if factura.usuario else "",
         "total_usd": factura.total,
         "total_bs": round(factura.total * factura.tasa_bcv, 2),
         "tasa_bcv": factura.tasa_bcv,
@@ -1989,6 +2025,20 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
 # ==========================================
 # GESTIÓN DE USUARIOS Y PERMISOS
 # ==========================================
+@app.get("/api/usuarios/vendedores")
+def list_vendedores(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    usuarios = db.query(Usuario).order_by(Usuario.nombre.asc()).all()
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "nombre": u.nombre,
+            "rol": u.rol,
+            "activo": u.activo
+        }
+        for u in usuarios
+    ]
+
 @app.get("/api/usuarios")
 def list_usuarios(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     if not user.tiene_permiso("usuarios"):

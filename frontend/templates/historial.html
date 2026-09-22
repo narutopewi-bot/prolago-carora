@@ -117,6 +117,24 @@
             size: A4 portrait;
         }
     }
+
+    /* Scrollbar independiente y limpio para la tabla de historial */
+    #contenedorTablaHistorial::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    #contenedorTablaHistorial::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 8px;
+    }
+    #contenedorTablaHistorial::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 8px;
+        border: 2px solid #f1f5f9;
+    }
+    #contenedorTablaHistorial::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
 </style>
 {% endblock %}
 
@@ -167,9 +185,9 @@
             </div>
         </div>
 
-        <!-- Fila 2: Filtro por Calendario (Rango de Fechas) -->
-        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <!-- Fila 2: Filtro por Calendario (Rango de Fechas) y Filtro por Trabajador -->
+        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
                 <span class="text-xs font-bold text-slate-700 flex items-center">
                     <i class="fa-solid fa-calendar-days text-cyan-600 mr-1.5"></i>
                     Filtrar por Calendario:
@@ -184,10 +202,25 @@
                     <input type="date" id="filtroFechaHasta" onchange="aplicarFiltrosHistorial()"
                         class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
                 </div>
+
+                <!-- Separador vertical -->
+                <div class="hidden sm:block h-6 w-px bg-slate-300 mx-1"></div>
+
+                <!-- Filtro por Trabajador / Vendedor -->
+                <div class="flex items-center space-x-1.5 text-xs">
+                    <span class="text-slate-700 font-bold flex items-center whitespace-nowrap">
+                        <i class="fa-solid fa-user-tag text-amber-600 mr-1.5"></i>
+                        Trabajador:
+                    </span>
+                    <select id="filtroUsuario" onchange="aplicarFiltrosHistorial()"
+                        class="px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs min-w-[190px]">
+                        <option value="TODOS">👤 Todos los Trabajadores</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Accesos rápidos de calendario -->
-            <div class="flex items-center space-x-1 text-[11px]">
+            <div class="flex items-center space-x-1 text-[11px] self-end xl:self-auto">
                 <button type="button" onclick="establecerRangoFecha('hoy')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Hoy</button>
                 <button type="button" onclick="establecerRangoFecha('semana')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Últimos 7 días</button>
                 <button type="button" onclick="establecerRangoFecha('mes')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Este Mes</button>
@@ -216,16 +249,17 @@
         </div>
     </div>
 
-    <!-- TABLA HISTORIAL -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs min-w-full">
-                <thead class="bg-slate-50 text-slate-500 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200">
+    <!-- TABLA HISTORIAL CON SCROLLBAR INDEPENDIENTE -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        <div id="contenedorTablaHistorial" class="overflow-x-auto overflow-y-auto max-h-[66vh] min-h-[350px]">
+            <table class="w-full text-left text-xs min-w-full border-collapse">
+                <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200 sticky top-0 z-20 shadow-xs backdrop-blur-sm">
                     <tr>
                         <th class="px-3 py-3.5 whitespace-nowrap">Factura N°</th>
                         <th class="px-2.5 py-3.5 text-center whitespace-nowrap">Condición</th>
                         <th class="px-3 py-3.5 whitespace-nowrap">Fecha y Hora</th>
                         <th class="px-3.5 py-3.5">Cliente</th>
+                        <th class="px-3 py-3.5 whitespace-nowrap">Facturado Por</th>
                         <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Efectivo ($)</th>
                         <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Zelle ($)</th>
                         <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Transferencia ($)</th>
@@ -260,6 +294,7 @@
 
         <div class="flex justify-between items-center mb-3">
             <p><strong>Cliente:</strong> <span id="detCliente"></span></p>
+            <p class="text-right"><strong>Facturado Por:</strong> <span id="detVendedor" class="font-bold text-amber-700"></span></p>
         </div>
 
         <!-- Resumen de Crédito y Abonos si aplica -->
@@ -568,10 +603,59 @@
             if (res.ok) {
                 const data = await res.json();
                 todasLasFacturas = data.items;
+                await cargarTrabajadoresFiltro();
                 aplicarFiltrosHistorial();
             }
         } catch (e) {
             console.error(e);
+        }
+    }
+
+    async function cargarTrabajadoresFiltro() {
+        const select = document.getElementById('filtroUsuario');
+        if (!select) return;
+        const valorPrevio = select.value;
+
+        let usuarios = [];
+        try {
+            const res = await fetch('/api/usuarios/vendedores');
+            if (res.ok) {
+                usuarios = await res.json();
+            }
+        } catch (e) {
+            console.warn("No se pudo cargar /api/usuarios/vendedores:", e);
+        }
+
+        const nombresSet = new Set();
+        select.innerHTML = '<option value="TODOS">👤 Todos los Trabajadores</option>';
+
+        usuarios.forEach(u => {
+            const nom = (u.nombre || u.username || '').trim();
+            if (nom && !nombresSet.has(nom.toLowerCase())) {
+                nombresSet.add(nom.toLowerCase());
+                const opt = document.createElement('option');
+                opt.value = nom;
+                opt.textContent = `${nom} (@${u.username})`;
+                select.appendChild(opt);
+            }
+        });
+
+        // Asegurar que si existen facturas con otros nombres históricos también aparezcan
+        if (todasLasFacturas && todasLasFacturas.length > 0) {
+            todasLasFacturas.forEach(f => {
+                const nom = (f.usuario_nombre || f.usuario_username || '').trim();
+                if (nom && !nombresSet.has(nom.toLowerCase())) {
+                    nombresSet.add(nom.toLowerCase());
+                    const opt = document.createElement('option');
+                    opt.value = nom;
+                    opt.textContent = `${nom}`;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        if (valorPrevio && Array.from(select.options).some(o => o.value === valorPrevio)) {
+            select.value = valorPrevio;
         }
     }
 
@@ -601,6 +685,8 @@
         } else if (tipo === 'limpiar') {
             inpDesde.value = '';
             inpHasta.value = '';
+            const selUser = document.getElementById('filtroUsuario');
+            if (selUser) selUser.value = 'TODOS';
         }
         aplicarFiltrosHistorial();
     }
@@ -610,11 +696,22 @@
         const cond = document.getElementById('filtroCondicion').value;
         const fDesde = document.getElementById('filtroFechaDesde').value;
         const fHasta = document.getElementById('filtroFechaHasta').value;
+        const uTrabajador = document.getElementById('filtroUsuario') ? document.getElementById('filtroUsuario').value : 'TODOS';
 
         const filtradas = todasLasFacturas.filter(f => {
-            // 1. Filtro texto (Número o Cliente)
-            const matchTxt = !txt || f.numero.toLowerCase().includes(txt) || f.cliente_nombre.toLowerCase().includes(txt);
+            const fVendedor = (f.usuario_nombre || f.usuario_username || '').toLowerCase();
+
+            // 1. Filtro texto (Número, Cliente o Vendedor)
+            const matchTxt = !txt || f.numero.toLowerCase().includes(txt) || f.cliente_nombre.toLowerCase().includes(txt) || fVendedor.includes(txt);
             if (!matchTxt) return false;
+
+            // 1.1 Filtro por Trabajador / Vendedor
+            if (uTrabajador && uTrabajador !== 'TODOS') {
+                const uBuscado = uTrabajador.toLowerCase();
+                const nomMatch = fVendedor.includes(uBuscado) || uBuscado.includes(fVendedor);
+                const idMatch = f.usuario_id && String(f.usuario_id) === String(uTrabajador);
+                if (!nomMatch && !idMatch) return false;
+            }
 
             const esCredito = f.condicion === 'credito' || (f.credito && f.credito > 0);
             const saldoDebe = (f.saldo_pendiente !== undefined && f.saldo_pendiente !== null) ? f.saldo_pendiente : (f.credito || 0);
@@ -658,7 +755,7 @@
         tbody.innerHTML = '';
 
         if (filtradas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12" class="p-8 text-center text-slate-400 font-medium">No se encontraron ventas que coincidan con los filtros seleccionados</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="13" class="p-8 text-center text-slate-400 font-medium">No se encontraron ventas que coincidan con los filtros seleccionados</td></tr>';
             return;
         }
 
@@ -670,6 +767,7 @@
             const esCredito = f.condicion === 'credito' || (f.credito && f.credito > 0);
             const saldoDebe = (f.saldo_pendiente !== undefined && f.saldo_pendiente !== null) ? f.saldo_pendiente : (f.credito || 0);
             const abonado = (f.total_abonado !== undefined && f.total_abonado !== null) ? f.total_abonado : Math.max(0, (f.credito || 0) - saldoDebe);
+            const vendedorTexto = f.usuario_nombre || f.usuario_username || 'Administrador';
 
             let badgeCondicion = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i> CONTADO</span>`;
             if (esCredito) {
@@ -720,6 +818,12 @@
                 <td class="px-2.5 py-3 text-center whitespace-nowrap">${badgeCondicion}</td>
                 <td class="px-3 py-3 text-slate-500 whitespace-nowrap">${fFecha}</td>
                 <td class="px-3.5 py-3 font-semibold text-slate-800">${f.cliente_nombre}</td>
+                <td class="px-3 py-3 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        <i class="fa-solid fa-user-circle text-amber-600 mr-1.5"></i>
+                        ${vendedorTexto}
+                    </span>
+                </td>
                 <td class="px-2.5 py-3 text-right font-mono text-slate-600 whitespace-nowrap">
                     ${(f.efectivo && f.efectivo > 0) ? '$' + f.efectivo.toFixed(2) : ((f.efectivo_bs && f.efectivo_bs > 0) ? '' : '-')}
                     ${(f.efectivo_bs && f.efectivo_bs > 0) ? `<div class="text-[9px] text-emerald-600 font-bold">Bs. ${Number(f.efectivo_bs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</div>` : ''}
@@ -766,6 +870,10 @@
                 document.getElementById('detNum').textContent = d.numero;
                 document.getElementById('detFecha').textContent = d.fecha;
                 document.getElementById('detCliente').textContent = d.cliente_nombre;
+                const elVendedor = document.getElementById('detVendedor');
+                if (elVendedor) {
+                    elVendedor.textContent = d.usuario_nombre || d.usuario_username || 'Administrador';
+                }
                 document.getElementById('detTotalUSD').textContent = `$${d.total_usd.toFixed(2)}`;
                 document.getElementById('detTotalBS').textContent = `Bs. ${Number(d.total_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
                 document.getElementById('detTasa').textContent = `${d.tasa_bcv.toFixed(2)} Bs./$`;
