@@ -39,84 +39,49 @@ Base.metadata.create_all(bind=engine)
 # Migración automática si está conectado a PostgreSQL nuevo
 migrate_sqlite_to_pg_if_needed()
 
-# Auto-migración segura de columnas nuevas y ajustes
-with engine.connect() as conn:
+# Auto-migración segura de columnas nuevas y ajustes (aislada por sentencia para PostgreSQL y SQLite)
+def ejecutar_ddl_seguro(sql_str: str, params: dict = None):
     try:
-        conn.execute(text("ALTER TABLE articulos ADD COLUMN stock_alerta FLOAT DEFAULT 5.0"))
-        conn.commit()
+        with engine.begin() as conn:
+            if params:
+                conn.execute(text(sql_str), params)
+            else:
+                conn.execute(text(sql_str))
     except Exception:
         pass
-    try:
-        conn.execute(text("ALTER TABLE usuarios ADD COLUMN permisos TEXT DEFAULT '*'"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE facturas ADD COLUMN caja_id INTEGER"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE facturas ADD COLUMN referencia_transferencia VARCHAR(100) DEFAULT ''"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE abonos_credito ADD COLUMN caja_id INTEGER"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE cajas ADD COLUMN nombre_caja VARCHAR(50) DEFAULT 'Caja 1'"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("UPDATE cajas SET nombre_caja = 'Caja 1' WHERE nombre_caja IS NULL OR nombre_caja = ''"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE cajas ADD COLUMN ventas_pagomovil_bs FLOAT DEFAULT 0.0"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE cajas ADD COLUMN ventas_punto_bs FLOAT DEFAULT 0.0"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE facturas ADD COLUMN efectivo_bs FLOAT DEFAULT 0.0"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE cajas ADD COLUMN ventas_efectivo_bs FLOAT DEFAULT 0.0"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        conn.execute(text("ALTER TABLE cajas ADD COLUMN total_ventas_bs FLOAT DEFAULT 0.0"))
-        conn.commit()
-    except Exception:
-        pass
-    try:
-        # Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) para registros previos de Render
-        conn.execute(text("CREATE TABLE IF NOT EXISTS _sistema_migraciones (clave VARCHAR(50) PRIMARY KEY)"))
-        conn.commit()
-        migrada = conn.execute(text("SELECT clave FROM _sistema_migraciones WHERE clave = 'ajustar_utc_a_venezuela_v1'")).fetchone()
-        if not migrada:
-            conn.execute(text("UPDATE facturas SET fecha = datetime(fecha, '-4 hours') WHERE fecha IS NOT NULL AND fecha >= '2026-09-16'"))
-            conn.execute(text("UPDATE abonos_credito SET fecha = datetime(fecha, '-4 hours') WHERE fecha IS NOT NULL AND fecha >= '2026-09-16'"))
-            conn.execute(text("UPDATE cajas SET fecha_apertura = datetime(fecha_apertura, '-4 hours') WHERE fecha_apertura IS NOT NULL AND fecha_apertura >= '2026-09-16'"))
-            conn.execute(text("UPDATE cajas SET fecha_cierre = datetime(fecha_cierre, '-4 hours') WHERE fecha_cierre IS NOT NULL AND fecha_cierre >= '2026-09-16'"))
-            conn.execute(text("INSERT INTO _sistema_migraciones (clave) VALUES ('ajustar_utc_a_venezuela_v1')"))
-            conn.commit()
-    except Exception:
-        pass
-    try:
-        # Asegurar existencia de usuarios base en cualquier entorno (local o nube Render)
+
+# Migraciones individuales de columnas
+ejecutar_ddl_seguro("ALTER TABLE articulos ADD COLUMN stock_alerta FLOAT DEFAULT 5.0")
+ejecutar_ddl_seguro("ALTER TABLE usuarios ADD COLUMN permisos TEXT DEFAULT '*'")
+ejecutar_ddl_seguro("ALTER TABLE facturas ADD COLUMN caja_id INTEGER")
+ejecutar_ddl_seguro("ALTER TABLE facturas ADD COLUMN referencia_transferencia VARCHAR(100) DEFAULT ''")
+ejecutar_ddl_seguro("ALTER TABLE facturas ADD COLUMN efectivo_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE abonos_credito ADD COLUMN caja_id INTEGER")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN nombre_caja VARCHAR(50) DEFAULT 'Caja 1'")
+ejecutar_ddl_seguro("UPDATE cajas SET nombre_caja = 'Caja 1' WHERE nombre_caja IS NULL OR nombre_caja = ''")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN ventas_efectivo_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN ventas_pagomovil_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN ventas_punto_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN total_ventas_bs FLOAT DEFAULT 0.0")
+
+# Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) (solo si SQLite)
+try:
+    if not engine.url.drivername.startswith("postgresql"):
+        ejecutar_ddl_seguro("CREATE TABLE IF NOT EXISTS _sistema_migraciones (clave VARCHAR(50) PRIMARY KEY)")
+        with engine.begin() as conn:
+            migrada = conn.execute(text("SELECT clave FROM _sistema_migraciones WHERE clave = 'ajustar_utc_a_venezuela_v1'")).fetchone()
+            if not migrada:
+                conn.execute(text("UPDATE facturas SET fecha = datetime(fecha, '-4 hours') WHERE fecha IS NOT NULL AND fecha >= '2026-09-16'"))
+                conn.execute(text("UPDATE abonos_credito SET fecha = datetime(fecha, '-4 hours') WHERE fecha IS NOT NULL AND fecha >= '2026-09-16'"))
+                conn.execute(text("UPDATE cajas SET fecha_apertura = datetime(fecha_apertura, '-4 hours') WHERE fecha_apertura IS NOT NULL AND fecha_apertura >= '2026-09-16'"))
+                conn.execute(text("UPDATE cajas SET fecha_cierre = datetime(fecha_cierre, '-4 hours') WHERE fecha_cierre IS NOT NULL AND fecha_cierre >= '2026-09-16'"))
+                conn.execute(text("INSERT INTO _sistema_migraciones (clave) VALUES ('ajustar_utc_a_venezuela_v1')"))
+except Exception:
+    pass
+
+# Asegurar existencia de usuarios base en cualquier entorno (local o nube Render)
+try:
+    with engine.begin() as conn:
         u_count = conn.execute(text("SELECT COUNT(*) FROM usuarios")).scalar()
         if not u_count or u_count == 0:
             h_admin = hash_password("admin123")
@@ -129,26 +94,24 @@ with engine.connect() as conn:
                 "(:id3, 'cajero2', :h3, 'Cajero Terminal 2', 'cajero', 1, 'pos,cajas'),"
                 "(:id4, 'cajero3', :h4, 'Cajero Terminal 3', 'cajero', 1, 'pos,cajas')"
             ), {"id1": 1, "h1": h_admin, "id2": 2, "h2": h_cajero, "id3": 3, "h3": h_123, "id4": 4, "h4": h_123})
-            conn.commit()
         else:
-            # Asegurar que admin siempre exista
             adm = conn.execute(text("SELECT id FROM usuarios WHERE lower(username) = 'admin'")).fetchone()
             if not adm:
                 conn.execute(text(
                     "INSERT INTO usuarios (username, password_hash, nombre, rol, activo, permisos) VALUES "
                     "('admin', :h, 'Administrador General', 'admin', 1, '*')"
                 ), {"h": hash_password("admin123")})
-                conn.commit()
-    except Exception as e:
-        pass
-    try:
-        # Asegurar tasa_bcv por defecto
+except Exception:
+    pass
+
+# Asegurar tasa_bcv por defecto
+try:
+    with engine.begin() as conn:
         tasa = conn.execute(text("SELECT clave FROM configuracion WHERE clave = 'tasa_bcv'")).fetchone()
         if not tasa:
             conn.execute(text("INSERT INTO configuracion (clave, valor) VALUES ('tasa_bcv', '36.50')"))
-            conn.commit()
-    except Exception:
-        pass
+except Exception:
+    pass
 
 app = FastAPI(title="Prolago Carora Web", version="1.0.0")
 
@@ -1446,24 +1409,31 @@ def abrir_caja(payload: CajaApertura, db: Session = Depends(get_db), user: Usuar
     monto_usd = round(payload.monto_apertura_usd or 0.0, 2)
     monto_bs = payload.monto_apertura_bs if (payload.monto_apertura_bs and payload.monto_apertura_bs > 0) else round(monto_usd * tasa_bcv, 2)
     
-    nueva_caja = Caja(
-        numero=nuevo_num,
-        nombre_caja=nombre_caja,
-        estado="abierta",
-        fecha_apertura=ahora_venezuela(),
-        usuario_apertura_id=user.id,
-        usuario_apertura_nombre=user.nombre,
-        monto_apertura_usd=monto_usd,
-        monto_apertura_bs=monto_bs,
-        tasa_bcv_apertura=tasa_bcv,
-        observaciones_apertura=(payload.observaciones or "").strip(),
-        total_esperado_efectivo=monto_usd,
-        total_esperado_general=monto_usd
-    )
-    db.add(nueva_caja)
-    db.commit()
-    db.refresh(nueva_caja)
-    return {"status": "ok", "caja": serializar_caja(nueva_caja, db)}
+    try:
+        nueva_caja = Caja(
+            numero=nuevo_num,
+            nombre_caja=nombre_caja,
+            estado="abierta",
+            fecha_apertura=ahora_venezuela(),
+            usuario_apertura_id=user.id,
+            usuario_apertura_nombre=user.nombre,
+            monto_apertura_usd=monto_usd,
+            monto_apertura_bs=monto_bs,
+            tasa_bcv_apertura=tasa_bcv,
+            observaciones_apertura=(payload.observaciones or "").strip(),
+            total_esperado_efectivo=monto_usd,
+            total_esperado_general=monto_usd
+        )
+        db.add(nueva_caja)
+        db.commit()
+        db.refresh(nueva_caja)
+        return {"status": "ok", "caja": serializar_caja(nueva_caja, db)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[ERROR abrir_caja]: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al abrir la caja: {str(e)}")
 
 @app.post("/api/cajas/cerrar")
 def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
