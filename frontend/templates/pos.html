@@ -4,6 +4,15 @@
 {% block nav_pos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block extra_head %}
+<!-- JsBarcode para renderizar códigos de barras en tickets térmicos -->
+<script src="/static/js/JsBarcode.all.min.js"></script>
+<script>
+    if (typeof JsBarcode === 'undefined') {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+        document.head.appendChild(s);
+    }
+</script>
 <style>
     /* ESTILOS PARA IMPRESIÓN LIMPIA DE 1 SOLA PÁGINA */
     @media print {
@@ -696,13 +705,13 @@
             <div class="flex items-center space-x-2">
                 <span class="text-xs font-bold text-slate-500 uppercase">Formato Ticket:</span>
                 <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-100 text-xs">
-                    <button type="button" id="btnFmt58" onclick="seleccionarFormatoImpresion('58')"
-                        class="px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm">
-                        58 mm
-                    </button>
                     <button type="button" id="btnFmt80" onclick="seleccionarFormatoImpresion('80')"
-                        class="px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900">
+                        class="px-2.5 py-1 rounded-md font-bold transition bg-emerald-700 text-white shadow-sm">
                         80 mm
+                    </button>
+                    <button type="button" id="btnFmt58" onclick="seleccionarFormatoImpresion('58')"
+                        class="px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900">
+                        58 mm
                     </button>
                 </div>
             </div>
@@ -712,7 +721,7 @@
         </div>
 
         <!-- CONTENEDOR DE IMPRESIÓN DEL RECIBO -->
-        <div id="seccionTicketImprimir" class="mx-auto border border-slate-200 bg-white p-3 rounded-xl shadow-inner font-mono formato-58mm transition-all">
+        <div id="seccionTicketImprimir" class="mx-auto border border-slate-300 bg-white p-3 rounded-xl shadow-inner font-mono formato-80mm transition-all">
             
             <!-- ENCABEZADO FISCAL CON LOGO OFICIAL -->
             <div class="text-center border-b border-dashed border-slate-400 pb-2 mb-2">
@@ -1155,7 +1164,7 @@
     let carrito = [];
     let siguienteFacturaNum = "1";
     let clientesCache = [];
-    let formatoImpresion = localStorage.getItem('prolago_impresora_tamano') || '58';
+    let formatoImpresion = localStorage.getItem('prolago_impresora_tamano') || '80';
     let condicionVenta = 'contado'; // 'contado' o 'credito'
     let ultimaFacturaData = null;
     let ultimoClienteNombre = '';
@@ -2618,10 +2627,29 @@
     // ========================================================
     // FORMATOS DE IMPRESIÓN TÉRMICA (58mm Y 80mm) - DOBLE (ORIGINAL Y COPIA)
     // ========================================================
+    function aplicarEstiloPaginaImpresionPOS(tamano) {
+        let el = document.getElementById('dynamicPrintPageStylePOS');
+        if (!el) {
+            el = document.createElement('style');
+            el.id = 'dynamicPrintPageStylePOS';
+            document.head.appendChild(el);
+        }
+        if (tamano === '80') {
+            el.innerHTML = '@media print { @page { size: 80mm auto !important; margin: 0 !important; } }';
+        } else if (tamano === '58') {
+            el.innerHTML = '@media print { @page { size: 58mm auto !important; margin: 0 !important; } }';
+        } else {
+            el.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 4mm !important; } }';
+        }
+    }
+
     function seleccionarFormatoImpresion(fmt) {
         formatoImpresion = fmt;
         localStorage.setItem('prolago_impresora_tamano', fmt);
         aplicarFormatoImpresion(fmt);
+        if (ultimaFacturaData) {
+            mostrarTicket(ultimaFacturaData, ultimoClienteNombre, ultimosItems, ultimosPagos);
+        }
     }
 
     function aplicarFormatoImpresion(fmt) {
@@ -2634,12 +2662,12 @@
         if (fmt === '80') {
             ticketEl.classList.remove('formato-58mm');
             ticketEl.classList.add('formato-80mm');
-            if (btn80) btn80.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
+            if (btn80) btn80.className = 'px-2.5 py-1 rounded-md font-bold transition bg-emerald-700 text-white shadow-sm';
             if (btn58) btn58.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
         } else {
             ticketEl.classList.remove('formato-80mm');
             ticketEl.classList.add('formato-58mm');
-            if (btn58) btn58.className = 'px-2.5 py-1 rounded-md font-bold transition bg-white text-emerald-700 shadow-sm';
+            if (btn58) btn58.className = 'px-2.5 py-1 rounded-md font-bold transition bg-emerald-700 text-white shadow-sm';
             if (btn80) btn80.className = 'px-2.5 py-1 rounded-md font-bold transition text-slate-600 hover:text-slate-900';
         }
     }
@@ -2647,40 +2675,49 @@
     function construirBloqueTicket(factData, cliente, items, pagos, tipoCopia) {
         const esCred = factData.condicion === 'credito' || (pagos && (pagos.creditoUSD > 0 || pagos.credito > 0)) || (factData.saldo_pendiente > 0.009);
         const badgeCopia = tipoCopia === 'ORIGINAL'
-            ? `<div class="bg-slate-900 text-white font-black py-0.5 px-2 text-center text-[10px] tracking-widest uppercase mb-1.5 rounded">*** ORIGINAL - CLIENTE ***</div>`
-            : `<div class="bg-slate-700 text-white font-black py-0.5 px-2 text-center text-[10px] tracking-widest uppercase mb-1.5 rounded">*** COPIA - ADMINISTRACIÓN / CAJA ***</div>`;
+            ? `<div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">*** ORIGINAL - CLIENTE ***</div>`
+            : `<div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">*** COPIA - ADMINISTRACIÓN ***</div>`;
 
         const fechaStr = factData.fecha || new Date().toLocaleString('es-VE');
-        const totalUSD = factData.total_usd || 0;
+        const totalUSD = factData.total_usd || factData.total || 0;
         const totalBS = factData.total_bs || 0;
         const tasa = factData.tasa_bcv || 1;
+        const vendedorStr = factData.usuario_nombre || 'Vendedor';
 
         let condicionHtml = '';
         if (esCred) {
             const saldoUSD = (factData.saldo_pendiente !== undefined && factData.saldo_pendiente !== null) ? factData.saldo_pendiente : (pagos.creditoUSD || 0);
             condicionHtml = `
-                <div class="p-1 rounded text-center font-bold text-[10px] uppercase bg-rose-50 border border-rose-300 text-rose-900 my-1.5">
-                    <div>*** VENTA A CRÉDITO ***</div>
-                    <div class="text-[9px] font-semibold text-rose-700 mt-0.5">Saldo Pendiente: $${saldoUSD.toFixed(2)} USD</div>
-                    ${factData.fecha_vencimiento ? `<div class="text-[8px] font-normal text-slate-500">Vencimiento: ${factData.fecha_vencimiento}</div>` : ''}
+                <div class="border-2 border-black p-1 text-center my-1.5 bg-slate-50">
+                    <div class="font-black text-[11px] uppercase">*** VENTA A CRÉDITO ***</div>
+                    <div class="text-[10px] font-bold mt-0.5">Saldo Pendiente: $${saldoUSD.toFixed(2)} USD</div>
+                    ${factData.fecha_vencimiento ? `<div class="text-[8.5px] font-normal text-slate-700">Vence: ${factData.fecha_vencimiento}</div>` : ''}
                 </div>
             `;
         } else {
             condicionHtml = `
-                <div class="p-1 rounded text-center font-bold text-[10px] uppercase bg-emerald-50 border border-emerald-300 text-emerald-900 my-1.5">
-                    <div>*** VENTA AL CONTADO (PAGADA) ***</div>
+                <div class="border border-black py-0.5 px-1 text-center font-black text-[10.5px] uppercase my-1.5">
+                    *** VENTA AL CONTADO (PAGADA) ***
                 </div>
             `;
         }
 
         const itemsRows = (items || []).map(it => {
-            const subt = it.subtotal || (it.cantidad * it.precio * (1 - (it.descuento || 0) / 100));
+            const cant = Number(it.cantidad || 1);
+            const prec = Number(it.precio || 0);
+            const desc = Number(it.descuento || 0);
+            const subt = it.subtotal !== undefined ? Number(it.subtotal) : (cant * prec * (1 - desc / 100));
+            const descTag = desc > 0 ? `<span class="text-[9px] block text-slate-600">(Desc: ${desc}%)</span>` : '';
+
             return `
                 <tr>
-                    <td class="py-0.5 font-bold">${it.cantidad}</td>
-                    <td class="py-0.5 truncate max-w-[140px]">${it.nombre}</td>
-                    <td class="py-0.5 text-right font-mono">$${(it.precio || 0).toFixed(2)}</td>
-                    <td class="py-0.5 text-right font-mono font-bold">$${subt.toFixed(2)}</td>
+                    <td class="py-1 font-bold text-center align-top">${cant % 1 === 0 ? cant : cant.toFixed(2)}</td>
+                    <td class="py-1 pr-1 font-medium align-top leading-tight">
+                        <div>${it.nombre}</div>
+                        ${descTag}
+                    </td>
+                    <td class="py-1 text-right font-mono align-top">$${prec.toFixed(2)}</td>
+                    <td class="py-1 text-right font-mono font-bold align-top">$${subt.toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
@@ -2698,70 +2735,100 @@
         const refVal = (pagos && pagos.referencia_transferencia) || factData.referencia_transferencia || '';
         const refTxt = refVal ? ` [Ref: ${refVal}]` : '';
 
-        if (ef > 0) pagosHtml += `<div class="flex justify-between"><span>- Efectivo USD:</span><span>$${ef.toFixed(2)}</span></div>`;
-        if (efBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Efectivo Bs.:</span><span>Bs. ${Number(efBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${efBS_USD.toFixed(2)})</span></div>`;
-        if (pmUSD > 0 || pmBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Transferencia${refTxt}:</span><span>${pmBS > 0 ? `Bs. ${Number(pmBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${pmUSD.toFixed(2)})</span></div>`;
-        if (ptUSD > 0 || ptBS > 0) pagosHtml += `<div class="flex justify-between"><span>- Punto de Venta:</span><span>${ptBS > 0 ? `Bs. ${Number(ptBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${ptUSD.toFixed(2)})</span></div>`;
-        if (zl > 0) pagosHtml += `<div class="flex justify-between"><span>- Zelle:</span><span>$${zl.toFixed(2)}</span></div>`;
-        if (cred > 0) pagosHtml += `<div class="flex justify-between font-bold text-rose-800"><span>- Saldo a Crédito:</span><span>$${cred.toFixed(2)}</span></div>`;
+        if (ef > 0) pagosHtml += `<div class="flex justify-between"><span>• Efectivo USD:</span><span class="font-mono">$${ef.toFixed(2)}</span></div>`;
+        if (efBS > 0) pagosHtml += `<div class="flex justify-between"><span>• Efectivo Bs.:</span><span class="font-mono">Bs. ${Number(efBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ($${efBS_USD.toFixed(2)})</span></div>`;
+        if (pmUSD > 0 || pmBS > 0) pagosHtml += `<div class="flex justify-between"><span>• Transferencia${refTxt}:</span><span class="font-mono">${pmBS > 0 ? `Bs. ${Number(pmBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${pmUSD.toFixed(2)})</span></div>`;
+        if (ptUSD > 0 || ptBS > 0) pagosHtml += `<div class="flex justify-between"><span>• Punto de Venta:</span><span class="font-mono">${ptBS > 0 ? `Bs. ${Number(ptBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})} ` : ''}($${ptUSD.toFixed(2)})</span></div>`;
+        if (zl > 0) pagosHtml += `<div class="flex justify-between"><span>• Zelle:</span><span class="font-mono">$${zl.toFixed(2)}</span></div>`;
+        if (cred > 0) pagosHtml += `<div class="flex justify-between font-bold"><span>• Saldo a Crédito:</span><span class="font-mono">$${cred.toFixed(2)}</span></div>`;
         if (!pagosHtml) pagosHtml = '<div class="text-slate-500 italic">Pago registrado</div>';
 
         return `
-            <div class="ticket-bloque border-b border-dashed border-slate-300 pb-2 mb-2">
+            <div class="ticket-bloque mb-3 text-black">
                 ${badgeCopia}
-                <div class="text-center border-b border-dashed border-slate-400 pb-1.5 mb-1.5">
-                    <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-10 h-10 mx-auto rounded-lg mb-1 object-cover border border-slate-200">
-                    <h2 class="font-black text-sm uppercase tracking-wider">PROLAGO C.A.</h2>
-                    <p class="text-[9px] font-bold text-slate-800 leading-tight">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
-                    <p class="text-[10px] text-slate-600">Carora, Lara &bull; RIF: J-50493821-0</p>
-                    <div class="mt-1 font-bold text-xs">
-                        FACTURA N°: <span>#${factData.numero}</span>
-                    </div>
-                    <div class="text-[10px] text-slate-500">${fechaStr}</div>
+
+                <!-- ENCABEZADO FISCAL -->
+                <div class="text-center pb-2 mb-2 border-b border-dashed border-black">
+                    <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-12 h-12 mx-auto rounded-lg mb-1 object-cover border border-slate-300">
+                    <h1 class="font-black text-base uppercase tracking-wider text-black leading-tight">PROLAGO C.A.</h1>
+                    <p class="text-[9.5px] font-bold text-black uppercase leading-tight mt-0.5">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
+                    <p class="text-[10px] font-semibold text-black mt-0.5">RIF: J-50493821-0 &bull; Carora, Lara</p>
+                    <p class="text-[9.5px] text-slate-700">Venezuela</p>
                 </div>
 
-                <div class="border-b border-dashed border-slate-400 pb-1.5 mb-1.5 text-[11px] space-y-0.5">
-                    <p><strong>CLIENTE:</strong> <span>${cliente || factData.cliente_nombre || 'CLIENTE GENERAL'}</span></p>
+                <!-- INFO FACTURA -->
+                <div class="text-[11px] pb-2 mb-2 border-b border-dashed border-black space-y-0.5">
+                    <div class="flex justify-between items-center text-xs font-black">
+                        <span>FACTURA:</span>
+                        <span class="text-sm font-black tracking-wider">#${factData.numero}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span>Fecha:</span>
+                        <span>${fechaStr}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span>Vendedor / Caja:</span>
+                        <span class="font-black uppercase">${vendedorStr}</span>
+                    </div>
                     ${condicionHtml}
                 </div>
 
-                <table class="w-full text-left mb-1.5">
+                <!-- CLIENTE -->
+                <div class="text-[11px] pb-2 mb-2 border-b border-dashed border-black space-y-0.5">
+                    <div class="flex justify-between">
+                        <span class="font-bold">CLIENTE:</span>
+                        <span class="font-black uppercase text-right">${cliente || factData.cliente_nombre || 'CLIENTE GENERAL'}</span>
+                    </div>
+                </div>
+
+                <!-- TABLA DE ARTÍCULOS EN 80MM -->
+                <table class="w-full text-left text-[11px] mb-2 leading-snug">
                     <thead>
-                        <tr class="border-b border-slate-300 text-[10px] uppercase font-bold">
-                            <th class="py-0.5">Cant</th>
-                            <th class="py-0.5">Prod</th>
-                            <th class="py-0.5 text-right">P.U.</th>
-                            <th class="py-0.5 text-right">Total</th>
+                        <tr class="border-b-2 border-black text-[10px] uppercase font-black">
+                            <th class="py-1 text-center w-[12%]">Cant</th>
+                            <th class="py-1 w-[48%]">Descripción</th>
+                            <th class="py-1 text-right w-[20%]">P.U.($)</th>
+                            <th class="py-1 text-right w-[20%]">Total($)</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-[10px]">
+                    <tbody class="divide-y divide-dashed divide-slate-300">
                         ${itemsRows}
                     </tbody>
                 </table>
 
-                <div class="border-t border-dashed border-slate-400 pt-1.5 space-y-0.5 text-right font-bold text-xs">
-                    <div class="flex justify-between items-center text-sm font-black">
-                        <span>TOTAL ($):</span>
-                        <span class="text-emerald-700">$${totalUSD.toFixed(2)}</span>
+                <!-- TOTALES MULTIMONEDA -->
+                <div class="border-t-2 border-dashed border-black pt-2 space-y-1 text-right text-xs">
+                    <div class="flex justify-between items-center text-sm font-black border-y border-black py-1 my-1">
+                        <span>TOTAL A PAGAR ($):</span>
+                        <span class="text-base font-mono">$${Number(totalUSD).toFixed(2)}</span>
                     </div>
-                    <div class="flex justify-between items-center text-slate-800">
-                        <span>TOTAL (BS.):</span>
-                        <span>Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}</span>
+                    <div class="flex justify-between items-center text-[10px] text-slate-700">
+                        <span>Tasa Oficial BCV:</span>
+                        <span class="font-mono">${Number(tasa).toFixed(2)} Bs./$</span>
                     </div>
-                    <div class="flex justify-between items-center text-[10px] text-slate-500 font-normal">
-                        <span>Tasa BCV:</span>
-                        <span>${tasa.toFixed(2)} Bs./$</span>
+                    <div class="flex justify-between items-center font-black text-xs">
+                        <span>TOTAL EN BOLÍVARES:</span>
+                        <span class="font-mono text-sm">Bs. ${Number(totalBS).toLocaleString('es-VE', {minimumFractionDigits: 2})}</span>
                     </div>
                 </div>
 
-                <div class="border-t border-dashed border-slate-400 pt-1.5 mt-1.5 text-[10px] space-y-0.5">
-                    <span class="font-bold block text-slate-700 uppercase">Detalle de Pago:</span>
-                    <div class="text-slate-600">${pagosHtml}</div>
+                <!-- DESGLOSE DE PAGO RECIBIDO -->
+                <div class="border-t border-dashed border-black pt-2 mt-2 text-[10.5px] space-y-0.5">
+                    <span class="font-black block uppercase text-[10px]">Forma de Pago Registrada:</span>
+                    ${pagosHtml}
                 </div>
 
-                <div class="mt-2 pt-1 border-t border-dashed border-slate-400 text-center text-[9px] text-slate-500">
-                    <p class="font-bold uppercase">¡Gracias por su compra!</p>
-                    <p class="text-[8px]">Conserve este comprobante para cualquier reclamo</p>
+                <!-- CÓDIGO DE BARRAS TÉRMICO -->
+                <div class="text-center my-2.5 pt-1">
+                    <svg class="ticket-barcode-svg-pos mx-auto block max-w-full" data-code="${factData.numero}"></svg>
+                    <span class="text-[9px] font-mono tracking-widest block mt-0.5 font-bold">*FAC-${factData.numero}*</span>
+                </div>
+
+                <!-- PIE DE TICKET -->
+                <div class="text-center border-t border-dashed border-black pt-2 text-[9.5px] text-black space-y-0.5">
+                    <p class="font-black uppercase tracking-wider">¡GRACIAS POR SU COMPRA Y PREFERENCIA!</p>
+                    <p class="text-[8.5px]">Conserve este comprobante para cualquier reclamo</p>
+                    <p class="text-[8px] text-slate-600 mt-0.5">Prolago C.A. &bull; Carora 2026</p>
                 </div>
             </div>
         `;
@@ -2776,15 +2843,36 @@
         const htmlOriginal = construirBloqueTicket(factData, cliente, items, pagos, 'ORIGINAL');
         const htmlCopia = construirBloqueTicket(factData, cliente, items, pagos, 'COPIA');
         const divisorTicket = `
-            <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-slate-600 font-mono text-[9px] font-black text-slate-700 select-none">
+            <div class="ticket-corte-guia text-center my-4 py-2 border-y-2 border-dashed border-black font-mono text-[10px] font-black select-none">
                 - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
                 ✂ CORTAR AQUÍ &bull; SEGUNDA COPIA ABAJO ✂<br>
                 - - - - - - - - - - - - - - - - - - - - - - - - - - -
             </div>
         `;
 
-        document.getElementById('seccionTicketImprimir').innerHTML = htmlOriginal + divisorTicket + htmlCopia;
+        const cont = document.getElementById('seccionTicketImprimir');
+        cont.innerHTML = htmlOriginal + divisorTicket + htmlCopia;
         aplicarFormatoImpresion(formatoImpresion);
+
+        // Renderizar códigos de barras
+        if (typeof JsBarcode === 'function') {
+            const svgs = cont.querySelectorAll('.ticket-barcode-svg-pos');
+            svgs.forEach(svg => {
+                try {
+                    const code = svg.getAttribute('data-code') || String(factData.numero);
+                    JsBarcode(svg, String(code), {
+                        format: "CODE128",
+                        width: formatoImpresion === '58' ? 1.2 : 1.5,
+                        height: formatoImpresion === '58' ? 26 : 34,
+                        displayValue: false,
+                        margin: 0
+                    });
+                } catch (e) {
+                    console.warn("JsBarcode error en POS:", e);
+                }
+            });
+        }
+
         document.getElementById('modalTicket').classList.remove('hidden');
     }
 
@@ -2793,6 +2881,7 @@
     }
 
     function imprimirTicketTermico() {
+        aplicarEstiloPaginaImpresionPOS(formatoImpresion);
         document.body.classList.remove('imprimiendo-media-hoja');
         document.body.classList.add('imprimiendo-ticket');
         window.print();
