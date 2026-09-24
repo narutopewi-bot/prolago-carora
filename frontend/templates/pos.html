@@ -217,9 +217,30 @@
             padding-bottom: 4mm !important;
         }
 
+        .ticket-salto-corte-obligatorio {
+            page-break-after: always !important;
+            break-after: page !important;
+            break-after: always !important;
+        }
+
+        .ticket-salto-pagina-impresion {
+            display: block !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            break-after: always !important;
+            height: 1px !important;
+            line-height: 1px !important;
+            font-size: 1px !important;
+            visibility: hidden !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
         .ticket-bloque-segunda-copia {
             page-break-before: always !important;
             break-before: page !important;
+            break-before: always !important;
             margin-top: 0 !important;
             padding-top: 1mm !important;
         }
@@ -2757,12 +2778,17 @@
         }
     }
 
-    function construirBloqueTicket(factData, cliente, items, pagos, tipoCopia) {
+    function construirBloqueTicket(factData, cliente, items, pagos, tipoCopia, tieneSegundaCopia = false) {
         const esCred = factData.condicion === 'credito' || (pagos && (pagos.creditoUSD > 0 || pagos.credito > 0)) || (factData.saldo_pendiente > 0.009);
         const esSegundaCopia = tipoCopia === 'COPIA';
-        const claseCopia = esSegundaCopia 
-            ? 'ticket-bloque ticket-bloque-segunda-copia mb-3 text-black' 
-            : 'ticket-bloque ticket-bloque-primera-copia mb-3 text-black';
+        let claseCopia = 'ticket-bloque mb-3 text-black ';
+        if (esSegundaCopia) {
+            claseCopia += 'ticket-bloque-segunda-copia';
+        } else if (tieneSegundaCopia) {
+            claseCopia += 'ticket-bloque-primera-copia ticket-salto-corte-obligatorio';
+        } else {
+            claseCopia += 'ticket-bloque-primera-copia';
+        }
         const badgeCopia = tipoCopia === 'ORIGINAL'
             ? `<div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">*** ORIGINAL - CLIENTE ***</div>`
             : `<div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">*** COPIA - ADMINISTRACIÓN ***</div>`;
@@ -2934,10 +2960,8 @@
             selCopias.value = copiasTicketPOS;
         }
 
-        const htmlOriginal = construirBloqueTicket(factData, cliente, items, pagos, 'ORIGINAL');
-        let contenidoTicket = htmlOriginal;
-
         if (copiasTicketPOS === '2') {
+            const htmlOriginalConSalto = construirBloqueTicket(factData, cliente, items, pagos, 'ORIGINAL', true);
             const divisorTicket = `
                 <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-black font-mono text-[9.5px] font-black select-none">
                     - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
@@ -2945,8 +2969,13 @@
                     - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 </div>
             `;
+            const saltoInvisible = `
+                <div class="ticket-salto-pagina-impresion">&nbsp;</div>
+            `;
             const htmlCopia = construirBloqueTicket(factData, cliente, items, pagos, 'COPIA');
-            contenidoTicket += divisorTicket + htmlCopia;
+            contenidoTicket = htmlOriginalConSalto + divisorTicket + saltoInvisible + htmlCopia;
+        } else {
+            contenidoTicket = construirBloqueTicket(factData, cliente, items, pagos, 'ORIGINAL', false);
         }
 
         const cont = document.getElementById('seccionTicketImprimir');
