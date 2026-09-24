@@ -127,63 +127,42 @@
         /* CASO 2: TICKET TÉRMICO (VENTAS DE CONTADO)          */
         /* ---------------------------------------------------- */
         body.imprimiendo-ticket {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            min-height: 0 !important;
-            overflow: visible !important;
-        }
-
-        body.imprimiendo-ticket > *:not(main) {
-            display: none !important;
-        }
-
-        body.imprimiendo-ticket main {
-            margin: 0 !important;
-            padding: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: 0 !important;
-        }
-
-        body.imprimiendo-ticket main > *:not(#modalTicket) {
-            display: none !important;
-        }
-
-        body.imprimiendo-ticket #modalTicket {
-            position: static !important;
             display: block !important;
-            background: transparent !important;
-            padding: 0 !important;
+            position: static !important;
             margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            color: black !important;
             width: 100% !important;
-            max-width: 100% !important;
-            box-shadow: none !important;
+            min-height: 0 !important;
+            height: auto !important;
             overflow: visible !important;
         }
 
-        body.imprimiendo-ticket #modalTicket > div {
-            position: static !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: transparent !important;
-            overflow: visible !important;
+        body.imprimiendo-ticket * {
+            visibility: hidden !important;
+        }
+
+        body.imprimiendo-ticket #seccionTicketImprimir,
+        body.imprimiendo-ticket #seccionTicketImprimir * {
+            visibility: visible !important;
         }
 
         body.imprimiendo-ticket #seccionTicketImprimir {
-            visibility: visible !important;
-            display: block !important;
-            position: relative !important;
-            margin: 0 !important;
-            padding: 2mm !important;
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: 0 !important;
+            margin: 0 auto !important;
+            padding: 0 1.5mm 3mm 1.5mm !important;
             background: white !important;
             color: black !important;
+            box-shadow: none !important;
+            border: none !important;
+            box-sizing: border-box !important;
+        }
+
+        .ticket-bloque {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
         }
@@ -205,73 +184,47 @@
         /* CASO 3: TICKET TÉRMICO DE CIERRE DE CAJA (POS)       */
         /* ---------------------------------------------------- */
         body.imprimiendo-comprobante-caja-pos {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            min-height: 0 !important;
-            overflow: visible !important;
-        }
-
-        body.imprimiendo-comprobante-caja-pos > *:not(main) {
-            display: none !important;
-        }
-
-        body.imprimiendo-comprobante-caja-pos main {
-            margin: 0 !important;
-            padding: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: 0 !important;
-        }
-
-        body.imprimiendo-comprobante-caja-pos main > *:not(#modalComprobanteCajaPOS) {
-            display: none !important;
-        }
-
-        body.imprimiendo-comprobante-caja-pos #modalComprobanteCajaPOS {
-            position: static !important;
             display: block !important;
-            background: transparent !important;
-            padding: 0 !important;
+            position: static !important;
             margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            color: black !important;
             width: 100% !important;
-            max-width: 100% !important;
-            box-shadow: none !important;
+            min-height: 0 !important;
+            height: auto !important;
             overflow: visible !important;
         }
 
-        body.imprimiendo-comprobante-caja-pos #modalComprobanteCajaPOS > div {
-            position: static !important;
-            max-width: 80mm !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: transparent !important;
-            overflow: visible !important;
+        body.imprimiendo-comprobante-caja-pos * {
+            visibility: hidden !important;
+        }
+
+        body.imprimiendo-comprobante-caja-pos #seccionTicketCajaImprimirPOS,
+        body.imprimiendo-comprobante-caja-pos #seccionTicketCajaImprimirPOS * {
+            visibility: visible !important;
         }
 
         body.imprimiendo-comprobante-caja-pos #seccionTicketCajaImprimirPOS {
-            visibility: visible !important;
-            display: block !important;
-            position: relative !important;
-            margin: 0 !important;
-            padding: 2mm !important;
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: 0 !important;
+            margin: 0 auto !important;
+            padding: 0 1.5mm 3mm 1.5mm !important;
             background: white !important;
             color: black !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
+            box-shadow: none !important;
+            border: none !important;
+            box-sizing: border-box !important;
             width: 76mm !important;
             max-width: 76mm !important;
             font-size: 11px !important;
         }
 
         @page {
-            margin: 4mm;
-            size: A4 portrait;
+            size: auto;
+            margin: 0mm;
         }
     }
 </style>
@@ -700,10 +653,10 @@
 <div id="modalTicket" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-5 sm:p-6 text-slate-800 overflow-y-auto max-h-[95vh]">
         
-        <!-- Controles Superiores: Selector de Impresora -->
-        <div class="flex items-center justify-between border-b pb-3 mb-3 no-print">
-            <div class="flex items-center space-x-2">
-                <span class="text-xs font-bold text-slate-500 uppercase">Formato Ticket:</span>
+        <!-- Controles Superiores: Selector de Impresora y Selector de Copias -->
+        <div class="flex items-center justify-between border-b pb-3 mb-3 no-print gap-2">
+            <div class="flex items-center space-x-1.5 sm:space-x-2">
+                <span class="text-xs font-bold text-slate-500 uppercase hidden sm:inline">Ticket:</span>
                 <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-100 text-xs">
                     <button type="button" id="btnFmt80" onclick="seleccionarFormatoImpresion('80')"
                         class="px-2.5 py-1 rounded-md font-bold transition bg-emerald-700 text-white shadow-sm">
@@ -715,9 +668,17 @@
                     </button>
                 </div>
             </div>
-            <button onclick="cerrarModalTicket()" class="text-slate-400 hover:text-slate-600 text-lg">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            
+            <div class="flex items-center space-x-2">
+                <!-- Selector Copias: 1 copia (Simple) o 2 copias (Doble con corte ✂) -->
+                <select id="selCopiasTicketPOS" onchange="cambiarCopiasTicketPOS()" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg px-2.5 py-1 text-slate-800 transition focus:outline-none cursor-pointer">
+                    <option value="1" selected>1 Copia (Simple)</option>
+                    <option value="2">2 Copias (Doble ✂)</option>
+                </select>
+                <button onclick="cerrarModalTicket()" class="text-slate-400 hover:text-slate-600 text-lg p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
         </div>
 
         <!-- CONTENEDOR DE IMPRESIÓN DEL RECIBO -->
@@ -2627,6 +2588,8 @@
     // ========================================================
     // FORMATOS DE IMPRESIÓN TÉRMICA (58mm Y 80mm) - DOBLE (ORIGINAL Y COPIA)
     // ========================================================
+    // FORMATOS DE IMPRESIÓN TÉRMICA (58mm Y 80mm) - CONFIGURACIÓN DE PÁGINA Y COPIAS
+    // ========================================================
     function aplicarEstiloPaginaImpresionPOS(tamano) {
         let el = document.getElementById('dynamicPrintPageStylePOS');
         if (!el) {
@@ -2635,11 +2598,22 @@
             document.head.appendChild(el);
         }
         if (tamano === '80') {
-            el.innerHTML = '@media print { @page { size: 80mm auto !important; margin: 0 !important; } }';
+            el.innerHTML = '@page { size: 80mm auto; margin: 0mm; }';
         } else if (tamano === '58') {
-            el.innerHTML = '@media print { @page { size: 58mm auto !important; margin: 0 !important; } }';
+            el.innerHTML = '@page { size: 58mm auto; margin: 0mm; }';
         } else {
-            el.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 4mm !important; } }';
+            el.innerHTML = '@page { size: auto; margin: 0mm; }';
+        }
+    }
+
+    let copiasTicketPOS = localStorage.getItem('prolago_pos_ticket_copias') || '1';
+
+    function cambiarCopiasTicketPOS() {
+        const sel = document.getElementById('selCopiasTicketPOS');
+        copiasTicketPOS = sel ? sel.value : '1';
+        localStorage.setItem('prolago_pos_ticket_copias', copiasTicketPOS);
+        if (ultimaFacturaData) {
+            mostrarTicket(ultimaFacturaData, ultimoClienteNombre, ultimosItems, ultimosPagos);
         }
     }
 
@@ -2819,9 +2793,9 @@
                 </div>
 
                 <!-- CÓDIGO DE BARRAS TÉRMICO -->
-                <div class="text-center my-2.5 pt-1">
-                    <svg class="ticket-barcode-svg-pos mx-auto block max-w-full" data-code="${factData.numero}"></svg>
-                    <span class="text-[9px] font-mono tracking-widest block mt-0.5 font-bold">*FAC-${factData.numero}*</span>
+                <div class="text-center my-2 pt-1">
+                    <svg class="ticket-barcode-svg-pos mx-auto block" style="shape-rendering: crispEdges; max-width: 85%;" data-code="${factData.numero}"></svg>
+                    <span class="text-[9.5px] font-mono tracking-widest block mt-0.5 font-black text-black">*FAC-${factData.numero}*</span>
                 </div>
 
                 <!-- PIE DE TICKET -->
@@ -2840,18 +2814,28 @@
         ultimosItems = items;
         ultimosPagos = pagos;
 
+        const selCopias = document.getElementById('selCopiasTicketPOS');
+        if (selCopias) {
+            selCopias.value = copiasTicketPOS;
+        }
+
         const htmlOriginal = construirBloqueTicket(factData, cliente, items, pagos, 'ORIGINAL');
-        const htmlCopia = construirBloqueTicket(factData, cliente, items, pagos, 'COPIA');
-        const divisorTicket = `
-            <div class="ticket-corte-guia text-center my-4 py-2 border-y-2 border-dashed border-black font-mono text-[10px] font-black select-none">
-                - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
-                ✂ CORTAR AQUÍ &bull; SEGUNDA COPIA ABAJO ✂<br>
-                - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            </div>
-        `;
+        let contenidoTicket = htmlOriginal;
+
+        if (copiasTicketPOS === '2') {
+            const divisorTicket = `
+                <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-black font-mono text-[9.5px] font-black select-none">
+                    - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
+                    ✂ CORTAR AQUÍ &bull; SEGUNDA COPIA ABAJO ✂<br>
+                    - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                </div>
+            `;
+            const htmlCopia = construirBloqueTicket(factData, cliente, items, pagos, 'COPIA');
+            contenidoTicket += divisorTicket + htmlCopia;
+        }
 
         const cont = document.getElementById('seccionTicketImprimir');
-        cont.innerHTML = htmlOriginal + divisorTicket + htmlCopia;
+        cont.innerHTML = contenidoTicket;
         aplicarFormatoImpresion(formatoImpresion);
 
         // Renderizar códigos de barras
@@ -2862,10 +2846,12 @@
                     const code = svg.getAttribute('data-code') || String(factData.numero);
                     JsBarcode(svg, String(code), {
                         format: "CODE128",
-                        width: formatoImpresion === '58' ? 1.2 : 1.5,
-                        height: formatoImpresion === '58' ? 26 : 34,
+                        width: formatoImpresion === '58' ? 1.4 : 1.7,
+                        height: formatoImpresion === '58' ? 28 : 34,
                         displayValue: false,
-                        margin: 0
+                        margin: 4,
+                        background: "#ffffff",
+                        lineColor: "#000000"
                     });
                 } catch (e) {
                     console.warn("JsBarcode error en POS:", e);

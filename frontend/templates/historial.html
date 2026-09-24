@@ -125,64 +125,42 @@
         /* CASO 2: TICKET TÉRMICO (80MM Y 58MM)                 */
         /* ---------------------------------------------------- */
         body.imprimiendo-ticket {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            min-height: 0 !important;
-            overflow: visible !important;
-        }
-
-        body.imprimiendo-ticket > *:not(main) {
-            display: none !important;
-        }
-
-        body.imprimiendo-ticket main {
-            margin: 0 !important;
-            padding: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: 0 !important;
-        }
-
-        body.imprimiendo-ticket main > *:not(#modalTicketHistorial) {
-            display: none !important;
-        }
-
-        body.imprimiendo-ticket #modalTicketHistorial {
-            position: static !important;
             display: block !important;
-            background: transparent !important;
-            padding: 0 !important;
+            position: static !important;
             margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            color: black !important;
             width: 100% !important;
-            max-width: 100% !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
+            min-height: 0 !important;
+            height: auto !important;
             overflow: visible !important;
         }
 
-        body.imprimiendo-ticket #modalTicketHistorial > div {
-            position: static !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: transparent !important;
-            overflow: visible !important;
+        body.imprimiendo-ticket * {
+            visibility: hidden !important;
+        }
+
+        body.imprimiendo-ticket #seccionTicketImprimirHistorial,
+        body.imprimiendo-ticket #seccionTicketImprimirHistorial * {
+            visibility: visible !important;
         }
 
         body.imprimiendo-ticket #seccionTicketImprimirHistorial {
-            visibility: visible !important;
-            display: block !important;
-            position: relative !important;
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: 0 !important;
             margin: 0 auto !important;
-            padding: 2mm !important;
+            padding: 0 1.5mm 3mm 1.5mm !important;
             background: white !important;
             color: black !important;
+            box-shadow: none !important;
+            border: none !important;
+            box-sizing: border-box !important;
+        }
+
+        .ticket-bloque {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
         }
@@ -202,8 +180,8 @@
         }
 
         @page {
-            margin: 4mm;
-            size: A4 portrait;
+            size: auto;
+            margin: 0mm;
         }
     }
 
@@ -527,8 +505,8 @@
             <div class="flex items-center space-x-2">
                 <!-- Selector Copias: 1 copia / 2 copias -->
                 <select id="selCopiasTicketHistorial" onchange="actualizarCopiasTicketHistorial()" class="text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-slate-700">
-                    <option value="1">1 Copia (Simple)</option>
-                    <option value="2" selected>2 Copias (Doble ✂)</option>
+                    <option value="1" selected>1 Copia (Simple)</option>
+                    <option value="2">2 Copias (Doble ✂)</option>
                 </select>
                 <button onclick="cerrarModalTicketHistorial()" class="text-slate-400 hover:text-slate-600 text-lg">
                     <i class="fa-solid fa-xmark"></i>
@@ -1118,7 +1096,7 @@
     // ========================================================
     let ticketFacturaActual = null;
     let formatoTicketHistorial = '80'; // 80 mm predeterminado
-    let copiasTicketHistorial = 2; // 2 copias por defecto (Original + Copia)
+    let copiasTicketHistorial = parseInt(localStorage.getItem('prolago_historial_ticket_copias') || '1', 10);
 
     function aplicarEstiloPaginaImpresion(tamano) {
         let el = document.getElementById('dynamicPrintPageStyle');
@@ -1128,11 +1106,11 @@
             document.head.appendChild(el);
         }
         if (tamano === '80') {
-            el.innerHTML = '@media print { @page { size: 80mm auto !important; margin: 0 !important; } }';
+            el.innerHTML = '@page { size: 80mm auto; margin: 0mm; }';
         } else if (tamano === '58') {
-            el.innerHTML = '@media print { @page { size: 58mm auto !important; margin: 0 !important; } }';
+            el.innerHTML = '@page { size: 58mm auto; margin: 0mm; }';
         } else {
-            el.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 4mm !important; } }';
+            el.innerHTML = '@page { size: auto; margin: 0mm; }';
         }
     }
 
@@ -1170,6 +1148,7 @@
         const sel = document.getElementById('selCopiasTicketHistorial');
         if (sel) {
             copiasTicketHistorial = parseInt(sel.value, 10) || 1;
+            localStorage.setItem('prolago_historial_ticket_copias', String(copiasTicketHistorial));
         }
         if (ticketFacturaActual) {
             renderizarTicketHistorial(ticketFacturaActual);
@@ -1353,9 +1332,9 @@
                 </div>
 
                 <!-- CÓDIGO DE BARRAS TÉRMICO -->
-                <div class="text-center my-2.5 pt-1">
-                    <svg class="ticket-barcode-svg mx-auto block max-w-full" data-code="${d.numero}"></svg>
-                    <span class="text-[9px] font-mono tracking-widest block mt-0.5 font-bold">*FAC-${d.numero}*</span>
+                <div class="text-center my-2 pt-1">
+                    <svg class="ticket-barcode-svg mx-auto block" style="shape-rendering: crispEdges; max-width: 85%;" data-code="${d.numero}"></svg>
+                    <span class="text-[9.5px] font-mono tracking-widest block mt-0.5 font-bold text-black">*FAC-${d.numero}*</span>
                 </div>
 
                 <!-- PIE DE TICKET -->
@@ -1378,7 +1357,7 @@
 
         if (copiasTicketHistorial === 2) {
             const corteGuia = `
-                <div class="ticket-corte-guia text-center my-4 py-2 border-y-2 border-dashed border-black font-mono text-[10px] font-black select-none">
+                <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-black font-mono text-[9.5px] font-black select-none">
                     - - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
                     ✂ CORTAR AQUÍ &bull; SEGUNDA COPIA ABAJO ✂<br>
                     - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1398,10 +1377,12 @@
                     const code = svg.getAttribute('data-code') || String(d.numero);
                     JsBarcode(svg, String(code), {
                         format: "CODE128",
-                        width: formatoTicketHistorial === '58' ? 1.2 : 1.5,
-                        height: formatoTicketHistorial === '58' ? 26 : 34,
+                        width: formatoTicketHistorial === '58' ? 1.4 : 1.7,
+                        height: formatoTicketHistorial === '58' ? 28 : 34,
                         displayValue: false,
-                        margin: 0
+                        margin: 4,
+                        background: "#ffffff",
+                        lineColor: "#000000"
                     });
                 } catch (e) {
                     console.warn("Error JsBarcode:", e);
@@ -1419,6 +1400,8 @@
                 return;
             }
             const data = await res.json();
+            const selCop = document.getElementById('selCopiasTicketHistorial');
+            if (selCop) selCop.value = String(copiasTicketHistorial);
             cambiarFormatoTicketHistorial(fmt);
             renderizarTicketHistorial(data);
             document.getElementById('modalTicketHistorial').classList.remove('hidden');
