@@ -72,8 +72,8 @@
             justify-content: space-between !important;
             width: 100% !important;
             max-width: 200mm !important;
-            height: 288mm !important;
-            max-height: 288mm !important;
+            height: 268mm !important;
+            max-height: 268mm !important;
             margin: 0 auto !important;
             padding: 0 !important;
             background: white !important;
@@ -91,8 +91,8 @@
             border: 1.5px solid #1e293b !important;
             border-radius: 6px !important;
             background: white !important;
-            height: 139mm !important;
-            max-height: 139mm !important;
+            height: 130mm !important;
+            max-height: 130mm !important;
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
@@ -102,8 +102,8 @@
         }
 
         .divisor-corte-a4 {
-            height: 6mm !important;
-            max-height: 6mm !important;
+            height: 5mm !important;
+            max-height: 5mm !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -112,8 +112,8 @@
         }
 
         @page {
-            margin: 4mm;
-            size: A4 portrait;
+            margin: 3mm;
+            size: portrait;
         }
     }
 </style>
@@ -660,30 +660,30 @@
         const inicialUSD = (d.inicial_abonada !== undefined && d.inicial_abonada !== null) ? d.inicial_abonada : (inicialPagos > 0 ? inicialPagos : Math.max(0, Math.round((totalUSD - saldoUSD) * 100) / 100));
         const saldoBS = saldoUSD * tasa;
 
-        let pCard = 'p-2.5';
-        let wLogo = 'w-10 h-10';
-        let textBase = 'text-[11px]';
-        let padTabla = 'py-1 px-1.5';
-        let mbBloque = 'mb-1.5';
-        let padFirmas = 'pt-2 mb-2';
-        let textClausula = 'text-[8.5px]';
+        let pCard = 'p-2';
+        let wLogo = 'w-9 h-9';
+        let textBase = 'text-[10.5px]';
+        let padTabla = 'py-0.5 px-1.5';
+        let mbBloque = 'mb-1';
+        let padFirmas = 'pt-1 mb-1';
+        let textClausula = 'text-[8px]';
 
         if (densidad === 'compacta') {
-            pCard = 'p-2';
-            wLogo = 'w-8 h-8';
-            textBase = 'text-[10px]';
-            padTabla = 'py-0.5 px-1';
-            mbBloque = 'mb-1';
-            padFirmas = 'pt-1 mb-1';
-            textClausula = 'text-[8px]';
-        } else if (densidad === 'ultracompacta') {
             pCard = 'p-1.5';
-            wLogo = 'w-7 h-7';
-            textBase = 'text-[9px]';
-            padTabla = 'py-0 px-1 text-[8.5px]';
+            wLogo = 'w-8 h-8';
+            textBase = 'text-[9.5px]';
+            padTabla = 'py-0.5 px-1';
             mbBloque = 'mb-0.5';
             padFirmas = 'pt-0.5 mb-0.5';
             textClausula = 'text-[7.5px]';
+        } else if (densidad === 'ultracompacta') {
+            pCard = 'p-1';
+            wLogo = 'w-7 h-7';
+            textBase = 'text-[8.5px]';
+            padTabla = 'py-0 px-1 text-[8px]';
+            mbBloque = 'mb-0.5';
+            padFirmas = 'pt-0.5 mb-0';
+            textClausula = 'text-[7px]';
         }
 
         let badgeTitulo = '';
