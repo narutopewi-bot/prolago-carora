@@ -212,35 +212,7 @@
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             box-sizing: border-box !important;
-            padding-bottom: 4mm !important;
-        }
-
-        .ticket-salto-corte-obligatorio {
-            page-break-after: always !important;
-            break-after: page !important;
-            break-after: always !important;
-        }
-
-        .ticket-salto-pagina-impresion {
-            display: block !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            break-after: always !important;
-            height: 1px !important;
-            line-height: 1px !important;
-            font-size: 1px !important;
-            visibility: hidden !important;
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        .ticket-bloque-segunda-copia {
-            page-break-before: always !important;
-            break-before: page !important;
-            break-before: always !important;
-            margin-top: 0 !important;
-            padding-top: 1mm !important;
+            padding-bottom: 2mm !important;
         }
 
         .ticket-corte-guia {
@@ -587,8 +559,9 @@
             <div class="flex items-center space-x-2">
                 <!-- Selector Copias: 1 copia / 2 copias -->
                 <select id="selCopiasTicketHistorial" onchange="actualizarCopiasTicketHistorial()" class="text-xs font-bold bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-slate-700">
-                    <option value="1" selected>1 Copia (Simple)</option>
-                    <option value="2">2 Copias (Doble ✂)</option>
+                    <option value="1" selected>1 Copia (Simple - 1 Corte ✂)</option>
+                    <option value="2">2 Copias (Doble Corte Automático ✂✂)</option>
+                    <option value="2_tira">2 Copias (Tira corrida / 1 corte)</option>
                 </select>
                 <button onclick="cerrarModalTicketHistorial()" class="text-slate-400 hover:text-slate-600 text-lg">
                     <i class="fa-solid fa-xmark"></i>
@@ -1237,17 +1210,9 @@
         }
     }
 
-    function construirBloqueTicket80mm(d, tipoCopia, fmt, tieneSegundaCopia = false) {
+    function construirBloqueTicket80mm(d, tipoCopia, fmt) {
         const esOriginal = tipoCopia === 'ORIGINAL';
-        const esSegundaCopia = tipoCopia === 'COPIA';
-        let claseCopia = 'ticket-bloque mb-3 text-black ';
-        if (esSegundaCopia) {
-            claseCopia += 'ticket-bloque-segunda-copia';
-        } else if (tieneSegundaCopia) {
-            claseCopia += 'ticket-bloque-primera-copia ticket-salto-corte-obligatorio';
-        } else {
-            claseCopia += 'ticket-bloque-primera-copia';
-        }
+        const claseCopia = 'ticket-bloque mb-3 text-black';
         const badgeCopia = `
             <div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">
                 ${esOriginal ? '*** ORIGINAL - CLIENTE ***' : '*** COPIA - ADMINISTRACIÓN ***'}
@@ -1443,22 +1408,19 @@
         const cont = document.getElementById('seccionTicketImprimirHistorial');
         if (!cont) return;
 
-        if (copiasTicketHistorial === 2) {
-            const htmlOriginalConSalto = construirBloqueTicket80mm(d, 'ORIGINAL', formatoTicketHistorial, true);
+        if (copiasTicketHistorial === '2' || copiasTicketHistorial === '2_tira' || copiasTicketHistorial === 2) {
+            const htmlOriginal = construirBloqueTicket80mm(d, 'ORIGINAL', formatoTicketHistorial);
             const corteGuia = `
                 <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-black font-mono text-[9.5px] font-black select-none">
                     - - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
-                    ✂ AUTOCORTE DE IMPRESORA ENTRE COPIAS ✂<br>
+                    ✂ AUTOCORTE / SEPARACIÓN ENTRE COPIAS ✂<br>
                     - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 </div>
             `;
-            const saltoInvisible = `
-                <div class="ticket-salto-pagina-impresion">&nbsp;</div>
-            `;
             const htmlCopia = construirBloqueTicket80mm(d, 'COPIA', formatoTicketHistorial);
-            contenido = htmlOriginalConSalto + corteGuia + saltoInvisible + htmlCopia;
+            contenido = htmlOriginal + corteGuia + htmlCopia;
         } else {
-            contenido = construirBloqueTicket80mm(d, 'ORIGINAL', formatoTicketHistorial, false);
+            contenido = construirBloqueTicket80mm(d, 'ORIGINAL', formatoTicketHistorial);
         }
 
         cont.innerHTML = contenido;
@@ -1514,14 +1476,91 @@
         document.getElementById('modalTicketHistorial').classList.add('hidden');
     }
 
+    function renderizarBloqueIndividualHistorial(tipoCopia) {
+        if (!ticketFacturaActual) return;
+        const html = construirBloqueTicket80mm(ticketFacturaActual, tipoCopia, formatoTicketHistorial);
+        const cont = document.getElementById('seccionTicketImprimirHistorial');
+        if (!cont) return;
+        cont.innerHTML = html;
+        if (typeof JsBarcode === 'function') {
+            const svgs = cont.querySelectorAll('.ticket-barcode-svg');
+            svgs.forEach(svg => {
+                try {
+                    const code = svg.getAttribute('data-code') || String(ticketFacturaActual.numero);
+                    JsBarcode(svg, String(code), {
+                        format: "CODE128",
+                        width: formatoTicketHistorial === '58' ? 1.4 : 1.7,
+                        height: formatoTicketHistorial === '58' ? 28 : 34,
+                        displayValue: false,
+                        margin: 4,
+                        background: "#ffffff",
+                        lineColor: "#000000"
+                    });
+                } catch (e) {
+                    console.warn("Error JsBarcode:", e);
+                }
+            });
+        }
+    }
+
+    let procesoDobleCorteHistorial = false;
+
     function imprimirTicketTermicoHistorial() {
         aplicarEstiloPaginaImpresion(formatoTicketHistorial);
         document.body.classList.remove('imprimiendo-media-hoja');
         document.body.classList.add('imprimiendo-ticket');
-        window.print();
-        setTimeout(() => {
-            document.body.classList.remove('imprimiendo-ticket');
-        }, 1000);
+
+        if (copiasTicketHistorial === '2' || copiasTicketHistorial === 2) {
+            // Imprimir ORIGINAL primero, cortar, y luego imprimir COPIA y cortar (sin avanzar 297mm)
+            procesoDobleCorteHistorial = true;
+            renderizarBloqueIndividualHistorial('ORIGINAL');
+
+            const alTerminarPrimera = () => {
+                window.removeEventListener('afterprint', alTerminarPrimera);
+                if (procesoDobleCorteHistorial) {
+                    procesoDobleCorteHistorial = false;
+                    setTimeout(() => {
+                        renderizarBloqueIndividualHistorial('COPIA');
+                        const alTerminarSegunda = () => {
+                            window.removeEventListener('afterprint', alTerminarSegunda);
+                            document.body.classList.remove('imprimiendo-ticket');
+                            if (ticketFacturaActual) {
+                                renderizarTicketHistorial(ticketFacturaActual);
+                            }
+                        };
+                        window.addEventListener('afterprint', alTerminarSegunda);
+                        window.print();
+                    }, 400);
+                } else {
+                    document.body.classList.remove('imprimiendo-ticket');
+                    if (ticketFacturaActual) {
+                        renderizarTicketHistorial(ticketFacturaActual);
+                    }
+                }
+            };
+
+            window.addEventListener('afterprint', alTerminarPrimera);
+            window.print();
+        } else if (copiasTicketHistorial === '2_tira') {
+            // Tira corrida
+            if (ticketFacturaActual) {
+                renderizarTicketHistorial(ticketFacturaActual);
+            }
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('imprimiendo-ticket');
+            }, 1000);
+        } else {
+            // 1 sola copia
+            renderizarBloqueIndividualHistorial('ORIGINAL');
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('imprimiendo-ticket');
+                if (ticketFacturaActual) {
+                    renderizarTicketHistorial(ticketFacturaActual);
+                }
+            }, 1000);
+        }
     }
 
     // ========================================================
