@@ -1134,11 +1134,16 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
     # Generar correlativo garantizado sin colisiones
     next_num = obtener_siguiente_numero_despacho(db)
 
+    # Optimización de consulta en bloque para despachos masivos (ej. 90+ artículos)
+    codigos_solicitados = [it.codigo_articulo for it in payload.items]
+    articulos_db = db.query(Articulo).filter(Articulo.codigo.in_(codigos_solicitados)).all()
+    articulos_map = {a.codigo: a for a in articulos_db}
+
     total_despacho = 0.0
     detalles = []
 
     for it in payload.items:
-        articulo = db.query(Articulo).filter(Articulo.codigo == it.codigo_articulo).first()
+        articulo = articulos_map.get(it.codigo_articulo)
         if not articulo:
             raise HTTPException(status_code=404, detail=f"Artículo con código {it.codigo_articulo} no encontrado en inventario")
         

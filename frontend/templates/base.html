@@ -904,6 +904,11 @@
             const fmt = localStorage.getItem('prolago_impresora_tamano') || '58';
             actualizarDisplayImpresora(fmt);
             inicializarNavegacionConEnter();
+
+            // Heartbeat Keep-Alive cada 4 minutos para evitar suspensión de Render mientras haya pestañas abiertas
+            setInterval(() => {
+                fetch('/api/auth/me', { method: 'GET', credentials: 'include' }).catch(() => {});
+            }, 4 * 60 * 1000);
         });
     </script>
     {% block extra_scripts %}{% endblock %}
