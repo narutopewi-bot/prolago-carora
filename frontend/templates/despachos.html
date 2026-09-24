@@ -245,6 +245,7 @@
                 cantidad: 1
             });
         }
+        guardarBorradorLocal();
         renderizarDespacho();
     }
 
@@ -299,17 +300,128 @@
     function cambiarCantDesp(idx, val) {
         const n = parseFloat(val);
         despachoItems[idx].cantidad = (!isNaN(n) && n > 0) ? n : 1;
+        guardarBorradorLocal();
         renderizarDespacho();
     }
 
     function eliminarItemDesp(idx) {
         despachoItems.splice(idx, 1);
+        guardarBorradorLocal();
         renderizarDespacho();
     }
 
     function vaciarDespacho() {
         despachoItems = [];
+        try {
+            localStorage.removeItem('prolago_draft_despacho');
+        } catch(e) {}
         renderizarDespacho();
+    }
+
+    function guardarBorradorLocal() {
+        try {
+            const data = {
+                destino: document.getElementById('despachoDestino')?.value || '',
+                direccion: document.getElementById('despachoDireccion')?.value || '',
+                items: despachoItems
+            };
+            localStorage.setItem('prolago_draft_despacho', JSON.stringify(data));
+        } catch(e) {}
+    }
+
+    function cargarBorradorLocal() {
+        try {
+            const raw = localStorage.getItem('prolago_draft_despacho');
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+                    despachoItems = data.items;
+                    if (data.destino) document.getElementById('despachoDestino').value = data.destino;
+                    if (data.direccion) document.getElementById('despachoDireccion').value = data.direccion;
+                    renderizarDespacho();
+                    
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'info',
+                        title: `Borrador recuperado con ${despachoItems.length} artículos`
+                    });
+                }
+            }
+        } catch(e) {}
+    }
+
+    async function solicitarReautenticacion() {
+        const { value: formValues } = await Swal.fire({
+            title: 'Sesión Expirada o Servidor Actualizado',
+            text: 'Ingrese su usuario y clave para continuar emitiendo la nota de entrega sin perder los artículos:',
+            html:
+                '<input id="swal-user" class="swal2-input" placeholder="Usuario (ej: admin o cajero)" value="admin">' +
+                '<input id="swal-pass" type="password" class="swal2-input" placeholder="Contraseña">',
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Reanudar Sesión y Emitir',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#9333ea',
+            preConfirm: () => {
+                const u = document.getElementById('swal-user').value.trim();
+                const p = document.getElementById('swal-pass').value.trim();
+                if (!u || !p) {
+                    Swal.showValidationMessage('Ingrese usuario y contraseña');
+                }
+                return { username: u, password: p };
+            }
+        });
+
+        if (formValues) {
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formValues)
+                });
+                if (res.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sesión Renovada',
+                        text: 'Procesando el despacho ahora...',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(guardarDespacho, 800);
+                } else {
+                    const err = await res.json().catch(() => ({ detail: 'Credenciales inválidas' }));
+                    Swal.fire('Error', err.detail || 'Credenciales incorrectas', 'error');
+                }
+            } catch(e) {
+                Swal.fire('Error de Red', 'No se pudo conectar con el servidor para reanudar sesión.', 'error');
+            }
+        }
+    }
+
+    function mostrarErrorConReintento(mensaje) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Conexión / Servidor en Reinicio',
+            html: `<p class="text-sm text-slate-600 mb-3">${mensaje}</p>
+                   <div class="text-xs font-bold text-purple-700 bg-purple-50 p-2.5 rounded-lg border border-purple-200">
+                     <i class="fa-solid fa-shield-halved mr-1"></i> ¡Sus ${despachoItems.length} artículos están 100% a salvo en pantalla y en memoria!
+                   </div>`,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-rotate-right mr-1"></i> Reintentar Ahora',
+            cancelButtonText: 'Cerrar y Mantener Datos',
+            confirmButtonColor: '#9333ea',
+            cancelButtonColor: '#64748b'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                guardarDespacho();
+            }
+        });
     }
 
     async function guardarDespacho() {
@@ -345,14 +457,32 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
+            if (res.status === 401) {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+                solicitarReautenticacion();
+                return;
+            }
+
+            if (res.status === 502 || res.status === 503 || res.status === 504) {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+                mostrarErrorConReintento('El servidor se encuentra reiniciando tras una actualización en la nube. Espere 5 a 10 segundos y presione Reintentar.');
+                return;
+            }
+
             if (res.ok) {
                 const data = await res.json();
                 Swal.fire({
                     icon: 'success',
                     title: `Despacho #${data.numero} Registrado`,
-                    text: `Total valorado al costo: $${data.total.toFixed(2)}`,
+                    text: `Total valorado al costo: $${(data.total || 0).toFixed(2)}`,
                     confirmButtonColor: '#9333ea'
                 });
+                try {
+                    localStorage.removeItem('prolago_draft_despacho');
+                } catch(e) {}
                 vaciarDespacho();
                 document.getElementById('despachoDestino').value = '';
                 document.getElementById('despachoDireccion').value = '';
@@ -362,18 +492,18 @@
                 Swal.fire('Error al despachar', err.detail || 'No se pudo guardar el despacho', 'error');
             }
         } catch (e) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error de Comunicación',
-                text: 'No se pudo conectar con el servidor. Si el sistema se está actualizando o reiniciando, por favor espere unos segundos e intente de nuevo.',
-                confirmButtonColor: '#9333ea'
-            });
+            mostrarErrorConReintento('No se pudo conectar temporalmente con el servidor. Si se acaba de subir una actualización, el servidor tarda unos segundos en reconectar.');
         } finally {
             btn.disabled = false;
             btn.innerHTML = oldHtml;
         }
     }
 
-    document.addEventListener('DOMContentLoaded', initDespachos);
+    document.addEventListener('DOMContentLoaded', () => {
+        initDespachos();
+        cargarBorradorLocal();
+        document.getElementById('despachoDestino').addEventListener('input', guardarBorradorLocal);
+        document.getElementById('despachoDireccion').addEventListener('input', guardarBorradorLocal);
+    });
 </script>
 {% endblock %}

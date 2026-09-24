@@ -1104,14 +1104,24 @@ def listar_abonos(factura_id: int, db: Session = Depends(get_db), user: Usuario 
 # ==========================================
 # DESPACHOS (NOTAS DE ENTREGA)
 # ==========================================
+def obtener_siguiente_numero_despacho(db: Session) -> str:
+    todos_despachos = db.query(Despacho.numero).all()
+    max_num = 0
+    for (num_str,) in todos_despachos:
+        if num_str and str(num_str).strip().isdigit():
+            try:
+                max_num = max(max_num, int(str(num_str).strip()))
+            except Exception:
+                pass
+    last_disp = db.query(Despacho).order_by(Despacho.id.desc()).first()
+    next_val = max(max_num + 1, (last_disp.id + 1) if last_disp else 1)
+    while db.query(Despacho).filter(Despacho.numero == str(next_val)).first() is not None:
+        next_val += 1
+    return str(next_val)
+
 @app.get("/api/despachos/siguiente_numero")
 def get_next_despacho_num(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
-    last = db.query(Despacho).order_by(Despacho.id.desc()).first()
-    try:
-        next_num = str(int(last.numero) + 1) if last else "1"
-    except:
-        next_num = str((last.id if last else 0) + 1)
-    return {"siguiente": next_num}
+    return {"siguiente": obtener_siguiente_numero_despacho(db)}
 
 @app.post("/api/despachos")
 def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
@@ -1121,9 +1131,8 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
     if not payload.items:
         raise HTTPException(status_code=400, detail="El despacho no contiene artículos")
 
-    # Generar correlativo
-    last_disp = db.query(Despacho).order_by(Despacho.id.desc()).first()
-    next_num = str(last_disp.id + 1) if last_disp else "1"
+    # Generar correlativo garantizado sin colisiones
+    next_num = obtener_siguiente_numero_despacho(db)
 
     total_despacho = 0.0
     detalles = []
@@ -1131,36 +1140,44 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
     for it in payload.items:
         articulo = db.query(Articulo).filter(Articulo.codigo == it.codigo_articulo).first()
         if not articulo:
-            raise HTTPException(status_code=404, detail=f"Artículo {it.codigo_articulo} no encontrado")
+            raise HTTPException(status_code=404, detail=f"Artículo con código {it.codigo_articulo} no encontrado en inventario")
         
-        costo = it.costo_unitario or articulo.costo
-        subtotal = round(it.cantidad * costo, 2)
+        # Blindaje contra nulos en costo y stock
+        costo_base = articulo.costo if articulo.costo is not None else 0.0
+        costo = float(it.costo_unitario if it.costo_unitario is not None else costo_base)
+        cant = float(it.cantidad or 0.0)
+        subtotal = round(cant * costo, 2)
         total_despacho += subtotal
 
-        # Disminuir stock
-        articulo.stock = round(articulo.stock - it.cantidad, 2)
+        # Disminución segura de stock
+        stock_actual = float(articulo.stock if articulo.stock is not None else 0.0)
+        articulo.stock = round(stock_actual - cant, 2)
 
         detalles.append(DetalleDespacho(
             codigo_articulo=articulo.codigo,
             nombre_articulo=articulo.nombre,
-            cantidad=it.cantidad,
+            cantidad=cant,
             costo_unitario=costo,
             subtotal=subtotal
         ))
 
-    despacho = Despacho(
-        numero=next_num,
-        fecha=ahora_venezuela(),
-        destino_cliente=payload.destino_cliente.strip().upper(),
-        direccion=(payload.direccion or "").strip(),
-        total=round(total_despacho, 2),
-        items=detalles
-    )
-    db.add(despacho)
-    db.commit()
-    db.refresh(despacho)
-
-    return {"status": "ok", "despacho_id": despacho.id, "numero": despacho.numero, "total": despacho.total}
+    try:
+        despacho = Despacho(
+            numero=next_num,
+            fecha=ahora_venezuela(),
+            destino_cliente=payload.destino_cliente.strip().upper(),
+            direccion=(payload.direccion or "").strip(),
+            total=round(total_despacho, 2),
+            items=detalles
+        )
+        db.add(despacho)
+        db.commit()
+        db.refresh(despacho)
+        return {"status": "ok", "despacho_id": despacho.id, "numero": despacho.numero, "total": despacho.total}
+    except Exception as e:
+        db.rollback()
+        logging.exception("Error al registrar despacho en base de datos")
+        raise HTTPException(status_code=500, detail=f"Error en base de datos al guardar nota de entrega: {str(e)}")
 
 @app.get("/api/despachos")
 def list_despachos(limit: int = 50, offset: int = 0, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
