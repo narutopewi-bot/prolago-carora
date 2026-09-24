@@ -137,27 +137,77 @@
             overflow: visible !important;
         }
 
-        body.imprimiendo-ticket * {
-            visibility: hidden !important;
+        body.imprimiendo-ticket > *:not(main) {
+            display: none !important;
         }
 
-        body.imprimiendo-ticket #seccionTicketImprimirHistorial,
-        body.imprimiendo-ticket #seccionTicketImprimirHistorial * {
-            visibility: visible !important;
+        body.imprimiendo-ticket main {
+            display: block !important;
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+            border: none !important;
+        }
+
+        body.imprimiendo-ticket main > *:not(#modalTicketHistorial) {
+            display: none !important;
+        }
+
+        body.imprimiendo-ticket #modalTicketHistorial {
+            display: block !important;
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+            border: none !important;
+        }
+
+        body.imprimiendo-ticket #modalTicketHistorial > div {
+            display: block !important;
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+            border: none !important;
+            max-height: none !important;
+        }
+
+        body.imprimiendo-ticket #modalTicketHistorial > div > *:not(#seccionTicketImprimirHistorial) {
+            display: none !important;
         }
 
         body.imprimiendo-ticket #seccionTicketImprimirHistorial {
-            position: absolute !important;
-            left: 0 !important;
-            right: 0 !important;
-            top: 0 !important;
+            display: block !important;
+            position: static !important;
             margin: 0 auto !important;
-            padding: 0 1.5mm 3mm 1.5mm !important;
+            padding: 0 1.5mm 2mm 1.5mm !important;
             background: white !important;
             color: black !important;
             box-shadow: none !important;
             border: none !important;
             box-sizing: border-box !important;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-inside: avoid !important;
+            break-after: avoid !important;
         }
 
         .ticket-bloque {
