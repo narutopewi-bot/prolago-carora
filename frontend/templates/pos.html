@@ -206,15 +206,26 @@
             box-shadow: none !important;
             border: none !important;
             box-sizing: border-box !important;
-            page-break-inside: avoid !important;
             page-break-after: avoid !important;
-            break-inside: avoid !important;
             break-after: avoid !important;
         }
 
         .ticket-bloque {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            box-sizing: border-box !important;
+            padding-bottom: 4mm !important;
+        }
+
+        .ticket-bloque-segunda-copia {
+            page-break-before: always !important;
+            break-before: page !important;
+            margin-top: 0 !important;
+            padding-top: 1mm !important;
+        }
+
+        .ticket-corte-guia {
+            display: none !important;
         }
 
         .formato-58mm {
@@ -2748,6 +2759,10 @@
 
     function construirBloqueTicket(factData, cliente, items, pagos, tipoCopia) {
         const esCred = factData.condicion === 'credito' || (pagos && (pagos.creditoUSD > 0 || pagos.credito > 0)) || (factData.saldo_pendiente > 0.009);
+        const esSegundaCopia = tipoCopia === 'COPIA';
+        const claseCopia = esSegundaCopia 
+            ? 'ticket-bloque ticket-bloque-segunda-copia mb-3 text-black' 
+            : 'ticket-bloque ticket-bloque-primera-copia mb-3 text-black';
         const badgeCopia = tipoCopia === 'ORIGINAL'
             ? `<div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">*** ORIGINAL - CLIENTE ***</div>`
             : `<div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">*** COPIA - ADMINISTRACIÓN ***</div>`;
@@ -2818,7 +2833,7 @@
         if (!pagosHtml) pagosHtml = '<div class="text-slate-500 italic">Pago registrado</div>';
 
         return `
-            <div class="ticket-bloque mb-3 text-black">
+            <div class="${claseCopia}">
                 ${badgeCopia}
 
                 <!-- ENCABEZADO FISCAL -->
@@ -2926,7 +2941,7 @@
             const divisorTicket = `
                 <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-black font-mono text-[9.5px] font-black select-none">
                     - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
-                    ✂ CORTAR AQUÍ &bull; SEGUNDA COPIA ABAJO ✂<br>
+                    ✂ AUTOCORTE DE IMPRESORA ENTRE COPIAS ✂<br>
                     - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 </div>
             `;

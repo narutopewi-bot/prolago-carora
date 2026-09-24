@@ -204,15 +204,26 @@
             box-shadow: none !important;
             border: none !important;
             box-sizing: border-box !important;
-            page-break-inside: avoid !important;
             page-break-after: avoid !important;
-            break-inside: avoid !important;
             break-after: avoid !important;
         }
 
         .ticket-bloque {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            box-sizing: border-box !important;
+            padding-bottom: 4mm !important;
+        }
+
+        .ticket-bloque-segunda-copia {
+            page-break-before: always !important;
+            break-before: page !important;
+            margin-top: 0 !important;
+            padding-top: 1mm !important;
+        }
+
+        .ticket-corte-guia {
+            display: none !important;
         }
 
         .ticket-formato-80mm {
@@ -1207,6 +1218,10 @@
 
     function construirBloqueTicket80mm(d, tipoCopia, fmt) {
         const esOriginal = tipoCopia === 'ORIGINAL';
+        const esSegundaCopia = tipoCopia === 'COPIA';
+        const claseCopia = esSegundaCopia 
+            ? 'ticket-bloque ticket-bloque-segunda-copia mb-3 text-black' 
+            : 'ticket-bloque ticket-bloque-primera-copia mb-3 text-black';
         const badgeCopia = `
             <div class="border-2 border-black py-0.5 px-2 text-center text-[10px] font-black tracking-widest uppercase mb-2">
                 ${esOriginal ? '*** ORIGINAL - CLIENTE ***' : '*** COPIA - ADMINISTRACIÓN ***'}
@@ -1295,7 +1310,7 @@
         if (!pagosHtml) pagosHtml = `<div class="text-slate-600 italic">Pago registrado</div>`;
 
         return `
-            <div class="ticket-bloque mb-3 text-black">
+            <div class="${claseCopia}">
                 ${badgeCopia}
 
                 <!-- CABECERA -->
@@ -1409,7 +1424,7 @@
             const corteGuia = `
                 <div class="ticket-corte-guia text-center my-3 py-1.5 border-y-2 border-dashed border-black font-mono text-[9.5px] font-black select-none">
                     - - - - - - - - - - - - - - - - - - - - - - - - - - - -<br>
-                    ✂ CORTAR AQUÍ &bull; SEGUNDA COPIA ABAJO ✂<br>
+                    ✂ AUTOCORTE DE IMPRESORA ENTRE COPIAS ✂<br>
                     - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 </div>
             `;
