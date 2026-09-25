@@ -210,10 +210,14 @@
                 <span class="text-xs text-slate-400 font-semibold block">Total Valorado al Costo:</span>
                 <span class="text-xl font-black text-purple-700 font-mono" id="modalDespachoTotal">$0.00</span>
             </div>
-            <div class="flex space-x-2">
+            <div class="flex items-center space-x-2">
                 <button type="button" onclick="imprimirNotaEntregaModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center space-x-1.5 cursor-pointer">
                     <i class="fa-solid fa-print"></i>
                     <span>Imprimir Nota</span>
+                </button>
+                <button type="button" onclick="eliminarDespachoDesdeModal()" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-xs transition border border-red-200 flex items-center space-x-1.5 cursor-pointer" title="Eliminar nota y devolver productos al inventario">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Eliminar</span>
                 </button>
                 <button type="button" onclick="cerrarModalDetalleDespacho()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition cursor-pointer">
                     Cerrar
@@ -375,16 +379,22 @@
 
     function renderizarDespacho() {
         const tbody = document.getElementById('tablaDespachoItems');
-        const filaVacia = document.getElementById('despachoFilaVacia');
+        if (!tbody) return;
 
         if (despachoItems.length === 0) {
-            tbody.innerHTML = '';
-            tbody.appendChild(filaVacia);
-            filaVacia.classList.remove('hidden');
-            document.getElementById('despachoTotalUSD').textContent = '$0.00';
-            document.getElementById('despachoTotalBS').textContent = 'Bs. 0,00';
-            document.getElementById('despachoCantItems').textContent = '0';
-            document.getElementById('btnGuardarDespacho').disabled = true;
+            tbody.innerHTML = `
+                <tr id="despachoFilaVacia">
+                    <td colspan="6" class="p-12 text-center text-slate-400 font-medium">No hay productos en la orden de despacho</td>
+                </tr>
+            `;
+            const elUSD = document.getElementById('despachoTotalUSD');
+            const elBS = document.getElementById('despachoTotalBS');
+            const elCant = document.getElementById('despachoCantItems');
+            const elBtn = document.getElementById('btnGuardarDespacho');
+            if (elUSD) elUSD.textContent = '$0.00';
+            if (elBS) elBS.textContent = 'Bs. 0,00';
+            if (elCant) elCant.textContent = '0';
+            if (elBtn) elBtn.disabled = true;
             return;
         }
 
@@ -415,10 +425,14 @@
             tbody.appendChild(tr);
         });
 
-        document.getElementById('despachoTotalUSD').textContent = `$${total.toFixed(2)}`;
-        document.getElementById('despachoTotalBS').textContent = `Bs. ${(total * TASA_BCV).toFixed(2)}`;
-        document.getElementById('despachoCantItems').textContent = cantTotal;
-        document.getElementById('btnGuardarDespacho').disabled = false;
+        const elUSD = document.getElementById('despachoTotalUSD');
+        const elBS = document.getElementById('despachoTotalBS');
+        const elCant = document.getElementById('despachoCantItems');
+        const elBtn = document.getElementById('btnGuardarDespacho');
+        if (elUSD) elUSD.textContent = `$${total.toFixed(2)}`;
+        if (elBS) elBS.textContent = `Bs. ${(total * TASA_BCV).toFixed(2)}`;
+        if (elCant) elCant.textContent = cantTotal;
+        if (elBtn) elBtn.disabled = false;
     }
 
     function cambiarCantDesp(idx, val) {
@@ -607,6 +621,16 @@
             if (res.ok) {
                 const data = await res.json();
                 
+                // Copia segura de datos para impresión inmediata
+                const despachoParaImprimir = {
+                    numero: data.numero,
+                    destino_cliente: payload.destino_cliente,
+                    direccion: payload.direccion,
+                    fecha: new Date().toLocaleDateString('es-VE') + ' ' + new Date().toLocaleTimeString('es-VE'),
+                    total: data.total || 0,
+                    items: [...despachoItems]
+                };
+
                 try {
                     localStorage.removeItem('prolago_draft_despacho');
                 } catch(e) {}
@@ -615,19 +639,26 @@
                 if (document.getElementById('despachoDestino')) document.getElementById('despachoDestino').value = '';
                 if (document.getElementById('despachoDireccion')) document.getElementById('despachoDireccion').value = '';
 
+                actualizarCorrelativoDespacho();
+
                 Swal.fire({
                     icon: 'success',
-                    title: `Despacho #${data.numero} Registrado`,
-                    html: `<div class="space-y-2 text-sm">
+                    title: `¡Despacho #${data.numero} Registrado!`,
+                    html: `<div class="space-y-3 text-sm">
                             <p class="font-bold text-slate-700">Destino: <span class="text-purple-700 font-extrabold">${payload.destino_cliente}</span></p>
                             <p class="font-mono text-base font-black text-emerald-600">Total al Costo: $${(data.total || 0).toFixed(2)}</p>
-                            <p class="text-xs text-slate-400">La nota de entrega quedó guardada correctamente en el historial.</p>
+                            <p class="text-xs text-slate-500">¿Desea imprimir o emitir la Nota de Entrega / Despacho ahora?</p>
                            </div>`,
+                    showCancelButton: true,
                     confirmButtonColor: '#9333ea',
-                    confirmButtonText: 'Aceptar'
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="fa-solid fa-print mr-1"></i> Imprimir Nota de Entrega',
+                    cancelButtonText: 'Listo / Aceptar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        imprimirNotaEntregaGenerica(despachoParaImprimir);
+                    }
                 });
-
-                actualizarCorrelativoDespacho();
             } else {
                 const err = await res.json().catch(() => ({ detail: 'No se pudo guardar el despacho' }));
                 Swal.fire('Error al despachar', err.detail || 'No se pudo guardar el despacho', 'error');
@@ -699,9 +730,16 @@
                 <td class="px-4 py-3 text-slate-500 text-[11px]">${d.direccion || '-'}</td>
                 <td class="px-3 py-3 text-center"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full font-bold text-[10px]">${d.cant_items} ítems</span></td>
                 <td class="px-4 py-3 text-right font-mono font-black text-slate-800">$${(d.total || 0).toFixed(2)}</td>
-                <td class="px-4 py-3 text-center">
-                    <button onclick="verDetalleDespacho(${d.id})" class="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-bold text-[11px] border border-purple-200 transition cursor-pointer">
-                        <i class="fa-solid fa-eye mr-1"></i> Ver Detalle
+                <td class="px-4 py-3 text-center whitespace-nowrap space-x-1">
+                    <button onclick="verDetalleDespacho(${d.id})" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-bold text-[11px] border border-purple-200 transition cursor-pointer inline-flex items-center space-x-1" title="Ver detalle">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>Detalle</span>
+                    </button>
+                    <button onclick="imprimirDespachoPorId(${d.id})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] border border-slate-300 transition cursor-pointer inline-flex items-center space-x-1" title="Imprimir Nota de Entrega">
+                        <i class="fa-solid fa-print"></i>
+                    </button>
+                    <button onclick="eliminarDespachoHistorial(${d.id}, '${d.numero}')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-bold text-[11px] border border-red-200 transition cursor-pointer inline-flex items-center space-x-1" title="Eliminar y devolver stock al inventario">
+                        <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </td>
             `;
@@ -759,24 +797,29 @@
         document.getElementById('modalDetalleDespacho').classList.add('hidden');
     }
 
-    function imprimirNotaEntregaModal() {
-        if (!despachoSeleccionado) return;
-        const itemsHtml = despachoSeleccionado.items.map(it => `
+    function imprimirNotaEntregaGenerica(despacho) {
+        if (!despacho) return;
+        const items = despacho.items || [];
+        const itemsHtml = items.map(it => `
             <tr>
-                <td style="padding: 5px; border-bottom: 1px solid #ddd; font-family: monospace;">${it.codigo}</td>
-                <td style="padding: 5px; border-bottom: 1px solid #ddd;">${it.nombre}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd; font-family: monospace;">${it.codigo || it.codigo_articulo}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd;">${it.nombre || it.nombre_articulo}</td>
                 <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold;">${it.cantidad}</td>
-                <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace;">$${it.costo.toFixed(2)}</td>
-                <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold;">$${it.subtotal.toFixed(2)}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace;">$${(it.costo || it.costo_unitario || 0).toFixed(2)}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold;">$${(it.subtotal || (it.cantidad * (it.costo || it.costo_unitario || 0))).toFixed(2)}</td>
             </tr>
         `).join('');
 
         const win = window.open('', '_blank', 'width=800,height=700');
+        if (!win) {
+            Swal.fire('Atención', 'El navegador bloqueó la ventana emergente de impresión. Habilite las ventanas emergentes en el navegador.', 'warning');
+            return;
+        }
         win.document.write(`
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Nota de Entrega #${despachoSeleccionado.numero}</title>
+                <title>Nota de Entrega #${despacho.numero}</title>
                 <style>
                     body { font-family: Arial, sans-serif; font-size: 12px; margin: 25px; color: #333; }
                     .header { text-align: center; border-bottom: 2px solid #8b1e24; padding-bottom: 10px; margin-bottom: 15px; }
@@ -796,13 +839,13 @@
                 </div>
                 <div class="meta">
                     <div>
-                        <strong>Nota N°:</strong> #${despachoSeleccionado.numero}<br>
-                        <strong>Destino / Sucursal:</strong> ${despachoSeleccionado.destino_cliente}<br>
-                        <strong>Dirección:</strong> ${despachoSeleccionado.direccion || 'Sin dirección especificada'}
+                        <strong>Nota N°:</strong> #${despacho.numero}<br>
+                        <strong>Destino / Sucursal:</strong> ${despacho.destino_cliente}<br>
+                        <strong>Dirección:</strong> ${despacho.direccion || 'Sin dirección especificada'}
                     </div>
                     <div style="text-align: right;">
-                        <strong>Fecha de Emisión:</strong> ${despachoSeleccionado.fecha}<br>
-                        <strong>Total Ítems:</strong> ${despachoSeleccionado.items.length} artículos
+                        <strong>Fecha de Emisión:</strong> ${despacho.fecha || new Date().toLocaleString()}<br>
+                        <strong>Total Ítems:</strong> ${items.length} artículos
                     </div>
                 </div>
                 <table>
@@ -820,7 +863,7 @@
                     </tbody>
                 </table>
                 <div class="total">
-                    TOTAL VALORADO AL COSTO: $${despachoSeleccionado.total.toFixed(2)}
+                    TOTAL VALORADO AL COSTO: $${(despacho.total || 0).toFixed(2)}
                 </div>
                 <div class="signatures">
                     <div class="sign-box">Entregado por / Despacho</div>
@@ -833,6 +876,68 @@
             </html>
         `);
         win.document.close();
+    }
+
+    function imprimirNotaEntregaModal() {
+        if (!despachoSeleccionado) return;
+        imprimirNotaEntregaGenerica(despachoSeleccionado);
+    }
+
+    async function imprimirDespachoPorId(id) {
+        try {
+            const res = await fetch(`/api/despachos/${id}`);
+            if (res.ok) {
+                const desp = await res.json();
+                imprimirNotaEntregaGenerica(desp);
+            } else {
+                Swal.fire('Error', 'No se pudo obtener la nota de entrega para imprimir', 'error');
+            }
+        } catch(e) {
+            Swal.fire('Error', 'Error de conexión al cargar la nota', 'error');
+        }
+    }
+
+    async function eliminarDespachoHistorial(id, numero) {
+        const confirm = await Swal.fire({
+            title: `¿Eliminar Nota #${numero}?`,
+            text: 'Esta acción anulará el despacho y devolverá las cantidades al inventario.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            const res = await fetch(`/api/despachos/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                const data = await res.json();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Eliminado',
+                    text: data.message || `Despacho #${numero} eliminado correctamente`,
+                    confirmButtonColor: '#9333ea'
+                });
+                cerrarModalDetalleDespacho();
+                cargarHistorialDespachos();
+                actualizarCorrelativoDespacho();
+            } else {
+                const err = await res.json().catch(() => ({ detail: 'Error al eliminar' }));
+                Swal.fire('Error', err.detail || 'No se pudo eliminar el despacho', 'error');
+            }
+        } catch(e) {
+            Swal.fire('Error', 'Fallo de conexión al eliminar el despacho', 'error');
+        }
+    }
+
+    function eliminarDespachoDesdeModal() {
+        if (!despachoSeleccionado) return;
+        eliminarDespachoHistorial(despachoSeleccionado.id, despachoSeleccionado.numero);
     }
 
     document.addEventListener('DOMContentLoaded', () => {

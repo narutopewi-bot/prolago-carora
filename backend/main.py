@@ -1242,6 +1242,31 @@ def get_despacho_detalle(
         ]
     }
 
+@app.delete("/api/despachos/{despacho_id}")
+def delete_despacho(
+    despacho_id: int,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("despachos"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para eliminar notas de entrega")
+    
+    despacho = db.query(Despacho).filter(Despacho.id == despacho_id).first()
+    if not despacho:
+        raise HTTPException(status_code=404, detail="Nota de entrega no encontrada")
+    
+    # Restituir el stock de cada artículo despachado
+    for it in despacho.items:
+        articulo = db.query(Articulo).filter(Articulo.codigo == it.codigo_articulo).first()
+        if articulo:
+            stock_actual = float(articulo.stock if articulo.stock is not None else 0.0)
+            articulo.stock = round(stock_actual + float(it.cantidad or 0.0), 2)
+    
+    num = despacho.numero
+    db.delete(despacho)
+    db.commit()
+    return {"status": "ok", "message": f"Nota de entrega #{num} eliminada y stock restituido al inventario"}
+
 # ==========================================
 # COMPRAS / ENTRADA DE MERCANCÍA
 # ==========================================
