@@ -234,19 +234,24 @@
         "Prolago Rotaria": "Av. Rotaria, Carora."
     };
 
-    async function initDespachos() {
+    async function actualizarCorrelativoDespacho() {
         try {
             const res = await fetch('/api/despachos/siguiente_numero');
             if (res.ok) {
                 const d = await res.json();
                 siguienteDespachoNum = d.siguiente;
-                document.getElementById('numDespachoDisplay').textContent = `#${siguienteDespachoNum}`;
+                const el = document.getElementById('numDespachoDisplay');
+                if (el) el.textContent = `#${siguienteDespachoNum}`;
             }
         } catch (e) {
-            console.error(e);
+            console.error("Error al obtener siguiente número:", e);
         }
-        configurarBuscadorDespacho();
+    }
+
+    async function initDespachos() {
+        await actualizarCorrelativoDespacho();
         cargarClientesDespacho();
+        configurarBuscadorDespacho();
         configurarAutocompletarDestino();
     }
 
@@ -256,9 +261,10 @@
             if (res.ok) {
                 const data = await res.json();
                 const dl = document.getElementById('destinosSugeridos');
-                dl.innerHTML = '';
+                if (dl) dl.innerHTML = '';
                 
-                (data.items || []).forEach(c => {
+                const lista = Array.isArray(data) ? data : (data.items || []);
+                lista.forEach(c => {
                     if (c.nombre) {
                         const nom = c.nombre.trim();
                         clientesDespachoCache[nom] = c.direccion || '';
@@ -269,7 +275,7 @@
                     const opt = document.createElement('option');
                     opt.value = nombre;
                     if (dir) opt.label = dir;
-                    dl.appendChild(opt);
+                    if (dl) dl.appendChild(opt);
                 }
             }
         } catch (e) {
@@ -569,50 +575,67 @@
             }))
         };
 
+        let res = null;
         try {
-            const res = await fetch('/api/despachos', {
+            res = await fetch('/api/despachos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+        } catch (netError) {
+            btn.disabled = (despachoItems.length === 0);
+            btn.innerHTML = oldHtml;
+            mostrarErrorConReintento('No se pudo conectar temporalmente con el servidor. Por favor verifique su conexión e intente de nuevo.');
+            return;
+        }
 
+        try {
             if (res.status === 401) {
-                btn.disabled = false;
+                btn.disabled = (despachoItems.length === 0);
                 btn.innerHTML = oldHtml;
                 solicitarReautenticacion();
                 return;
             }
 
             if (res.status === 502 || res.status === 503 || res.status === 504) {
-                btn.disabled = false;
+                btn.disabled = (despachoItems.length === 0);
                 btn.innerHTML = oldHtml;
-                mostrarErrorConReintento('El servidor se encuentra reiniciando tras una actualización en la nube. Espere 5 a 10 segundos y presione Reintentar.');
+                mostrarErrorConReintento('El servidor se encuentra reiniciando en la nube. Espere 5 segundos y presione Reintentar.');
                 return;
             }
 
             if (res.ok) {
                 const data = await res.json();
-                Swal.fire({
-                    icon: 'success',
-                    title: `Despacho #${data.numero} Registrado`,
-                    text: `Total valorado al costo: $${(data.total || 0).toFixed(2)}`,
-                    confirmButtonColor: '#9333ea'
-                });
+                
                 try {
                     localStorage.removeItem('prolago_draft_despacho');
                 } catch(e) {}
+
                 vaciarDespacho();
-                document.getElementById('despachoDestino').value = '';
-                document.getElementById('despachoDireccion').value = '';
-                initDespachos();
+                if (document.getElementById('despachoDestino')) document.getElementById('despachoDestino').value = '';
+                if (document.getElementById('despachoDireccion')) document.getElementById('despachoDireccion').value = '';
+
+                Swal.fire({
+                    icon: 'success',
+                    title: `Despacho #${data.numero} Registrado`,
+                    html: `<div class="space-y-2 text-sm">
+                            <p class="font-bold text-slate-700">Destino: <span class="text-purple-700 font-extrabold">${payload.destino_cliente}</span></p>
+                            <p class="font-mono text-base font-black text-emerald-600">Total al Costo: $${(data.total || 0).toFixed(2)}</p>
+                            <p class="text-xs text-slate-400">La nota de entrega quedó guardada correctamente en el historial.</p>
+                           </div>`,
+                    confirmButtonColor: '#9333ea',
+                    confirmButtonText: 'Aceptar'
+                });
+
+                actualizarCorrelativoDespacho();
             } else {
                 const err = await res.json().catch(() => ({ detail: 'No se pudo guardar el despacho' }));
                 Swal.fire('Error al despachar', err.detail || 'No se pudo guardar el despacho', 'error');
             }
-        } catch (e) {
-            mostrarErrorConReintento('No se pudo conectar temporalmente con el servidor. Si se acaba de subir una actualización, el servidor tarda unos segundos en reconectar.');
+        } catch (innerErr) {
+            console.error("Error al procesar respuesta del despacho:", innerErr);
         } finally {
-            btn.disabled = false;
+            btn.disabled = (despachoItems.length === 0);
             btn.innerHTML = oldHtml;
         }
     }
