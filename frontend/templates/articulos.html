@@ -300,6 +300,10 @@
             </div>
 
             <div class="pt-3 flex space-x-2">
+                <button type="button" id="btnEliminarDesdeModal" onclick="eliminarArticuloDesdeModal()" class="hidden px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl border border-rose-200 transition flex items-center justify-center space-x-1.5" title="Eliminar este artículo">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Eliminar</span>
+                </button>
                 <button type="button" onclick="cerrarModalArticulo()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Cancelar</button>
                 <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition">Guardar Producto</button>
             </div>
@@ -667,8 +671,11 @@
                     <button onclick="imprimirEtiquetaIndividual(${item.codigo})" class="text-slate-600 hover:text-[#8B1E24] hover:bg-rose-50 p-1.5 rounded-lg transition" title="Imprimir Etiqueta con Código de Barras">
                         <i class="fa-solid fa-barcode text-sm"></i>
                     </button>
-                    <button onclick="editarArticulo(${item.codigo})" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 rounded-lg transition" title="Editar">
+                    <button onclick="editarArticulo(${item.codigo})" class="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 rounded-lg transition" title="Editar Artículo">
                         <i class="fa-solid fa-pen-to-square text-sm"></i>
+                    </button>
+                    <button onclick="eliminarArticulo(${item.codigo})" class="text-rose-600 hover:text-rose-800 hover:bg-rose-50 p-1.5 rounded-lg transition" title="Eliminar Artículo">
+                        <i class="fa-solid fa-trash-can text-sm"></i>
                     </button>
                 </td>
             `;
@@ -703,6 +710,7 @@
         document.getElementById('lblStockModal').textContent = "Stock Inicial";
         document.getElementById('artStockAlerta').value = 5;
         document.getElementById('artRent').value = 20;
+        document.getElementById('btnEliminarDesdeModal').classList.add('hidden');
         recalcularModalPrecios();
         document.getElementById('modalArticulo').classList.remove('hidden');
     }
@@ -744,6 +752,7 @@
         document.getElementById('lblStockModal').textContent = "Stock Actual";
         document.getElementById('artStock').value = art.stock || 0;
         document.getElementById('artStockAlerta').value = (art.stock_alerta !== null && art.stock_alerta !== undefined) ? art.stock_alerta : 5;
+        document.getElementById('btnEliminarDesdeModal').classList.remove('hidden');
 
         recalcularModalPrecios();
         document.getElementById('modalArticulo').classList.remove('hidden');
@@ -794,6 +803,53 @@
         } catch (e) {
             Swal.fire('Error', 'Fallo de conexión', 'error');
         }
+    }
+
+    async function eliminarArticulo(codigo) {
+        const art = todosLosArticulos.find(x => x.codigo === codigo);
+        const nombreArt = art ? art.nombre : `Código ${codigo}`;
+
+        const result = await Swal.fire({
+            title: '¿Eliminar Artículo?',
+            html: `¿Estás seguro de que deseas eliminar <b>${nombreArt}</b> (#${codigo}) del inventario?<br><small class="text-slate-500">Esta acción no se puede deshacer.</small>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="fa-solid fa-trash-can mr-1"></i> Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const res = await fetch(`/api/articulos/${codigo}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Artículo eliminado',
+                    text: `El artículo #${codigo} ha sido eliminado correctamente.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                cargarArticulos();
+            } else {
+                const err = await res.json();
+                Swal.fire('Error', err.detail || 'No se pudo eliminar el artículo', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Fallo de conexión al eliminar el artículo', 'error');
+        }
+    }
+
+    function eliminarArticuloDesdeModal() {
+        const codigo = parseInt(document.getElementById('artCodigo').value);
+        if (!codigo) return;
+        cerrarModalArticulo();
+        eliminarArticulo(codigo);
     }
 
     // ==========================================

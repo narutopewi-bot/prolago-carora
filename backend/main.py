@@ -394,7 +394,10 @@ def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user
     return item
 
 @app.put("/api/articulos/{codigo}")
-def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_admin)):
+def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not (user.rol == "admin" or user.tiene_permiso("inventario")):
+        raise HTTPException(status_code=403, detail="No tienes permiso para modificar artículos del inventario")
+
     item = db.query(Articulo).filter(Articulo.codigo == codigo).first()
     if not item:
         raise HTTPException(status_code=404, detail="Artículo no encontrado")
@@ -421,6 +424,20 @@ def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(
     db.commit()
     db.refresh(item)
     return item
+
+@app.delete("/api/articulos/{codigo}")
+def delete_articulo(codigo: int, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not (user.rol == "admin" or user.tiene_permiso("inventario")):
+        raise HTTPException(status_code=403, detail="No tienes permiso para eliminar artículos del inventario")
+
+    item = db.query(Articulo).filter(Articulo.codigo == codigo).first()
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Artículo #{codigo} no encontrado")
+
+    nombre_eliminado = item.nombre
+    db.delete(item)
+    db.commit()
+    return {"status": "ok", "message": f"Artículo #{codigo} ({nombre_eliminado}) eliminado del inventario"}
 
 # ==========================================
 # CLIENTES
