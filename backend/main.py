@@ -15,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, desc, text
 import json
+import re
 
 from .database import get_db, engine, Base, BASE_DIR, TARGET_DB
 from .models import (
@@ -1108,13 +1109,14 @@ def obtener_siguiente_numero_despacho(db: Session) -> str:
     todos_despachos = db.query(Despacho.numero).all()
     max_num = 0
     for (num_str,) in todos_despachos:
-        if num_str and str(num_str).strip().isdigit():
-            try:
-                max_num = max(max_num, int(str(num_str).strip()))
-            except Exception:
-                pass
-    last_disp = db.query(Despacho).order_by(Despacho.id.desc()).first()
-    next_val = max(max_num + 1, (last_disp.id + 1) if last_disp else 1)
+        if num_str:
+            solo_digitos = re.sub(r'\D', '', str(num_str).strip())
+            if solo_digitos:
+                try:
+                    max_num = max(max_num, int(solo_digitos))
+                except Exception:
+                    pass
+    next_val = max_num + 1
     while db.query(Despacho).filter(Despacho.numero == str(next_val)).first() is not None:
         next_val += 1
     return str(next_val)
@@ -1147,15 +1149,30 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
         if not articulo:
             raise HTTPException(status_code=404, detail=f"Artículo con código {it.codigo_articulo} no encontrado en inventario")
         
+        cant = float(it.cantidad or 0.0)
+        if cant <= 0:
+            raise HTTPException(status_code=400, detail=f"La cantidad a despachar de '{articulo.nombre}' debe ser mayor a 0")
+
+        # Validación estricta de stock disponible en almacén
+        stock_actual = float(articulo.stock if articulo.stock is not None else 0.0)
+        if stock_actual <= 0.0001:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede despachar '{articulo.nombre}' (Cód. {articulo.codigo}). El producto está agotado en inventario (Stock actual: {stock_actual})."
+            )
+        if cant > stock_actual:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Stock insuficiente para '{articulo.nombre}' (Cód. {articulo.codigo}). Cantidad a despachar ({cant}) excede el disponible en almacén ({stock_actual})."
+            )
+
         # Blindaje contra nulos en costo y stock
         costo_base = articulo.costo if articulo.costo is not None else 0.0
         costo = float(it.costo_unitario if it.costo_unitario is not None else costo_base)
-        cant = float(it.cantidad or 0.0)
         subtotal = round(cant * costo, 2)
         total_despacho += subtotal
 
         # Disminución segura de stock
-        stock_actual = float(articulo.stock if articulo.stock is not None else 0.0)
         articulo.stock = round(stock_actual - cant, 2)
 
         detalles.append(DetalleDespacho(
