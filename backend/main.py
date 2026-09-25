@@ -24,7 +24,7 @@ from .models import (
 )
 from .schemas import (
     LoginRequest, TasaBCVUpdate, ArticuloCreate, ArticuloOut,
-    ClienteCreate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, AbonoCreate,
+    ClienteCreate, ClienteUpdate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, AbonoCreate,
     UsuarioCreate, UsuarioUpdate, UsuarioOut, VerificarAdminRequest, ItemFacturaUpdate, FacturaUpdate,
     CajaApertura, CajaCierre
 )
@@ -443,16 +443,76 @@ def list_clientes(
 @app.post("/api/clientes")
 def create_cliente(payload: ClienteCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
     cliente = Cliente(
-        cedula_rif=payload.cedula_rif.strip().upper(),
+        cedula_rif=(payload.cedula_rif or "").strip().upper(),
         nombre=payload.nombre.strip().upper(),
-        direccion=payload.direccion.strip(),
-        telefono=payload.telefono.strip(),
+        direccion=(payload.direccion or "").strip(),
+        telefono=(payload.telefono or "").strip(),
         tipo=payload.tipo or "general"
     )
     db.add(cliente)
     db.commit()
     db.refresh(cliente)
     return cliente
+
+@app.put("/api/clientes/{cliente_id}")
+def update_cliente(cliente_id: int, payload: ClienteUpdate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not (user.rol == "admin" or user.tiene_permiso("clientes")):
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar clientes")
+    
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    if payload.cedula_rif is not None:
+        cliente.cedula_rif = payload.cedula_rif.strip().upper()
+    if payload.nombre is not None and payload.nombre.strip():
+        nuevo_nombre = payload.nombre.strip().upper()
+        cliente.nombre = nuevo_nombre
+        # Sincronizar el nombre en facturas vinculadas
+        db.query(Factura).filter(Factura.cliente_id == cliente.id).update(
+            {Factura.cliente_nombre: nuevo_nombre}, synchronize_session=False
+        )
+    if payload.direccion is not None:
+        cliente.direccion = payload.direccion.strip()
+    if payload.telefono is not None:
+        cliente.telefono = payload.telefono.strip()
+    if payload.tipo is not None:
+        cliente.tipo = payload.tipo.strip().lower()
+
+    db.commit()
+    db.refresh(cliente)
+    return cliente
+
+@app.delete("/api/clientes/{cliente_id}")
+def delete_cliente(cliente_id: int, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not (user.rol == "admin" or user.tiene_permiso("clientes")):
+        raise HTTPException(status_code=403, detail="No tienes permiso para eliminar clientes")
+    
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Verificar si tiene deudas de crédito pendientes
+    deuda_activa = db.query(func.sum(Factura.saldo_pendiente)).filter(
+        Factura.cliente_id == cliente.id,
+        Factura.saldo_pendiente > 0.01
+    ).scalar() or 0.0
+
+    if deuda_activa > 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede eliminar al cliente '{cliente.nombre}' porque tiene una deuda de crédito pendiente por ${deuda_activa:.2f}. Liquide o anule primero su cuenta por cobrar."
+        )
+
+    # Desvincular facturas históricas saldadas para preservar la integridad sin error de llave foránea
+    db.query(Factura).filter(Factura.cliente_id == cliente.id).update(
+        {Factura.cliente_id: None}, synchronize_session=False
+    )
+
+    nombre_eliminado = cliente.nombre
+    db.delete(cliente)
+    db.commit()
+    return {"status": "ok", "message": f"Cliente '{nombre_eliminado}' eliminado correctamente"}
 
 # ==========================================
 # FACTURACIÓN / POS

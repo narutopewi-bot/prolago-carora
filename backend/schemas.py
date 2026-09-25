@@ -43,6 +43,13 @@ class ClienteBase(BaseModel):
 class ClienteCreate(ClienteBase):
     pass
 
+class ClienteUpdate(BaseModel):
+    cedula_rif: Optional[str] = None
+    nombre: Optional[str] = None
+    direccion: Optional[str] = None
+    telefono: Optional[str] = None
+    tipo: Optional[str] = None
+
 class ClienteOut(ClienteBase):
     id: int
     class Config:

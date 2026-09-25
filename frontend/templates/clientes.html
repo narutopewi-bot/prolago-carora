@@ -8,14 +8,23 @@
 
     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl font-extrabold text-slate-800">Directorio de Clientes</h1>
-            <p class="text-xs text-slate-500">Gestión de datos de contacto, RIF/Cédula y destinos</p>
+            <h1 class="text-xl font-extrabold text-slate-800">Directorio de Clientes y Sucursales</h1>
+            <p class="text-xs text-slate-500">Gestión de datos de contacto, RIF/Cédula, edición y eliminación</p>
         </div>
 
-        <button onclick="abrirModalCliente()" class="px-4 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-bold transition flex items-center space-x-2">
-            <i class="fa-solid fa-user-plus"></i>
-            <span>Nuevo Cliente</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                <input type="text" id="buscadorClientes" oninput="filtrarClientesLocal()"
+                    placeholder="Buscar por nombre o C.I./RIF..."
+                    class="pl-8 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#8B1E24] focus:border-[#8B1E24] outline-none w-56">
+            </div>
+
+            <button onclick="abrirModalCliente()" class="px-4 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer shadow-sm">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Nuevo Cliente</span>
+            </button>
+        </div>
     </div>
 
     <!-- TABLA DE CLIENTES -->
@@ -30,6 +39,7 @@
                         <th class="px-4 py-3.5">Teléfono</th>
                         <th class="px-4 py-3.5">Dirección</th>
                         <th class="px-3 py-3.5 text-center">Tipo</th>
+                        <th class="px-4 py-3.5 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaClientesBody" class="divide-y divide-slate-100">
@@ -40,37 +50,42 @@
     </div>
 </div>
 
-<!-- MODAL NUEVO CLIENTE -->
+<!-- MODAL CREAR / EDITAR CLIENTE -->
 <div id="modalCliente" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-slate-800">
-        <h3 class="text-base font-bold mb-3">Registrar Cliente</h3>
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h3 class="text-base font-extrabold text-slate-800" id="modalClienteTitulo">Registrar Cliente</h3>
+            <button type="button" onclick="cerrarModalCliente()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
         <form onsubmit="guardarCliente(event)" class="space-y-3 text-xs">
             <div>
                 <label class="block font-semibold mb-1">Nombre / Razón Social</label>
-                <input type="text" id="cliNombre" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-pink-500 uppercase font-bold">
+                <input type="text" id="cliNombre" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#8B1E24] uppercase font-bold">
             </div>
             <div>
                 <label class="block font-semibold mb-1">C.I. / RIF</label>
-                <input type="text" id="cliCI" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-pink-500">
+                <input type="text" id="cliCI" placeholder="Ej: V-12345678 o J-12345678-9" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#8B1E24] uppercase">
             </div>
             <div>
                 <label class="block font-semibold mb-1">Teléfono</label>
-                <input type="text" id="cliTelf" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-pink-500">
+                <input type="text" id="cliTelf" placeholder="Ej: 0414-0000000" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#8B1E24]">
             </div>
             <div>
                 <label class="block font-semibold mb-1">Dirección</label>
-                <input type="text" id="cliDir" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-pink-500">
+                <input type="text" id="cliDir" placeholder="Dirección fiscal o de entrega" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#8B1E24]">
             </div>
             <div>
                 <label class="block font-semibold mb-1">Tipo de Cliente</label>
-                <select id="cliTipo" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-pink-500 font-semibold">
+                <select id="cliTipo" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#8B1E24] font-semibold">
                     <option value="general">General (Punto de Venta)</option>
                     <option value="despacho">Sucursal / Despacho</option>
                 </select>
             </div>
             <div class="pt-3 flex space-x-2">
-                <button type="button" onclick="cerrarModalCliente()" class="flex-1 py-2.5 bg-slate-100 font-bold rounded-xl text-slate-700">Cancelar</button>
-                <button type="submit" class="flex-1 py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl shadow">Guardar</button>
+                <button type="button" onclick="cerrarModalCliente()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-700 cursor-pointer transition">Cancelar</button>
+                <button type="submit" id="btnSubmitCliente" class="flex-1 py-2.5 bg-[#8B1E24] hover:bg-[#72181D] text-white font-bold rounded-xl shadow cursor-pointer transition">Guardar</button>
             </div>
         </form>
     </div>
@@ -79,40 +94,102 @@
 
 {% block extra_scripts %}
 <script>
+    let clientesCache = [];
+    let clienteEditandoId = null;
+
     async function cargarClientes() {
         try {
             const res = await fetch('/api/clientes');
             if (res.ok) {
-                const data = await res.json();
-                const tbody = document.getElementById('tablaClientesBody');
-                tbody.innerHTML = '';
-                data.forEach(c => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-slate-50 transition';
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 text-slate-400 font-mono">${c.id}</td>
-                        <td class="px-4 py-3 font-mono font-bold text-slate-700">${c.cedula_rif || '-'}</td>
-                        <td class="px-4 py-3 font-bold text-slate-800">${c.nombre}</td>
-                        <td class="px-4 py-3 text-slate-600">${c.telefono || '-'}</td>
-                        <td class="px-4 py-3 text-slate-500">${c.direccion || '-'}</td>
-                        <td class="px-3 py-3 text-center">
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.tipo === 'despacho' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">
-                                ${c.tipo.toUpperCase()}
-                            </span>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                clientesCache = await res.json();
+                filtrarClientesLocal();
             }
         } catch (e) {
             console.error(e);
         }
     }
 
+    function filtrarClientesLocal() {
+        const q = (document.getElementById('buscadorClientes')?.value || '').trim().toLowerCase();
+        const filtrados = !q ? clientesCache : clientesCache.filter(c =>
+            (c.nombre && c.nombre.toLowerCase().includes(q)) ||
+            (c.cedula_rif && c.cedula_rif.toLowerCase().includes(q)) ||
+            (c.telefono && c.telefono.toLowerCase().includes(q)) ||
+            (c.direccion && c.direccion.toLowerCase().includes(q))
+        );
+        renderizarTablaClientes(filtrados);
+    }
+
+    function renderizarTablaClientes(lista) {
+        const tbody = document.getElementById('tablaClientesBody');
+        tbody.innerHTML = '';
+
+        if (!lista || lista.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="p-8 text-center text-slate-400 font-medium">No se encontraron clientes registrados</td>
+                </tr>
+            `;
+            return;
+        }
+
+        lista.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-slate-400 font-mono">${c.id}</td>
+                <td class="px-4 py-3 font-mono font-bold text-slate-700">${c.cedula_rif || '-'}</td>
+                <td class="px-4 py-3 font-bold text-slate-800">${c.nombre}</td>
+                <td class="px-4 py-3 text-slate-600">${c.telefono || '-'}</td>
+                <td class="px-4 py-3 text-slate-500">${c.direccion || '-'}</td>
+                <td class="px-3 py-3 text-center">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${c.tipo === 'despacho' ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}">
+                        ${(c.tipo || 'GENERAL').toUpperCase()}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-center whitespace-nowrap space-x-1.5">
+                    <button onclick="abrirModalEditarCliente(${c.id})" class="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold text-[11px] border border-blue-200 transition cursor-pointer inline-flex items-center space-x-1" title="Editar cliente">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Editar</span>
+                    </button>
+                    <button onclick="eliminarCliente(${c.id})" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-bold text-[11px] border border-red-200 transition cursor-pointer inline-flex items-center space-x-1" title="Eliminar cliente">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Eliminar</span>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
     function abrirModalCliente() {
+        clienteEditandoId = null;
+        document.getElementById('modalClienteTitulo').textContent = 'Registrar Nuevo Cliente';
+        document.getElementById('btnSubmitCliente').textContent = 'Guardar Cliente';
+        document.getElementById('cliNombre').value = '';
+        document.getElementById('cliCI').value = '';
+        document.getElementById('cliTelf').value = '';
+        document.getElementById('cliDir').value = '';
+        document.getElementById('cliTipo').value = 'general';
         document.getElementById('modalCliente').classList.remove('hidden');
     }
+
+    function abrirModalEditarCliente(id) {
+        const cliente = clientesCache.find(x => x.id === id);
+        if (!cliente) return;
+        clienteEditandoId = cliente.id;
+        document.getElementById('modalClienteTitulo').textContent = `Editar Cliente #${cliente.id}`;
+        document.getElementById('btnSubmitCliente').textContent = 'Actualizar Datos';
+        document.getElementById('cliNombre').value = cliente.nombre || '';
+        document.getElementById('cliCI').value = cliente.cedula_rif || '';
+        document.getElementById('cliTelf').value = cliente.telefono || '';
+        document.getElementById('cliDir').value = cliente.direccion || '';
+        document.getElementById('cliTipo').value = cliente.tipo || 'general';
+        document.getElementById('modalCliente').classList.remove('hidden');
+    }
+
     function cerrarModalCliente() {
+        clienteEditandoId = null;
         document.getElementById('modalCliente').classList.add('hidden');
     }
 
@@ -126,19 +203,70 @@
             tipo: document.getElementById('cliTipo').value
         };
 
+        const esEdicion = (clienteEditandoId !== null);
+        const url = esEdicion ? `/api/clientes/${clienteEditandoId}` : '/api/clientes';
+        const metodo = esEdicion ? 'PUT' : 'POST';
+
         try {
-            const res = await fetch('/api/clientes', {
-                method: 'POST',
+            const res = await fetch(url, {
+                method: metodo,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
                 cerrarModalCliente();
-                cargarClientes();
-                Swal.fire({ icon: 'success', title: 'Cliente agregado', timer: 1000, showConfirmButton: false });
+                await cargarClientes();
+                Swal.fire({
+                    icon: 'success',
+                    title: esEdicion ? 'Cliente actualizado' : 'Cliente registrado',
+                    timer: 1200,
+                    showConfirmButton: false
+                });
+            } else {
+                const err = await res.json().catch(() => ({ detail: 'No se pudo guardar el cliente' }));
+                Swal.fire('Error', err.detail || 'No se pudo guardar el cliente', 'error');
             }
         } catch (e) {
-            Swal.fire('Error', 'Fallo de conexión', 'error');
+            Swal.fire('Error', 'Fallo de conexión con el servidor', 'error');
+        }
+    }
+
+    async function eliminarCliente(id) {
+        const cliente = clientesCache.find(x => x.id === id);
+        if (!cliente) return;
+
+        const confirm = await Swal.fire({
+            title: `¿Eliminar cliente?`,
+            html: `<p class="text-xs text-slate-600">Se eliminará a <strong>${cliente.nombre}</strong> (${cliente.cedula_rif || 'Sin RIF'}) del directorio.</p>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            const res = await fetch(`/api/clientes/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                const data = await res.json();
+                await cargarClientes();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Eliminado',
+                    text: data.message || `El cliente "${cliente.nombre}" fue eliminado.`,
+                    confirmButtonColor: '#8B1E24'
+                });
+            } else {
+                const err = await res.json().catch(() => ({ detail: 'No se pudo eliminar el cliente' }));
+                Swal.fire('No se puede eliminar', err.detail || 'Error al eliminar el cliente', 'warning');
+            }
+        } catch (e) {
+            Swal.fire('Error', 'Fallo de conexión con el servidor', 'error');
         }
     }
 
