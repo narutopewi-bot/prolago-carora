@@ -4,7 +4,22 @@
 {% block nav_despachos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- BARRA DE PESTAÑAS: EMISIÓN VS HISTORIAL -->
+<div class="flex items-center space-x-2 border-b border-slate-200 pb-3 mb-5">
+    <button onclick="cambiarPestanaDespacho('emitir')" id="tabBtnEmitir"
+        class="px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition bg-purple-600 text-white shadow-sm">
+        <i class="fa-solid fa-truck-ramp-box"></i>
+        <span>Emitir Nota de Entrega</span>
+    </button>
+    <button onclick="cambiarPestanaDespacho('historial')" id="tabBtnHistorial"
+        class="px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 border border-slate-200 hover:bg-slate-50">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>Historial de Despachos</span>
+    </button>
+</div>
+
+<!-- SECCIÓN EMITIR DESPACHO -->
+<div id="seccionEmitirDespacho" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
     <div class="lg:col-span-8 flex flex-col space-y-4">
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
@@ -101,6 +116,109 @@
                 <i class="fa-solid fa-check"></i>
                 <span>Emitir Nota de Entrega</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- SECCIÓN HISTORIAL DE DESPACHOS -->
+<div id="seccionHistorialDespacho" class="hidden space-y-4">
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="relative w-full sm:w-80">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                <i class="fa-solid fa-search"></i>
+            </span>
+            <input type="text" id="busquedaHistorialDespacho" oninput="filtrarHistorialDespachos()"
+                placeholder="Buscar por N°, sucursal o destino..."
+                class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 focus:outline-none">
+        </div>
+        <button onclick="cargarHistorialDespachos()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition flex items-center space-x-1.5 cursor-pointer">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span>Actualizar</span>
+        </button>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3.5">Nota N°</th>
+                        <th class="px-4 py-3.5">Fecha y Hora</th>
+                        <th class="px-4 py-3.5">Destino / Sucursal</th>
+                        <th class="px-4 py-3.5">Dirección</th>
+                        <th class="px-3 py-3.5 text-center">Ítems</th>
+                        <th class="px-4 py-3.5 text-right">Total al Costo ($)</th>
+                        <th class="px-4 py-3.5 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaHistorialDespachoBody" class="divide-y divide-slate-100">
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400">Cargando notas de entrega...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL VER DETALLE DESPACHO / IMPRESIÓN -->
+<div id="modalDetalleDespacho" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 text-slate-800 max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div>
+                <h3 class="text-base font-extrabold text-slate-800 flex items-center space-x-2">
+                    <span class="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-700 font-mono text-sm" id="modalDespachoNum">#--</span>
+                    <span>Nota de Entrega / Despacho</span>
+                </h3>
+                <p class="text-xs text-slate-400" id="modalDespachoFecha">--</p>
+            </div>
+            <button onclick="cerrarModalDetalleDespacho()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-4 grid grid-cols-2 gap-2 text-xs">
+            <div>
+                <span class="text-slate-400 block font-semibold">Destino / Sucursal:</span>
+                <strong class="text-slate-800 text-sm" id="modalDespachoDestino">--</strong>
+            </div>
+            <div>
+                <span class="text-slate-400 block font-semibold">Dirección:</span>
+                <span class="text-slate-600" id="modalDespachoDireccion">--</span>
+            </div>
+        </div>
+
+        <div class="overflow-y-auto flex-1 border border-slate-100 rounded-xl mb-4">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 sticky top-0">
+                    <tr>
+                        <th class="px-3 py-2.5">Cód</th>
+                        <th class="px-3 py-2.5">Descripción</th>
+                        <th class="px-2 py-2.5 text-center">Cant</th>
+                        <th class="px-3 py-2.5 text-right">Costo Unit.</th>
+                        <th class="px-3 py-2.5 text-right">Subtotal ($)</th>
+                    </tr>
+                </thead>
+                <tbody id="modalDespachoItemsBody" class="divide-y divide-slate-100">
+                    <!-- Dinámico -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+            <div>
+                <span class="text-xs text-slate-400 font-semibold block">Total Valorado al Costo:</span>
+                <span class="text-xl font-black text-purple-700 font-mono" id="modalDespachoTotal">$0.00</span>
+            </div>
+            <div class="flex space-x-2">
+                <button type="button" onclick="imprimirNotaEntregaModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Imprimir Nota</span>
+                </button>
+                <button type="button" onclick="cerrarModalDetalleDespacho()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition cursor-pointer">
+                    Cerrar
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -497,6 +615,201 @@
             btn.disabled = false;
             btn.innerHTML = oldHtml;
         }
+    }
+
+    // ==========================================
+    // HISTORIAL Y REPORTE DE DESPACHOS
+    // ==========================================
+    let historialDespachosCache = [];
+    let despachoSeleccionado = null;
+
+    function cambiarPestanaDespacho(pestana) {
+        const secEmitir = document.getElementById('seccionEmitirDespacho');
+        const secHistorial = document.getElementById('seccionHistorialDespacho');
+        const tabEmitir = document.getElementById('tabBtnEmitir');
+        const tabHistorial = document.getElementById('tabBtnHistorial');
+
+        if (pestana === 'emitir') {
+            secEmitir.classList.remove('hidden');
+            secHistorial.classList.add('hidden');
+            tabEmitir.className = "px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition bg-purple-600 text-white shadow-sm cursor-pointer";
+            tabHistorial.className = "px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer";
+        } else {
+            secEmitir.classList.add('hidden');
+            secHistorial.classList.remove('hidden');
+            tabHistorial.className = "px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition bg-purple-600 text-white shadow-sm cursor-pointer";
+            tabEmitir.className = "px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 cursor-pointer";
+            cargarHistorialDespachos();
+        }
+    }
+
+    async function cargarHistorialDespachos() {
+        const tbody = document.getElementById('tablaHistorialDespachoBody');
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Cargando notas de entrega...</td></tr>';
+        try {
+            const res = await fetch('/api/despachos?limit=100');
+            if (res.ok) {
+                historialDespachosCache = await res.json();
+                renderizarHistorialDespachos(historialDespachosCache);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-red-500 font-semibold">Error al cargar historial de despachos</td></tr>';
+            }
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-red-500 font-semibold">Fallo de comunicación con el servidor</td></tr>';
+        }
+    }
+
+    function renderizarHistorialDespachos(lista) {
+        const tbody = document.getElementById('tablaHistorialDespachoBody');
+        if (!lista || lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">No hay despachos o notas de entrega registradas</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        lista.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition';
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-mono font-black text-purple-700">#${d.numero}</td>
+                <td class="px-4 py-3 font-medium text-slate-600">${d.fecha}</td>
+                <td class="px-4 py-3 font-bold text-slate-800">${d.destino_cliente}</td>
+                <td class="px-4 py-3 text-slate-500 text-[11px]">${d.direccion || '-'}</td>
+                <td class="px-3 py-3 text-center"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full font-bold text-[10px]">${d.cant_items} ítems</span></td>
+                <td class="px-4 py-3 text-right font-mono font-black text-slate-800">$${(d.total || 0).toFixed(2)}</td>
+                <td class="px-4 py-3 text-center">
+                    <button onclick="verDetalleDespacho(${d.id})" class="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-bold text-[11px] border border-purple-200 transition cursor-pointer">
+                        <i class="fa-solid fa-eye mr-1"></i> Ver Detalle
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filtrarHistorialDespachos() {
+        const q = document.getElementById('busquedaHistorialDespacho').value.trim().toLowerCase();
+        if (!q) {
+            renderizarHistorialDespachos(historialDespachosCache);
+            return;
+        }
+        const filtrados = historialDespachosCache.filter(d => 
+            (d.numero && d.numero.toLowerCase().includes(q)) ||
+            (d.destino_cliente && d.destino_cliente.toLowerCase().includes(q)) ||
+            (d.direccion && d.direccion.toLowerCase().includes(q))
+        );
+        renderizarHistorialDespachos(filtrados);
+    }
+
+    async function verDetalleDespacho(id) {
+        try {
+            const res = await fetch(`/api/despachos/${id}`);
+            if (res.ok) {
+                despachoSeleccionado = await res.json();
+                document.getElementById('modalDespachoNum').textContent = `#${despachoSeleccionado.numero}`;
+                document.getElementById('modalDespachoFecha').textContent = despachoSeleccionado.fecha;
+                document.getElementById('modalDespachoDestino').textContent = despachoSeleccionado.destino_cliente;
+                document.getElementById('modalDespachoDireccion').textContent = despachoSeleccionado.direccion || 'Sin dirección especificada';
+                document.getElementById('modalDespachoTotal').textContent = `$${(despachoSeleccionado.total || 0).toFixed(2)}`;
+
+                const tbody = document.getElementById('modalDespachoItemsBody');
+                tbody.innerHTML = '';
+                (despachoSeleccionado.items || []).forEach(it => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50';
+                    tr.innerHTML = `
+                        <td class="px-3 py-2 font-mono text-slate-500 font-bold">${it.codigo}</td>
+                        <td class="px-3 py-2 font-semibold text-slate-800">${it.nombre}</td>
+                        <td class="px-2 py-2 text-center font-bold text-slate-700">${it.cantidad}</td>
+                        <td class="px-3 py-2 text-right font-mono text-slate-600">$${(it.costo || 0).toFixed(2)}</td>
+                        <td class="px-3 py-2 text-right font-mono font-bold text-purple-700">$${(it.subtotal || 0).toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('modalDetalleDespacho').classList.remove('hidden');
+            }
+        } catch(e) {
+            Swal.fire('Error', 'No se pudo cargar el detalle del despacho', 'error');
+        }
+    }
+
+    function cerrarModalDetalleDespacho() {
+        document.getElementById('modalDetalleDespacho').classList.add('hidden');
+    }
+
+    function imprimirNotaEntregaModal() {
+        if (!despachoSeleccionado) return;
+        const itemsHtml = despachoSeleccionado.items.map(it => `
+            <tr>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd; font-family: monospace;">${it.codigo}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd;">${it.nombre}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: center; font-weight: bold;">${it.cantidad}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace;">$${it.costo.toFixed(2)}</td>
+                <td style="padding: 5px; border-bottom: 1px solid #ddd; text-align: right; font-family: monospace; font-weight: bold;">$${it.subtotal.toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        const win = window.open('', '_blank', 'width=800,height=700');
+        win.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Nota de Entrega #${despachoSeleccionado.numero}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; font-size: 12px; margin: 25px; color: #333; }
+                    .header { text-align: center; border-bottom: 2px solid #8b1e24; padding-bottom: 10px; margin-bottom: 15px; }
+                    .title { font-size: 18px; font-weight: bold; color: #8b1e24; }
+                    .meta { display: flex; justify-content: space-between; margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 11px; }
+                    th { background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; }
+                    .total { text-align: right; font-size: 15px; font-weight: bold; margin-top: 15px; color: #8b1e24; }
+                    .signatures { display: flex; justify-content: space-between; margin-top: 60px; text-align: center; }
+                    .sign-box { border-top: 1px solid #999; width: 40%; padding-top: 5px; font-size: 11px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="title">PROLAGO C.A. - NOTA DE ENTREGA / TRASLADO</div>
+                    <div style="font-size: 11px; color: #666;">Carora, Edo. Lara | RIF: J-50478129-8</div>
+                </div>
+                <div class="meta">
+                    <div>
+                        <strong>Nota N°:</strong> #${despachoSeleccionado.numero}<br>
+                        <strong>Destino / Sucursal:</strong> ${despachoSeleccionado.destino_cliente}<br>
+                        <strong>Dirección:</strong> ${despachoSeleccionado.direccion || 'Sin dirección especificada'}
+                    </div>
+                    <div style="text-align: right;">
+                        <strong>Fecha de Emisión:</strong> ${despachoSeleccionado.fecha}<br>
+                        <strong>Total Ítems:</strong> ${despachoSeleccionado.items.length} artículos
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Cód</th>
+                            <th style="width: 50%;">Descripción del Artículo</th>
+                            <th style="width: 10%; text-align: center;">Cant</th>
+                            <th style="width: 15%; text-align: right;">Costo Unit.</th>
+                            <th style="width: 15%; text-align: right;">Subtotal ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                <div class="total">
+                    TOTAL VALORADO AL COSTO: $${despachoSeleccionado.total.toFixed(2)}
+                </div>
+                <div class="signatures">
+                    <div class="sign-box">Entregado por / Despacho</div>
+                    <div class="sign-box">Recibido Conforme / Sucursal</div>
+                </div>
+                <script>
+                    window.onload = function() { window.print(); };
+                <\/script>
+            </body>
+            </html>
+        `);
+        win.document.close();
     }
 
     document.addEventListener('DOMContentLoaded', () => {

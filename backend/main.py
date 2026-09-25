@@ -1185,10 +1185,62 @@ def create_despacho(payload: DespachoCreate, db: Session = Depends(get_db), user
         raise HTTPException(status_code=500, detail=f"Error en base de datos al guardar nota de entrega: {str(e)}")
 
 @app.get("/api/despachos")
-def list_despachos(limit: int = 50, offset: int = 0, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+def list_despachos(
+    search: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
     if not user.tiene_permiso("despachos"):
         raise HTTPException(status_code=403, detail="No tienes permiso para consultar notas de entrega")
-    return db.query(Despacho).order_by(Despacho.fecha.desc()).offset(offset).limit(limit).all()
+    query = db.query(Despacho)
+    if search:
+        s = f"%{search.strip()}%"
+        query = query.filter(or_(Despacho.numero.ilike(s), Despacho.destino_cliente.ilike(s), Despacho.direccion.ilike(s)))
+    despachos = query.order_by(Despacho.fecha.desc()).offset(offset).limit(limit).all()
+    return [
+        {
+            "id": d.id,
+            "numero": d.numero,
+            "fecha": d.fecha.strftime("%d/%m/%Y %I:%M %p") if d.fecha else "",
+            "destino_cliente": d.destino_cliente,
+            "direccion": d.direccion or "",
+            "total": round(d.total or 0.0, 2),
+            "cant_items": len(d.items)
+        }
+        for d in despachos
+    ]
+
+@app.get("/api/despachos/{despacho_id}")
+def get_despacho_detalle(
+    despacho_id: int,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("despachos"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para consultar notas de entrega")
+    despacho = db.query(Despacho).filter(Despacho.id == despacho_id).first()
+    if not despacho:
+        raise HTTPException(status_code=404, detail="Nota de entrega no encontrada")
+    return {
+        "id": despacho.id,
+        "numero": despacho.numero,
+        "fecha": despacho.fecha.strftime("%d/%m/%Y %I:%M %p") if despacho.fecha else "",
+        "destino_cliente": despacho.destino_cliente,
+        "direccion": despacho.direccion or "",
+        "total": round(despacho.total or 0.0, 2),
+        "items": [
+            {
+                "codigo": it.codigo_articulo,
+                "nombre": it.nombre_articulo,
+                "cantidad": it.cantidad,
+                "costo": it.costo_unitario,
+                "subtotal": it.subtotal
+            }
+            for it in despacho.items
+        ]
+    }
 
 # ==========================================
 # COMPRAS / ENTRADA DE MERCANCÍA
