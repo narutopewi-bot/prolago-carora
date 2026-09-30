@@ -74,6 +74,7 @@ class Caja(Base):
 
     # Ingresos del sistema registrados en el turno
     ventas_efectivo = Column(Float, default=0.0)
+    ventas_efectivo_usd = Column(Float, default=0.0)
     ventas_zelle = Column(Float, default=0.0)
     ventas_pagomovil = Column(Float, default=0.0)
     ventas_punto = Column(Float, default=0.0)
@@ -88,17 +89,20 @@ class Caja(Base):
 
     # Abonos cobrados durante el turno
     abonos_efectivo = Column(Float, default=0.0)
+    abonos_efectivo_bs = Column(Float, default=0.0)
     abonos_zelle = Column(Float, default=0.0)
     abonos_pagomovil = Column(Float, default=0.0)
     abonos_punto = Column(Float, default=0.0)
     total_abonos = Column(Float, default=0.0)
 
     # Totales esperados
-    total_esperado_efectivo = Column(Float, default=0.0)  # apertura_usd + ventas_efectivo + abonos_efectivo
+    total_esperado_efectivo = Column(Float, default=0.0)  # apertura_usd + ventas_efectivo + abonos_efectivo (en USD equivalente)
+    total_esperado_efectivo_bs = Column(Float, default=0.0)  # apertura_bs + ventas_efectivo_bs + abonos_efectivo_bs (en Bs.)
     total_esperado_general = Column(Float, default=0.0)   # apertura_usd + ventas contado + abonos
 
     # Arqueo Declarado por el cajero al cierre
     declarado_efectivo = Column(Float, default=0.0)
+    declarado_efectivo_bs = Column(Float, default=0.0)
     declarado_zelle = Column(Float, default=0.0)
     declarado_pagomovil = Column(Float, default=0.0)
     declarado_punto = Column(Float, default=0.0)
@@ -106,6 +110,7 @@ class Caja(Base):
 
     # Diferencias (declarado - esperado)
     diferencia_efectivo = Column(Float, default=0.0)
+    diferencia_efectivo_bs = Column(Float, default=0.0)
     diferencia_general = Column(Float, default=0.0)
 
     observaciones_apertura = Column(String(255), default="")

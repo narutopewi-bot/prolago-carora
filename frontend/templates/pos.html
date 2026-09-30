@@ -1088,39 +1088,64 @@
         </div>
 
         <!-- RESUMEN ESPERADO POR EL SISTEMA -->
-        <div class="bg-slate-900 text-white p-4 rounded-2xl mb-4 space-y-2">
-            <div class="flex justify-between items-baseline border-b border-white/10 pb-2">
-                <span class="text-xs text-slate-400 uppercase font-bold">Efectivo Esperado en Gaveta:</span>
-                <span class="text-2xl font-black text-emerald-400 font-mono" id="posCierreEsperadoEfUSD">$0.00</span>
+        <div class="bg-slate-900 text-white p-4 rounded-2xl mb-4 space-y-2.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-b border-white/10 pb-2.5">
+                <div class="p-2 bg-white/5 rounded-xl border border-white/10">
+                    <span class="text-[10px] text-emerald-400 uppercase font-black tracking-wider block">Gaveta Efectivo $ USD</span>
+                    <span class="text-xl font-black text-emerald-400 font-mono block" id="posCierreEsperadoEfUSD">$0.00</span>
+                    <span class="text-[10px] text-slate-400 block mt-0.5">Base: <strong class="text-white" id="posCierreBaseUSD">$0.00</strong> | Ventas: <strong class="text-white" id="posCierreVentasEfUSD">$0.00</strong></span>
+                </div>
+                <div class="p-2 bg-white/5 rounded-xl border border-white/10">
+                    <span class="text-[10px] text-amber-400 uppercase font-black tracking-wider block">Gaveta Efectivo Bs.</span>
+                    <span class="text-xl font-black text-amber-400 font-mono block" id="posCierreEsperadoEfBS">Bs. 0,00</span>
+                    <span class="text-[10px] text-slate-400 block mt-0.5">Base: <strong class="text-white" id="posCierreBaseBS">Bs. 0,00</strong> | Ventas: <strong class="text-white" id="posCierreVentasEfBS">Bs. 0,00</strong></span>
+                </div>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
-                <div>Fondo Base: <strong class="text-white" id="posCierreBaseUSD">$0.00</strong></div>
-                <div>Ventas Efectivo: <strong class="text-white" id="posCierreVentasEfUSD">$0.00</strong></div>
-                <div>Abonos Efectivo: <strong class="text-white" id="posCierreAbonosEfUSD">$0.00</strong></div>
+                <div>Transferencias: <strong class="text-white font-mono" id="posCierreVentasPMBs">Bs. 0,00</strong></div>
+                <div>Punto Venta: <strong class="text-white font-mono" id="posCierreVentasPuntoBs">Bs. 0,00</strong></div>
+                <div>Abonos: <strong class="text-white" id="posCierreAbonosEfUSD">$0.00</strong></div>
                 <div>Total Facturado: <strong class="text-white" id="posCierreTotalVentasUSD">$0.00</strong></div>
-                <div class="col-span-2 border-t border-white/10 pt-1 grid grid-cols-2 gap-2 text-[11px] text-emerald-300">
-                    <div>Transferencias: <strong class="text-white font-mono" id="posCierreVentasPMBs">Bs. 0,00</strong></div>
-                    <div>Punto Venta: <strong class="text-white font-mono" id="posCierreVentasPuntoBs">Bs. 0,00</strong></div>
-                </div>
             </div>
         </div>
 
-        <form onsubmit="guardarCierreCajaPOS(event)" class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Efectivo Total Contado ($ USD Físicos) <span class="text-rose-600">*</span>
-                </label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 font-bold">$</span>
-                    <input type="number" id="posCierreDeclaradoEf" step="0.01" min="0" required oninput="calcularDiferenciasCierrePOS()"
-                        placeholder="0.00" class="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-black text-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        <form onsubmit="guardarCierreCajaPOS(event)" class="space-y-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="p-3 bg-emerald-50/60 border border-emerald-200 rounded-2xl">
+                    <label class="block text-xs font-black text-emerald-900 uppercase tracking-wider mb-1 flex items-center justify-between">
+                        <span>Efectivo ($ USD)</span>
+                        <span class="text-emerald-600 font-mono text-[10px]">Esp: <strong id="lblPosEspEfUSD">$0.00</strong></span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-emerald-600 font-bold">$</span>
+                        <input type="number" id="posCierreDeclaradoEf" step="0.01" min="0" required oninput="calcularDiferenciasCierrePOS()"
+                            placeholder="0.00" class="w-full pl-7 pr-3 py-2 bg-white border border-emerald-300 rounded-xl text-slate-900 font-black text-base focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-2xl">
+                    <label class="block text-xs font-black text-amber-900 uppercase tracking-wider mb-1 flex items-center justify-between">
+                        <span>Efectivo (Bs.)</span>
+                        <span class="text-amber-700 font-mono text-[10px]">Esp: <strong id="lblPosEspEfBS">Bs. 0,00</strong></span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-amber-600 font-bold text-xs">Bs.</span>
+                        <input type="number" id="posCierreDeclaradoEfBs" step="0.01" min="0" required oninput="calcularDiferenciasCierrePOS()"
+                            placeholder="0.00" class="w-full pl-9 pr-3 py-2 bg-white border border-amber-300 rounded-xl text-slate-900 font-black text-base focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
                 </div>
             </div>
 
             <!-- RESULTADO DE ARQUEO -->
-            <div id="posCajaResultadoArqueo" class="p-3 rounded-xl border flex items-center justify-between text-xs font-bold bg-slate-50 border-slate-200">
-                <span>Diferencia en Efectivo:</span>
-                <span id="posCierreTxtDiferencia" class="text-sm font-black text-slate-700 font-mono">$0.00</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div id="posCajaResultadoArqueoUSD" class="p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-slate-50 border-slate-200">
+                    <span class="text-slate-600">Dif. $ USD:</span>
+                    <span id="posCierreTxtDiferenciaUSD" class="text-sm font-black text-slate-700 font-mono">$0.00</span>
+                </div>
+                <div id="posCajaResultadoArqueoBS" class="p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-slate-50 border-slate-200">
+                    <span class="text-slate-600">Dif. Bs.:</span>
+                    <span id="posCierreTxtDiferenciaBS" class="text-sm font-black text-slate-700 font-mono">Bs. 0,00</span>
+                </div>
             </div>
 
             <div>
@@ -1201,8 +1226,9 @@
             </div>
 
             <div class="border-t border-b border-dashed border-slate-400 py-2 space-y-1 text-[11px]">
-                <div class="flex justify-between"><span>Fondo Inicial ($):</span><strong id="tcFondoBasePOS">$0.00</strong></div>
-                <div class="flex justify-between"><span>Ventas Efectivo:</span><span id="tcVentasEfPOS">$0.00</span></div>
+                <div class="flex justify-between"><span>Fondo Inicial ($ / Bs):</span><strong><span id="tcFondoBasePOS">$0.00</span> / <span id="tcFondoBaseBsPOS" class="font-mono">Bs. 0,00</span></strong></div>
+                <div class="flex justify-between"><span>Ventas Efectivo ($):</span><span id="tcVentasEfPOS">$0.00</span></div>
+                <div class="flex justify-between font-bold" id="tcFilaVentasEfBsPOS"><span>Ventas Efectivo Bs.:</span><span id="tcVentasEfBsPOS" class="text-slate-900 font-mono">Bs. 0,00</span></div>
                 <div class="flex justify-between"><span>Ventas Zelle:</span><span id="tcVentasZellePOS">$0.00</span></div>
                 <div class="flex justify-between font-bold"><span>Ventas Transferencia:</span><span id="tcVentasPMPOS" class="text-slate-900 font-mono">Bs. 0,00</span></div>
                 <div class="flex justify-between font-bold"><span>Ventas Punto:</span><span id="tcVentasPuntoPOS" class="text-slate-900 font-mono">Bs. 0,00</span></div>
@@ -1213,11 +1239,18 @@
             </div>
 
             <div class="space-y-1 text-[11px]">
-                <div class="flex justify-between font-bold"><span>Total Esperado Efectivo:</span><strong id="tcEsperadoEfPOS">$0.00</strong></div>
-                <div class="flex justify-between font-bold"><span>Efectivo Declarado:</span><strong id="tcDeclaradoEfPOS">$0.00</strong></div>
+                <div class="flex justify-between font-bold"><span>Esperado Efectivo ($ USD):</span><strong id="tcEsperadoEfPOS">$0.00</strong></div>
+                <div class="flex justify-between font-bold"><span>Efectivo Declarado ($ USD):</span><strong id="tcDeclaradoEfPOS">$0.00</strong></div>
                 <div class="flex justify-between text-xs font-black pt-1 border-t" id="tcFilaDiferenciaPOS">
-                    <span>DIFERENCIA:</span>
+                    <span>DIFERENCIA ($ USD):</span>
                     <strong id="tcDiferenciaPOS">$0.00</strong>
+                </div>
+
+                <div class="flex justify-between font-bold mt-2 pt-1 border-t border-dashed"><span>Esperado Efectivo (Bs.):</span><strong id="tcEsperadoEfBsPOS">Bs. 0,00</strong></div>
+                <div class="flex justify-between font-bold"><span>Efectivo Declarado (Bs.):</span><strong id="tcDeclaradoEfBsPOS">Bs. 0,00</strong></div>
+                <div class="flex justify-between text-xs font-black pt-1 border-t" id="tcFilaDiferenciaBsPOS">
+                    <span>DIFERENCIA (Bs.):</span>
+                    <strong id="tcDiferenciaBsPOS">Bs. 0,00</strong>
                 </div>
             </div>
 
@@ -1477,26 +1510,46 @@
         if (!cajaAbiertaPOS || !cajaActivaDataPOS) return;
         const c = cajaActivaDataPOS;
 
-        document.getElementById('subtituloCierrePOS').textContent = `${c.nombre_caja || 'Caja 1'} • Turno #${c.numero} • Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
-        document.getElementById('posCierreEsperadoEfUSD').textContent = `$${c.total_esperado_efectivo.toFixed(2)}`;
-        document.getElementById('posCierreBaseUSD').textContent = `$${c.monto_apertura_usd.toFixed(2)}`;
-        document.getElementById('posCierreVentasEfUSD').textContent = `$${c.ventas_efectivo.toFixed(2)}`;
-        document.getElementById('posCierreAbonosEfUSD').textContent = `$${c.abonos_efectivo.toFixed(2)}`;
-        document.getElementById('posCierreTotalVentasUSD').textContent = `$${c.total_ventas.toFixed(2)}`;
-
         const tasaCierre = c.tasa_bcv_cierre || c.tasa_bcv_apertura || TASA_BCV || 1;
-        const pmBsCalc = c.ventas_pagomovil_bs || ((c.ventas_pagomovil || 0) * tasaCierre);
-        const puntoBsCalc = c.ventas_punto_bs || ((c.ventas_punto || 0) * tasaCierre);
         const formatearBsLocal = (v) => Number(v || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+        document.getElementById('subtituloCierrePOS').textContent = `${c.nombre_caja || 'Caja 1'} • Turno #${c.numero} • Cajero: ${c.usuario_apertura_nombre || 'Admin'}`;
+        document.getElementById('posCierreEsperadoEfUSD').textContent = `$${(c.total_esperado_efectivo || 0).toFixed(2)}`;
+        if (document.getElementById('posCierreEsperadoEfBS')) {
+            document.getElementById('posCierreEsperadoEfBS').textContent = `Bs. ${formatearBsLocal(c.total_esperado_efectivo_bs || 0)}`;
+        }
+        if (document.getElementById('lblPosEspEfUSD')) {
+            document.getElementById('lblPosEspEfUSD').textContent = `$${(c.total_esperado_efectivo || 0).toFixed(2)}`;
+        }
+        if (document.getElementById('lblPosEspEfBS')) {
+            document.getElementById('lblPosEspEfBS').textContent = `Bs. ${formatearBsLocal(c.total_esperado_efectivo_bs || 0)}`;
+        }
+
+        document.getElementById('posCierreBaseUSD').textContent = `$${(c.monto_apertura_usd || 0).toFixed(2)}`;
+        if (document.getElementById('posCierreBaseBS')) {
+            document.getElementById('posCierreBaseBS').textContent = `Bs. ${formatearBsLocal(c.monto_apertura_bs || 0)}`;
+        }
+        document.getElementById('posCierreVentasEfUSD').textContent = `$${(c.ventas_efectivo_usd !== undefined ? c.ventas_efectivo_usd : c.ventas_efectivo || 0).toFixed(2)}`;
+        if (document.getElementById('posCierreVentasEfBS')) {
+            document.getElementById('posCierreVentasEfBS').textContent = `Bs. ${formatearBsLocal(c.ventas_efectivo_bs || 0)}`;
+        }
+        document.getElementById('posCierreAbonosEfUSD').textContent = `$${(c.abonos_efectivo || 0).toFixed(2)}`;
+        document.getElementById('posCierreTotalVentasUSD').textContent = `$${(c.total_ventas || 0).toFixed(2)}`;
+
+        const pmBsCalc = c.ventas_pagomovil_bs || ((c.ventas_pagomovil || 0) * tasaCierre);
+        const puntoBsCalc = c.ventas_punto_bs || ((c.ventas_punto || 0) * tasaCierre);
+
         if (document.getElementById('posCierreVentasPMBs')) {
-            document.getElementById('posCierreVentasPMBs').textContent = `Bs. ${formatearBsLocal(pmBsCalc)} ($${(c.ventas_pagomovil || 0).toFixed(2)})`;
+            document.getElementById('posCierreVentasPMBs').textContent = `Bs. ${formatearBsLocal(pmBsCalc)}`;
         }
         if (document.getElementById('posCierreVentasPuntoBs')) {
-            document.getElementById('posCierreVentasPuntoBs').textContent = `Bs. ${formatearBsLocal(puntoBsCalc)} ($${(c.ventas_punto || 0).toFixed(2)})`;
+            document.getElementById('posCierreVentasPuntoBs').textContent = `Bs. ${formatearBsLocal(puntoBsCalc)}`;
         }
 
         document.getElementById('posCierreDeclaradoEf').value = '';
+        if (document.getElementById('posCierreDeclaradoEfBs')) {
+            document.getElementById('posCierreDeclaradoEfBs').value = '';
+        }
         document.getElementById('posCierreObservaciones').value = '';
         if (document.getElementById('posCierreAdminClave')) document.getElementById('posCierreAdminClave').value = '';
 
@@ -1511,31 +1564,59 @@
 
     function calcularDiferenciasCierrePOS() {
         if (!cajaActivaDataPOS) return;
-        const esperado = cajaActivaDataPOS.total_esperado_efectivo || 0;
-        const declarado = parseFloat(document.getElementById('posCierreDeclaradoEf').value) || 0;
-        const dif = declarado - esperado;
+        const c = cajaActivaDataPOS;
+        const esperadoUSD = c.total_esperado_efectivo || 0;
+        const declaradoUSD = parseFloat(document.getElementById('posCierreDeclaradoEf').value) || 0;
+        const difUSD = declaradoUSD - esperadoUSD;
 
-        const cajaResultado = document.getElementById('posCajaResultadoArqueo');
-        const txtDif = document.getElementById('posCierreTxtDiferencia');
+        const esperadoBS = c.total_esperado_efectivo_bs || 0;
+        const declaradoBS = (document.getElementById('posCierreDeclaradoEfBs') ? parseFloat(document.getElementById('posCierreDeclaradoEfBs').value) : 0) || 0;
+        const difBS = declaradoBS - esperadoBS;
 
-        if (Math.abs(dif) < 0.009) {
-            cajaResultado.className = 'p-3 rounded-xl border flex items-center justify-between text-xs font-bold bg-emerald-50 border-emerald-200 text-emerald-900';
-            txtDif.className = 'text-sm font-black text-emerald-700 font-mono';
-            txtDif.textContent = 'CUADRE EXACTO ($0.00)';
-        } else if (dif > 0) {
-            cajaResultado.className = 'p-3 rounded-xl border flex items-center justify-between text-xs font-bold bg-blue-50 border-blue-200 text-blue-900';
-            txtDif.className = 'text-sm font-black text-blue-700 font-mono';
-            txtDif.textContent = `SOBRANTE: +$${dif.toFixed(2)}`;
-        } else {
-            cajaResultado.className = 'p-3 rounded-xl border flex items-center justify-between text-xs font-bold bg-rose-50 border-rose-200 text-rose-900';
-            txtDif.className = 'text-sm font-black text-rose-700 font-mono';
-            txtDif.textContent = `FALTANTE: -$${Math.abs(dif).toFixed(2)}`;
+        const cajaResUSD = document.getElementById('posCajaResultadoArqueoUSD') || document.getElementById('posCajaResultadoArqueo');
+        const txtDifUSD = document.getElementById('posCierreTxtDiferenciaUSD') || document.getElementById('posCierreTxtDiferencia');
+        const cajaResBS = document.getElementById('posCajaResultadoArqueoBS');
+        const txtDifBS = document.getElementById('posCierreTxtDiferenciaBS');
+
+        const formatearBs = (v) => Number(v || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        if (cajaResUSD && txtDifUSD) {
+            if (Math.abs(difUSD) < 0.009) {
+                cajaResUSD.className = 'p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-emerald-50 border-emerald-200 text-emerald-900';
+                txtDifUSD.className = 'text-sm font-black text-emerald-700 font-mono';
+                txtDifUSD.textContent = 'CUADRE EXACTO ($0.00)';
+            } else if (difUSD > 0) {
+                cajaResUSD.className = 'p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-blue-50 border-blue-200 text-blue-900';
+                txtDifUSD.className = 'text-sm font-black text-blue-700 font-mono';
+                txtDifUSD.textContent = `SOBRANTE: +$${difUSD.toFixed(2)}`;
+            } else {
+                cajaResUSD.className = 'p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-rose-50 border-rose-200 text-rose-900';
+                txtDifUSD.className = 'text-sm font-black text-rose-700 font-mono';
+                txtDifUSD.textContent = `FALTANTE: -$${Math.abs(difUSD).toFixed(2)}`;
+            }
+        }
+
+        if (cajaResBS && txtDifBS) {
+            if (Math.abs(difBS) < 0.009) {
+                cajaResBS.className = 'p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-emerald-50 border-emerald-200 text-emerald-900';
+                txtDifBS.className = 'text-sm font-black text-emerald-700 font-mono';
+                txtDifBS.textContent = 'CUADRE EXACTO (Bs. 0,00)';
+            } else if (difBS > 0) {
+                cajaResBS.className = 'p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-blue-50 border-blue-200 text-blue-900';
+                txtDifBS.className = 'text-sm font-black text-blue-700 font-mono';
+                txtDifBS.textContent = `SOBRANTE: +Bs. ${formatearBs(difBS)}`;
+            } else {
+                cajaResBS.className = 'p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold bg-rose-50 border-rose-200 text-rose-900';
+                txtDifBS.className = 'text-sm font-black text-rose-700 font-mono';
+                txtDifBS.textContent = `FALTANTE: -Bs. ${formatearBs(Math.abs(difBS))}`;
+            }
         }
     }
 
     async function guardarCierreCajaPOS(e) {
         e.preventDefault();
         const ef = parseFloat(document.getElementById('posCierreDeclaradoEf').value) || 0;
+        const efBs = (document.getElementById('posCierreDeclaradoEfBs') ? parseFloat(document.getElementById('posCierreDeclaradoEfBs').value) : 0) || 0;
         const obs = document.getElementById('posCierreObservaciones').value.trim();
         const adminClave = (document.getElementById('posCierreAdminClave') ? document.getElementById('posCierreAdminClave').value.trim() : '');
         const idCajaCerrar = cajaActivaDataPOS ? cajaActivaDataPOS.id : null;
@@ -1555,6 +1636,7 @@
                 body: JSON.stringify({
                     caja_id: idCajaCerrar,
                     declarado_efectivo: ef,
+                    declarado_efectivo_bs: efBs,
                     observaciones: obs,
                     admin_password: adminClave
                 })
@@ -1605,7 +1687,14 @@
                 const totalBs = c.total_ventas_bs || ((c.total_ventas || 0) * tasa);
 
                 document.getElementById('tcFondoBasePOS').textContent = `$${(c.monto_apertura_usd || 0).toFixed(2)}`;
-                document.getElementById('tcVentasEfPOS').textContent = `$${(c.ventas_efectivo || 0).toFixed(2)}`;
+                if (document.getElementById('tcFondoBaseBsPOS')) {
+                    document.getElementById('tcFondoBaseBsPOS').textContent = `Bs. ${formatearBs(c.monto_apertura_bs || 0)}`;
+                }
+                const efUsdPure = c.ventas_efectivo_usd !== undefined ? c.ventas_efectivo_usd : (c.ventas_efectivo || 0);
+                document.getElementById('tcVentasEfPOS').textContent = `$${Number(c.ventas_efectivo || 0).toFixed(2)}`;
+                if (document.getElementById('tcVentasEfBsPOS')) {
+                    document.getElementById('tcVentasEfBsPOS').textContent = `Bs. ${formatearBs(c.ventas_efectivo_bs || 0)}`;
+                }
                 document.getElementById('tcVentasZellePOS').textContent = `$${(c.ventas_zelle || 0).toFixed(2)}`;
                 document.getElementById('tcVentasPMPOS').textContent = `Bs. ${formatearBs(pmBs)} ($${(c.ventas_pagomovil || 0).toFixed(2)})`;
                 document.getElementById('tcVentasPuntoPOS').textContent = `Bs. ${formatearBs(puntoBs)} ($${(c.ventas_punto || 0).toFixed(2)})`;
@@ -1621,11 +1710,26 @@
                     document.getElementById('tcDeclaradoEfPOS').textContent = `$${(c.declarado_efectivo || 0).toFixed(2)}`;
                     const dif = c.diferencia_efectivo || 0;
                     document.getElementById('tcDiferenciaPOS').textContent = `${dif >= 0 ? '+$' : '-$'}${Math.abs(dif).toFixed(2)}`;
-                    document.getElementById('tcFilaDiferenciaPOS').className = `flex justify-between text-xs font-black pt-1 border-t ${dif === 0 ? 'text-slate-900' : (dif > 0 ? 'text-emerald-700' : 'text-rose-700')}`;
+                    document.getElementById('tcFilaDiferenciaPOS').className = `flex justify-between text-xs font-black pt-1 border-t ${Math.abs(dif) < 0.009 ? 'text-slate-900' : (dif > 0 ? 'text-emerald-700' : 'text-rose-700')}`;
+
+                    if (document.getElementById('tcEsperadoEfBsPOS')) {
+                        document.getElementById('tcEsperadoEfBsPOS').textContent = `Bs. ${formatearBs(c.total_esperado_efectivo_bs || 0)}`;
+                        document.getElementById('tcDeclaradoEfBsPOS').textContent = `Bs. ${formatearBs(c.declarado_efectivo_bs || 0)}`;
+                        const difBs = c.diferencia_efectivo_bs || 0;
+                        document.getElementById('tcDiferenciaBsPOS').textContent = `${difBs >= 0 ? '+Bs. ' : '-Bs. '}${formatearBs(Math.abs(difBs))}`;
+                        document.getElementById('tcFilaDiferenciaBsPOS').className = `flex justify-between text-xs font-black pt-1 border-t ${Math.abs(difBs) < 0.009 ? 'text-slate-900' : (difBs > 0 ? 'text-emerald-700' : 'text-rose-700')}`;
+                    }
                 } else {
                     document.getElementById('tcDeclaradoEfPOS').textContent = 'Turno en curso';
                     document.getElementById('tcDiferenciaPOS').textContent = '-';
                     document.getElementById('tcFilaDiferenciaPOS').className = 'flex justify-between text-xs font-black pt-1 border-t text-slate-700';
+
+                    if (document.getElementById('tcEsperadoEfBsPOS')) {
+                        document.getElementById('tcEsperadoEfBsPOS').textContent = `Bs. ${formatearBs(c.total_esperado_efectivo_bs || 0)}`;
+                        document.getElementById('tcDeclaradoEfBsPOS').textContent = 'Turno en curso';
+                        document.getElementById('tcDiferenciaBsPOS').textContent = '-';
+                        document.getElementById('tcFilaDiferenciaBsPOS').className = 'flex justify-between text-xs font-black pt-1 border-t text-slate-700';
+                    }
                 }
 
                 document.getElementById('modalComprobanteCajaPOS').classList.remove('hidden');

@@ -62,10 +62,15 @@ ejecutar_ddl_seguro("UPDATE facturas SET usuario_nombre = (SELECT nombre FROM us
 ejecutar_ddl_seguro("ALTER TABLE abonos_credito ADD COLUMN caja_id INTEGER")
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN nombre_caja VARCHAR(50) DEFAULT 'Caja 1'")
 ejecutar_ddl_seguro("UPDATE cajas SET nombre_caja = 'Caja 1' WHERE nombre_caja IS NULL OR nombre_caja = ''")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN ventas_efectivo_usd FLOAT DEFAULT 0.0")
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN ventas_efectivo_bs FLOAT DEFAULT 0.0")
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN ventas_pagomovil_bs FLOAT DEFAULT 0.0")
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN ventas_punto_bs FLOAT DEFAULT 0.0")
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN total_ventas_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN abonos_efectivo_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN total_esperado_efectivo_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN declarado_efectivo_bs FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN diferencia_efectivo_bs FLOAT DEFAULT 0.0")
 
 # Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) (solo si SQLite)
 try:
@@ -1439,7 +1444,12 @@ def calcular_metricas_caja(caja: Caja, db: Session) -> Caja:
     abonos = db.query(AbonoCredito).filter(AbonoCredito.caja_id == caja.id).all()
     tasa_caja = caja.tasa_bcv_cierre or caja.tasa_bcv_apertura or float(get_config_val(db, "tasa_bcv", "473.92"))
     
-    ventas_efectivo = sum(f.efectivo or 0.0 for f in facturas)
+    ventas_efectivo_usd = sum(f.efectivo or 0.0 for f in facturas)
+    ventas_efectivo_bs = sum(f.efectivo_bs or 0.0 for f in facturas)
+    ventas_efectivo_bs_usd = sum(round((f.efectivo_bs or 0.0) / (f.tasa_bcv or tasa_caja), 2) for f in facturas if (f.efectivo_bs or 0.0) > 0)
+    # Total de ventas en efectivo en USD (incluye dólares y el equivalente en dólares del efectivo Bs.)
+    ventas_efectivo_total_usd = round(ventas_efectivo_usd + ventas_efectivo_bs_usd, 2)
+    
     ventas_zelle = sum(f.zelle or 0.0 for f in facturas)
     ventas_pagomovil = sum(f.pagomovil or 0.0 for f in facturas)
     ventas_punto = sum(f.punto or 0.0 for f in facturas)
@@ -1449,10 +1459,10 @@ def calcular_metricas_caja(caja: Caja, db: Session) -> Caja:
     # Métricas exactas en Bolívares (usando la tasa histórica de cada factura, o la tasa del turno)
     ventas_pagomovil_bs = sum(round((f.pagomovil or 0.0) * (f.tasa_bcv or tasa_caja), 2) for f in facturas)
     ventas_punto_bs = sum(round((f.punto or 0.0) * (f.tasa_bcv or tasa_caja), 2) for f in facturas)
-    ventas_efectivo_bs = sum((f.efectivo_bs or 0.0) for f in facturas)
     total_ventas_bs = sum(round((f.total or 0.0) * (f.tasa_bcv or tasa_caja), 2) for f in facturas)
     
     abonos_efectivo = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'efectivo')
+    abonos_efectivo_bs = sum((a.monto_bs if (a.monto_bs and a.monto_bs > 0) else round(a.monto_usd * (a.tasa_bcv or tasa_caja), 2)) for a in abonos if (a.metodo_pago or "").lower() in ['efectivo_bs', 'efectivo bs'])
     abonos_zelle = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'zelle')
     abonos_pagomovil = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'pagomovil')
     abonos_punto = sum(a.monto_usd for a in abonos if (a.metodo_pago or "").lower() == 'punto')
@@ -1460,36 +1470,47 @@ def calcular_metricas_caja(caja: Caja, db: Session) -> Caja:
 
     abonos_pagomovil_bs = sum((a.monto_bs if (a.monto_bs and a.monto_bs > 0) else round(a.monto_usd * (a.tasa_bcv or tasa_caja), 2)) for a in abonos if (a.metodo_pago or "").lower() == 'pagomovil')
     abonos_punto_bs = sum((a.monto_bs if (a.monto_bs and a.monto_bs > 0) else round(a.monto_usd * (a.tasa_bcv or tasa_caja), 2)) for a in abonos if (a.metodo_pago or "").lower() == 'punto')
-    abonos_efectivo_bs = sum((a.monto_bs if (a.monto_bs and a.monto_bs > 0) else round(a.monto_usd * (a.tasa_bcv or tasa_caja), 2)) for a in abonos if (a.metodo_pago or "").lower() == 'efectivo')
     total_abonos_bs = sum((a.monto_bs if (a.monto_bs and a.monto_bs > 0) else round(a.monto_usd * (a.tasa_bcv or tasa_caja), 2)) for a in abonos)
     
-    caja.ventas_efectivo = round(ventas_efectivo, 2)
+    caja.ventas_efectivo = ventas_efectivo_total_usd
+    caja.ventas_efectivo_usd = round(ventas_efectivo_usd, 2)
+    caja.ventas_efectivo_bs = round(ventas_efectivo_bs, 2)
     caja.ventas_zelle = round(ventas_zelle, 2)
     caja.ventas_pagomovil = round(ventas_pagomovil, 2)
     caja.ventas_punto = round(ventas_punto, 2)
     caja.ventas_credito = round(ventas_credito, 2)
     caja.total_ventas = round(total_ventas, 2)
 
-    caja.ventas_efectivo_bs = round(ventas_efectivo_bs, 2)
     caja.ventas_pagomovil_bs = round(ventas_pagomovil_bs, 2)
     caja.ventas_punto_bs = round(ventas_punto_bs, 2)
     caja.total_ventas_bs = round(total_ventas_bs, 2)
     
     caja.abonos_efectivo = round(abonos_efectivo, 2)
+    caja.abonos_efectivo_bs = round(abonos_efectivo_bs, 2)
     caja.abonos_zelle = round(abonos_zelle, 2)
     caja.abonos_pagomovil = round(abonos_pagomovil, 2)
     caja.abonos_punto = round(abonos_punto, 2)
     caja.total_abonos = round(total_abonos, 2)
 
     # Guardar en memoria para serialización inmediata
+    setattr(caja, "ventas_efectivo_usd", round(ventas_efectivo_usd, 2))
     setattr(caja, "ventas_efectivo_bs", round(ventas_efectivo_bs, 2))
+    setattr(caja, "ventas_efectivo_bs_usd", round(ventas_efectivo_bs_usd, 2))
+    setattr(caja, "abonos_efectivo_bs", round(abonos_efectivo_bs, 2))
     setattr(caja, "abonos_pagomovil_bs", round(abonos_pagomovil_bs, 2))
     setattr(caja, "abonos_punto_bs", round(abonos_punto_bs, 2))
-    setattr(caja, "abonos_efectivo_bs", round(abonos_efectivo_bs, 2))
     setattr(caja, "total_abonos_bs", round(total_abonos_bs, 2))
     
-    caja.total_esperado_efectivo = round((caja.monto_apertura_usd or 0.0) + caja.ventas_efectivo + caja.abonos_efectivo, 2)
-    caja.total_esperado_general = round((caja.monto_apertura_usd or 0.0) + (caja.total_ventas - caja.ventas_credito) + caja.total_abonos, 2)
+    # Gaveta Efectivo USD Físico esperado
+    caja.total_esperado_efectivo = round((caja.monto_apertura_usd or 0.0) + ventas_efectivo_usd + caja.abonos_efectivo, 2)
+    # Gaveta Efectivo Bs. Físico esperado
+    total_esp_bs = round((caja.monto_apertura_bs or 0.0) + ventas_efectivo_bs + abonos_efectivo_bs, 2)
+    caja.total_esperado_efectivo_bs = total_esp_bs
+    setattr(caja, "total_esperado_efectivo_bs", total_esp_bs)
+
+    # Total general esperado (sumando apertura en USD equiv + ventas contado USD + abonos USD)
+    fondo_apertura_usd_equiv = (caja.monto_apertura_usd or 0.0) + (round((caja.monto_apertura_bs or 0.0) / tasa_caja, 2) if tasa_caja > 0 else 0.0)
+    caja.total_esperado_general = round(fondo_apertura_usd_equiv + (caja.total_ventas - caja.ventas_credito) + caja.total_abonos, 2)
     return caja
 
 def serializar_caja(caja: Caja, db: Session, detalle: bool = False):
@@ -1513,6 +1534,9 @@ def serializar_caja(caja: Caja, db: Session, detalle: bool = False):
         "tasa_bcv_cierre": caja.tasa_bcv_cierre or tasa_bcv,
         
         "ventas_efectivo": caja.ventas_efectivo or 0.0,
+        "ventas_efectivo_usd": getattr(caja, "ventas_efectivo_usd", 0.0) or 0.0,
+        "ventas_efectivo_bs": round(float(getattr(caja, "ventas_efectivo_bs", 0.0) or 0.0), 2),
+        "ventas_efectivo_bs_usd": getattr(caja, "ventas_efectivo_bs_usd", 0.0) or 0.0,
         "ventas_zelle": caja.ventas_zelle or 0.0,
         "ventas_pagomovil": caja.ventas_pagomovil or 0.0,
         "ventas_punto": caja.ventas_punto or 0.0,
@@ -1521,28 +1545,31 @@ def serializar_caja(caja: Caja, db: Session, detalle: bool = False):
 
         "ventas_pagomovil_bs": getattr(caja, "ventas_pagomovil_bs", 0.0) or round((caja.ventas_pagomovil or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         "ventas_punto_bs": getattr(caja, "ventas_punto_bs", 0.0) or round((caja.ventas_punto or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
-        "ventas_efectivo_bs": round(float(getattr(caja, "ventas_efectivo_bs", 0.0) or 0.0), 2),
         "total_ventas_bs": getattr(caja, "total_ventas_bs", 0.0) or round((caja.total_ventas or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         "abonos_pagomovil_bs": getattr(caja, "abonos_pagomovil_bs", 0.0) or round((caja.abonos_pagomovil or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         "abonos_punto_bs": getattr(caja, "abonos_punto_bs", 0.0) or round((caja.abonos_punto or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         "total_abonos_bs": getattr(caja, "total_abonos_bs", 0.0) or round((caja.total_abonos or 0.0) * (caja.tasa_bcv_cierre or tasa_bcv), 2),
         
         "abonos_efectivo": caja.abonos_efectivo or 0.0,
+        "abonos_efectivo_bs": getattr(caja, "abonos_efectivo_bs", 0.0) or 0.0,
         "abonos_zelle": caja.abonos_zelle or 0.0,
         "abonos_pagomovil": caja.abonos_pagomovil or 0.0,
         "abonos_punto": caja.abonos_punto or 0.0,
         "total_abonos": caja.total_abonos or 0.0,
         
         "total_esperado_efectivo": caja.total_esperado_efectivo or 0.0,
+        "total_esperado_efectivo_bs": getattr(caja, "total_esperado_efectivo_bs", 0.0) or 0.0,
         "total_esperado_general": caja.total_esperado_general or 0.0,
         
         "declarado_efectivo": caja.declarado_efectivo or 0.0,
+        "declarado_efectivo_bs": getattr(caja, "declarado_efectivo_bs", 0.0) or 0.0,
         "declarado_zelle": caja.declarado_zelle or 0.0,
         "declarado_pagomovil": caja.declarado_pagomovil or 0.0,
         "declarado_punto": caja.declarado_punto or 0.0,
         "total_declarado": caja.total_declarado or 0.0,
         
         "diferencia_efectivo": caja.diferencia_efectivo or 0.0,
+        "diferencia_efectivo_bs": getattr(caja, "diferencia_efectivo_bs", 0.0) or 0.0,
         "diferencia_general": caja.diferencia_general or 0.0,
         
         "observaciones_apertura": caja.observaciones_apertura or "",
@@ -1669,7 +1696,8 @@ def abrir_caja(payload: CajaApertura, db: Session = Depends(get_db), user: Usuar
             tasa_bcv_apertura=tasa_bcv,
             observaciones_apertura=(payload.observaciones or "").strip(),
             total_esperado_efectivo=monto_usd,
-            total_esperado_general=monto_usd
+            total_esperado_efectivo_bs=monto_bs,
+            total_esperado_general=round(monto_usd + (monto_bs / tasa_bcv if tasa_bcv > 0 else 0.0), 2)
         )
         db.add(nueva_caja)
         db.commit()
@@ -1718,12 +1746,16 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
     caja = calcular_metricas_caja(caja, db)
     
     dec_ef = round(payload.declarado_efectivo or 0.0, 2)
+    dec_ef_bs = round(payload.declarado_efectivo_bs or 0.0, 2)
     dec_zelle = round(payload.declarado_zelle or 0.0, 2)
     dec_pm = round(payload.declarado_pagomovil or 0.0, 2)
     dec_punto = round(payload.declarado_punto or 0.0, 2)
-    total_dec = round(dec_ef + dec_zelle + dec_pm + dec_punto, 2)
+    
+    dec_ef_bs_usd = round(dec_ef_bs / tasa_bcv, 2) if (dec_ef_bs > 0 and tasa_bcv > 0) else 0.0
+    total_dec = round(dec_ef + dec_ef_bs_usd + dec_zelle + dec_pm + dec_punto, 2)
     
     dif_efectivo = round(dec_ef - (caja.total_esperado_efectivo or 0.0), 2)
+    dif_efectivo_bs = round(dec_ef_bs - (getattr(caja, "total_esperado_efectivo_bs", 0.0) or 0.0), 2)
     dif_general = round(total_dec - (caja.total_esperado_general or 0.0), 2)
     
     caja.estado = "cerrada"
@@ -1732,11 +1764,14 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
     caja.usuario_cierre_nombre = user.nombre
     caja.tasa_bcv_cierre = tasa_bcv
     caja.declarado_efectivo = dec_ef
+    caja.declarado_efectivo_bs = dec_ef_bs
     caja.declarado_zelle = dec_zelle
     caja.declarado_pagomovil = dec_pm
     caja.declarado_punto = dec_punto
     caja.total_declarado = total_dec
     caja.diferencia_efectivo = dif_efectivo
+    caja.diferencia_efectivo_bs = dif_efectivo_bs
+    caja.total_esperado_efectivo_bs = getattr(caja, "total_esperado_efectivo_bs", 0.0) or 0.0
     caja.diferencia_general = dif_general
     caja.observaciones_cierre = (payload.observaciones or "").strip()
     
@@ -1808,7 +1843,11 @@ def get_reporte_ventas(
     total_contado = sum(f.total for f in facturas if f.condicion == "contado")
     total_credito = sum(f.total for f in facturas if f.condicion == "credito")
     
-    efectivo = sum(f.efectivo or 0.0 for f in facturas)
+    efectivo_usd = sum(f.efectivo or 0.0 for f in facturas)
+    efectivo_bs = sum(f.efectivo_bs or 0.0 for f in facturas)
+    efectivo_bs_usd = sum(round((f.efectivo_bs or 0.0) / (f.tasa_bcv or tasa_bcv), 2) for f in facturas if (f.efectivo_bs or 0.0) > 0)
+    efectivo_total_usd = round(efectivo_usd + efectivo_bs_usd, 2)
+    
     zelle = sum(f.zelle or 0.0 for f in facturas)
     pagomovil = sum(f.pagomovil or 0.0 for f in facturas)
     punto = sum(f.punto or 0.0 for f in facturas)
@@ -1867,7 +1906,10 @@ def get_reporte_ventas(
             "ticket_promedio_usd": ticket_promedio
         },
         "desglose_pagos": {
-            "efectivo": round(efectivo, 2),
+            "efectivo": round(efectivo_total_usd, 2),
+            "efectivo_usd": round(efectivo_usd, 2),
+            "efectivo_bs": round(efectivo_bs, 2),
+            "efectivo_bs_usd": round(efectivo_bs_usd, 2),
             "zelle": round(zelle, 2),
             "pagomovil": round(pagomovil, 2),
             "punto": round(punto, 2),
@@ -2085,6 +2127,7 @@ def get_reporte_cajas_consolidado(
     total_ingresos = sum(c["total_ventas"] for c in cajas_serializadas)
     total_ingresos_bs = sum(c.get("total_ventas_bs", 0.0) for c in cajas_serializadas)
     total_fondo = sum(c.get("monto_apertura_usd", 0.0) for c in cajas_serializadas)
+    total_fondo_bs = sum(c.get("monto_apertura_bs", 0.0) for c in cajas_serializadas)
     total_zelle = sum(c.get("ventas_zelle", 0.0) + c.get("abonos_zelle", 0.0) for c in cajas_serializadas)
     total_pagomovil_usd = sum(c.get("ventas_pagomovil", 0.0) + c.get("abonos_pagomovil", 0.0) for c in cajas_serializadas)
     total_pagomovil_bs = sum(c.get("ventas_pagomovil_bs", 0.0) for c in cajas_serializadas)
@@ -2093,9 +2136,13 @@ def get_reporte_cajas_consolidado(
     total_abonos = sum(c["total_abonos"] for c in cajas_serializadas)
     total_abonos_bs = sum(c.get("total_abonos_bs", 0.0) for c in cajas_serializadas)
     total_efectivo = sum(c["ventas_efectivo"] + c["abonos_efectivo"] for c in cajas_serializadas)
+    total_efectivo_bs = sum(c.get("ventas_efectivo_bs", 0.0) + c.get("abonos_efectivo_bs", 0.0) for c in cajas_serializadas)
     total_esperado_efectivo = sum(c.get("total_esperado_efectivo", 0.0) for c in cajas_serializadas)
+    total_esperado_efectivo_bs = sum(c.get("total_esperado_efectivo_bs", 0.0) for c in cajas_serializadas)
     total_declarado_efectivo = sum(c.get("declarado_efectivo", 0.0) for c in cajas_serializadas if c["estado"] == "cerrada")
+    total_declarado_efectivo_bs = sum(c.get("declarado_efectivo_bs", 0.0) for c in cajas_serializadas if c["estado"] == "cerrada")
     total_diferencias = sum(c["diferencia_efectivo"] for c in cajas_serializadas if c["estado"] == "cerrada")
+    total_diferencias_bs = sum(c.get("diferencia_efectivo_bs", 0.0) for c in cajas_serializadas if c["estado"] == "cerrada")
     
     return {
         "periodo": {
@@ -2109,6 +2156,7 @@ def get_reporte_cajas_consolidado(
             "total_ventas_usd": round(total_ingresos, 2),
             "total_ventas_bs": round(total_ingresos_bs, 2),
             "total_fondo_usd": round(total_fondo, 2),
+            "total_fondo_bs": round(total_fondo_bs, 2),
             "total_zelle_usd": round(total_zelle, 2),
             "total_pagomovil_usd": round(total_pagomovil_usd, 2),
             "total_pagomovil_bs": round(total_pagomovil_bs, 2),
@@ -2117,9 +2165,13 @@ def get_reporte_cajas_consolidado(
             "total_abonos_usd": round(total_abonos, 2),
             "total_abonos_bs": round(total_abonos_bs, 2),
             "total_efectivo_usd": round(total_efectivo, 2),
+            "total_efectivo_bs": round(total_efectivo_bs, 2),
             "total_esperado_efectivo_usd": round(total_esperado_efectivo, 2),
+            "total_esperado_efectivo_bs": round(total_esperado_efectivo_bs, 2),
             "total_declarado_efectivo_usd": round(total_declarado_efectivo, 2),
-            "total_diferencias_usd": round(total_diferencias, 2)
+            "total_declarado_efectivo_bs": round(total_declarado_efectivo_bs, 2),
+            "total_diferencias_usd": round(total_diferencias, 2),
+            "total_diferencias_bs": round(total_diferencias_bs, 2)
         },
         "cajas": cajas_serializadas
     }
@@ -2199,7 +2251,13 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
     
     facturas_hoy = db.query(Factura).filter(Factura.fecha >= today_start).all()
     total_hoy = sum(f.total for f in facturas_hoy)
-    efectivo_hoy = sum(f.efectivo for f in facturas_hoy)
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+
+    efectivo_usd_hoy = sum(f.efectivo or 0.0 for f in facturas_hoy)
+    efectivo_bs_hoy = sum(f.efectivo_bs or 0.0 for f in facturas_hoy)
+    efectivo_bs_usd_hoy = sum(round((f.efectivo_bs or 0.0) / (f.tasa_bcv or tasa_bcv), 2) for f in facturas_hoy if (f.efectivo_bs or 0.0) > 0)
+    efectivo_total_usd_hoy = round(efectivo_usd_hoy + efectivo_bs_usd_hoy, 2)
+
     zelle_hoy = sum(f.zelle for f in facturas_hoy)
     pagomovil_hoy = sum(f.pagomovil for f in facturas_hoy)
     punto_hoy = sum(f.punto for f in facturas_hoy)
@@ -2210,14 +2268,14 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
     bajo_stock = sum(1 for a in articulos if a.stock <= (a.stock_alerta if a.stock_alerta is not None else 5.0))
     patrimonio_total = sum(a.stock * a.costo_final for a in articulos if a.stock > 0)
 
-    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
-
     return {
         "ventas_hoy": {
             "cantidad_facturas": len(facturas_hoy),
             "total_usd": round(total_hoy, 2),
             "total_bs": round(total_hoy * tasa_bcv, 2),
-            "efectivo": round(efectivo_hoy, 2),
+            "efectivo": round(efectivo_total_usd_hoy, 2),
+            "efectivo_usd": round(efectivo_usd_hoy, 2),
+            "efectivo_bs": round(efectivo_bs_hoy, 2),
             "zelle": round(zelle_hoy, 2),
             "pagomovil": round(pagomovil_hoy, 2),
             "punto": round(punto_hoy, 2),

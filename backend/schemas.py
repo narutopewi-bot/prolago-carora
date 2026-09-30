@@ -165,6 +165,7 @@ class CajaApertura(BaseModel):
 class CajaCierre(BaseModel):
     caja_id: Optional[int] = None
     declarado_efectivo: float = 0.0
+    declarado_efectivo_bs: Optional[float] = 0.0
     declarado_zelle: Optional[float] = 0.0
     declarado_pagomovil: Optional[float] = 0.0
     declarado_punto: Optional[float] = 0.0
