@@ -132,27 +132,77 @@
         </div>
     </div>
 
+    <!-- TARJETAS DE ACCESO RÁPIDO Y FILTRADO POR ESTADO DE STOCK -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div onclick="setFiltroStockRapido('TODOS')" id="cardKpiTodos" class="cursor-pointer bg-white p-4 rounded-2xl border-2 border-slate-200 hover:border-slate-400 shadow-sm transition flex items-center justify-between group">
+            <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catálogo Total</span>
+                <span class="text-xl sm:text-2xl font-black text-slate-800 font-mono mt-1 block" id="kpiTotalArticulos">0</span>
+                <span class="text-[10px] text-slate-500 font-semibold group-hover:text-slate-700">Ver todos los artículos &rarr;</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                <i class="fa-solid fa-boxes-stacked text-lg"></i>
+            </div>
+        </div>
+
+        <div onclick="setFiltroStockRapido('CON_STOCK')" id="cardKpiConStock" class="cursor-pointer bg-white p-4 rounded-2xl border-2 border-slate-200 hover:border-emerald-300 shadow-sm transition flex items-center justify-between group">
+            <div>
+                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Con Stock</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 block" id="kpiConStock">0</span>
+                <span class="text-[10px] text-emerald-600 font-semibold group-hover:underline">Disponibles para venta &rarr;</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center text-emerald-600 transition">
+                <i class="fa-solid fa-circle-check text-lg"></i>
+            </div>
+        </div>
+
+        <div onclick="setFiltroStockRapido('POR_AGOTARSE')" id="cardKpiPorAgotarse" class="cursor-pointer bg-white p-4 rounded-2xl border-2 border-slate-200 hover:border-amber-400 shadow-sm transition flex items-center justify-between group">
+            <div>
+                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Por Agotarse</span>
+                <span class="text-xl sm:text-2xl font-black text-amber-600 font-mono mt-1 block" id="kpiPorAgotarse">0</span>
+                <span class="text-[10px] text-amber-600 font-semibold group-hover:underline">&le; Stock mínimo de alerta &rarr;</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center text-amber-600 transition">
+                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+            </div>
+        </div>
+
+        <div onclick="setFiltroStockRapido('SIN_STOCK')" id="cardKpiSinStock" class="cursor-pointer bg-white p-4 rounded-2xl border-2 border-slate-200 hover:border-rose-400 shadow-sm transition flex items-center justify-between group">
+            <div>
+                <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Sin Stock / Agotados</span>
+                <span class="text-xl sm:text-2xl font-black text-rose-600 font-mono mt-1 block" id="kpiSinStock">0</span>
+                <span class="text-[10px] text-rose-600 font-semibold group-hover:underline">Existencia en 0.00 &rarr;</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center text-rose-600 transition">
+                <i class="fa-solid fa-circle-xmark text-lg"></i>
+            </div>
+        </div>
+    </div>
+
     <!-- CONTROLES DE BÚSQUEDA Y FILTRADO -->
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-12 gap-3">
-        <div class="sm:col-span-6 relative">
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+        <div class="sm:col-span-5 relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
             </span>
-            <input type="text" id="filtroTexto" oninput="filtrarArticulos()" placeholder="Buscar por código, nombre o marca..."
-                class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <input type="text" id="filtroTexto" oninput="filtrarArticulos(true)" placeholder="Buscar por código, nombre o marca..."
+                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
 
         <div class="sm:col-span-3">
-            <select id="filtroCategoria" onchange="filtrarArticulos()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none">
+            <select id="filtroCategoria" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 <option value="TODAS">Todas las Categorías</option>
             </select>
         </div>
 
-        <div class="sm:col-span-3 flex items-center">
-            <label class="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" id="filtroSoloStock" onchange="filtrarArticulos()" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
-                <span>Solo con stock disponible</span>
-            </label>
+        <div class="sm:col-span-4">
+            <select id="filtroStock" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <option value="TODOS">📦 Todos los niveles de stock</option>
+                <option value="POR_AGOTARSE">⚠️ Por agotarse / Stock bajo (&le; Alerta)</option>
+                <option value="SIN_STOCK">❌ Sin stock / Agotados (0.00)</option>
+                <option value="CON_STOCK">✅ Con stock disponible (> 0)</option>
+                <option value="SOBRESTOCK">🟢 Stock suficiente (> Alerta)</option>
+            </select>
         </div>
     </div>
 
@@ -180,11 +230,48 @@
             </table>
         </div>
         
-        <!-- Paginador / Contador -->
-        <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
-            <span>Mostrando <span id="cantArticulosMostrados" class="font-bold text-slate-700">0</span> artículos</span>
-            <div id="paginacionBtns" class="flex space-x-1">
-                <!-- Botones de página -->
+        <!-- Paginador / Navegación de 20 en 20 -->
+        <div class="px-5 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-600">
+            <div class="flex flex-wrap items-center gap-3">
+                <span>
+                    Mostrando <strong id="cantArticulosRango" class="text-slate-900 font-mono font-bold">0 - 0</strong> de 
+                    <strong id="cantArticulosMostrados" class="text-slate-900 font-mono font-bold">0</strong> artículos
+                    &bull; Pág. <strong id="numPaginaActual" class="text-slate-900 font-mono font-bold">1</strong> de 
+                    <strong id="numPaginasTotal" class="text-slate-900 font-mono font-bold">1</strong>
+                </span>
+
+                <div class="flex items-center space-x-1.5 pl-2 border-l border-slate-200">
+                    <span class="text-slate-400 font-medium">Ver:</span>
+                    <select id="selectTamanoPagina" onchange="cambiarTamanoPagina(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none">
+                        <option value="20" selected>20 por página</option>
+                        <option value="50">50 por página</option>
+                        <option value="100">100 por página</option>
+                        <option value="0">Todos</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botones de Navegación Paginador -->
+            <div id="paginacionControles" class="flex items-center space-x-1">
+                <button type="button" id="btnPagPrimera" onclick="cambiarPagina(1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition" title="Primera página">
+                    <i class="fa-solid fa-angles-left"></i>
+                </button>
+                <button type="button" id="btnPagAnterior" onclick="cambiarPagina(paginaActual - 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition flex items-center space-x-1" title="Página anterior">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    <span>Anterior</span>
+                </button>
+
+                <div id="paginacionBtnsNumeros" class="flex items-center space-x-1">
+                    <!-- Botones numéricos dinámicos -->
+                </div>
+
+                <button type="button" id="btnPagSiguiente" onclick="cambiarPagina(paginaActual + 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition flex items-center space-x-1" title="Página siguiente">
+                    <span>Siguiente</span>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+                <button type="button" id="btnPagUltima" onclick="cambiarPagina(totalPaginasCalculado)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition" title="Última página">
+                    <i class="fa-solid fa-angles-right"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -558,15 +645,21 @@
     let loteEtiquetas = [];
     let tabEtiquetaActiva = 'individual';
 
+    // Estado de Paginación
+    let paginaActual = 1;
+    let articulosPorPagina = 20;
+    let totalPaginasCalculado = 1;
+
     async function cargarArticulos() {
         try {
-            const res = await fetch('/api/articulos?limit=1200');
+            // Traer todos los artículos sin truncar en 1200
+            const res = await fetch('/api/articulos?limit=10000');
             if (res.ok) {
                 const data = await res.json();
                 todosLosArticulos = data.items;
                 articulosFiltradosActuales = todosLosArticulos;
                 
-                // Extraer categorías
+                // Extraer categorías dinámicas
                 categoriasUnicas.clear();
                 todosLosArticulos.forEach(a => {
                     if (a.categoria) categoriasUnicas.add(a.categoria);
@@ -592,27 +685,107 @@
                     }
                 });
 
-                filtrarArticulos();
+                actualizarContadoresStock();
+                filtrarArticulos(true);
             }
         } catch (e) {
-            console.error(e);
+            console.error("Error al cargar artículos:", e);
         }
     }
 
-    function filtrarArticulos() {
-        const txt = document.getElementById('filtroTexto').value.trim().toLowerCase();
-        const cat = document.getElementById('filtroCategoria').value;
-        const soloStock = document.getElementById('filtroSoloStock').checked;
+    function actualizarContadoresStock() {
+        let cantTotal = todosLosArticulos.length;
+        let cantConStock = 0;
+        let cantPorAgotarse = 0;
+        let cantSinStock = 0;
+
+        todosLosArticulos.forEach(a => {
+            const umbral = (a.stock_alerta !== null && a.stock_alerta !== undefined) ? a.stock_alerta : 5;
+            const stock = parseFloat(a.stock || 0);
+            if (stock <= 0) {
+                cantSinStock++;
+            } else if (stock <= umbral) {
+                cantPorAgotarse++;
+                cantConStock++;
+            } else {
+                cantConStock++;
+            }
+        });
+
+        const elTot = document.getElementById('kpiTotalArticulos');
+        if (elTot) elTot.textContent = cantTotal.toLocaleString('es-VE');
+        const elCon = document.getElementById('kpiConStock');
+        if (elCon) elCon.textContent = cantConStock.toLocaleString('es-VE');
+        const elAgot = document.getElementById('kpiPorAgotarse');
+        if (elAgot) elAgot.textContent = cantPorAgotarse.toLocaleString('es-VE');
+        const elSin = document.getElementById('kpiSinStock');
+        if (elSin) elSin.textContent = cantSinStock.toLocaleString('es-VE');
+    }
+
+    function setFiltroStockRapido(valor) {
+        const select = document.getElementById('filtroStock');
+        if (select) {
+            select.value = valor;
+            filtrarArticulos(true);
+        }
+    }
+
+    function actualizarEstiloCardsStock(estActivo) {
+        const cards = {
+            'TODOS': { id: 'cardKpiTodos', border: 'border-slate-800 ring-2 ring-slate-800/10' },
+            'CON_STOCK': { id: 'cardKpiConStock', border: 'border-emerald-500 ring-2 ring-emerald-500/20' },
+            'POR_AGOTARSE': { id: 'cardKpiPorAgotarse', border: 'border-amber-500 ring-2 ring-amber-500/20' },
+            'SIN_STOCK': { id: 'cardKpiSinStock', border: 'border-rose-500 ring-2 ring-rose-500/20' }
+        };
+
+        Object.keys(cards).forEach(k => {
+            const el = document.getElementById(cards[k].id);
+            if (el) {
+                el.classList.remove('border-slate-800', 'border-emerald-500', 'border-amber-500', 'border-rose-500', 'ring-2', 'ring-slate-800/10', 'ring-emerald-500/20', 'ring-amber-500/20', 'ring-rose-500/20');
+                if (k === estActivo) {
+                    cards[k].border.split(' ').forEach(cls => el.classList.add(cls));
+                } else {
+                    el.classList.add('border-slate-200');
+                }
+            }
+        });
+    }
+
+    function filtrarArticulos(resetearPagina = false) {
+        if (resetearPagina) {
+            paginaActual = 1;
+        }
+
+        const txt = (document.getElementById('filtroTexto')?.value || '').trim().toLowerCase();
+        const cat = document.getElementById('filtroCategoria')?.value || 'TODAS';
+        const estStock = document.getElementById('filtroStock')?.value || 'TODOS';
+
+        actualizarEstiloCardsStock(estStock);
 
         const filtrados = todosLosArticulos.filter(a => {
             const matchTxt = !txt || a.nombre.toLowerCase().includes(txt) || String(a.codigo).includes(txt) || (a.marca && a.marca.toLowerCase().includes(txt));
+            
             const aCat = (a.categoria || '').trim().toLowerCase();
             const catBuscada = (cat || '').trim().toLowerCase();
             const matchCat = cat === 'TODAS' || 
                 aCat === catBuscada || 
                 (catBuscada === 'ferretería' && aCat.includes('ferr')) ||
                 (catBuscada === 'otra' && !['alimento', 'medicina', 'ferretería', 'ferreteria'].some(x => aCat.includes(x.substring(0, 4))));
-            const matchStock = !soloStock || a.stock > 0;
+
+            const umbral = (a.stock_alerta !== null && a.stock_alerta !== undefined) ? a.stock_alerta : 5;
+            const stock = parseFloat(a.stock || 0);
+
+            let matchStock = true;
+            if (estStock === 'POR_AGOTARSE') {
+                matchStock = stock > 0 && stock <= umbral;
+            } else if (estStock === 'SIN_STOCK') {
+                matchStock = stock <= 0;
+            } else if (estStock === 'CON_STOCK') {
+                matchStock = stock > 0;
+            } else if (estStock === 'SOBRESTOCK') {
+                matchStock = stock > umbral;
+            }
+
             return matchTxt && matchCat && matchStock;
         });
 
@@ -626,40 +799,60 @@
     function renderizarTabla(lista) {
         const tbody = document.getElementById('tablaArticulosBody');
         tbody.innerHTML = '';
-        document.getElementById('cantArticulosMostrados').textContent = lista.length;
+        const totalItems = lista.length;
+        
+        document.getElementById('cantArticulosMostrados').textContent = totalItems.toLocaleString('es-VE');
 
-        if (lista.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" class="p-8 text-center text-slate-400 font-medium">No se encontraron artículos con esos filtros</td></tr>';
+        if (totalItems === 0) {
+            tbody.innerHTML = '<tr><td colspan="10" class="p-10 text-center text-slate-400 font-semibold text-sm">No se encontraron artículos con los filtros seleccionados</td></tr>';
+            document.getElementById('cantArticulosRango').textContent = '0 - 0';
+            document.getElementById('numPaginaActual').textContent = '1';
+            document.getElementById('numPaginasTotal').textContent = '1';
+            renderizarPaginador(0, 1);
             return;
         }
 
-        lista.slice(0, 100).forEach(item => {
+        totalPaginasCalculado = articulosPorPagina > 0 ? Math.ceil(totalItems / articulosPorPagina) : 1;
+        if (totalPaginasCalculado < 1) totalPaginasCalculado = 1;
+        if (paginaActual > totalPaginasCalculado) paginaActual = totalPaginasCalculado;
+        if (paginaActual < 1) paginaActual = 1;
+
+        const inicio = articulosPorPagina > 0 ? (paginaActual - 1) * articulosPorPagina : 0;
+        const fin = articulosPorPagina > 0 ? Math.min(inicio + articulosPorPagina, totalItems) : totalItems;
+        const itemsPagina = articulosPorPagina > 0 ? lista.slice(inicio, fin) : lista;
+
+        document.getElementById('cantArticulosRango').textContent = `${(inicio + 1).toLocaleString('es-VE')} - ${fin.toLocaleString('es-VE')}`;
+        document.getElementById('numPaginaActual').textContent = paginaActual.toLocaleString('es-VE');
+        document.getElementById('numPaginasTotal').textContent = totalPaginasCalculado.toLocaleString('es-VE');
+
+        itemsPagina.forEach(item => {
             const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50 transition';
+            tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
             const umbral = (item.stock_alerta !== null && item.stock_alerta !== undefined) ? item.stock_alerta : 5;
-            
+            const stock = parseFloat(item.stock || 0);
+
             let badgeStock = '';
-            if (item.stock <= 0) {
-                badgeStock = `<span class="px-2 py-0.5 rounded font-black text-[11px] bg-red-100 text-red-800 border border-red-200">0.00</span>`;
-            } else if (item.stock <= umbral) {
-                badgeStock = `<span class="px-2 py-0.5 rounded font-black text-[11px] bg-amber-100 text-amber-800 border border-amber-300 flex items-center space-x-1" title="¡Stock Crítico! Mínimo configurado: ${umbral}">
+            if (stock <= 0) {
+                badgeStock = `<span class="px-2 py-0.5 rounded-full font-black text-[11px] bg-red-100 text-red-700 border border-red-200">0.00 Agotado</span>`;
+            } else if (stock <= umbral) {
+                badgeStock = `<span class="px-2 py-0.5 rounded-full font-black text-[11px] bg-amber-100 text-amber-800 border border-amber-300 flex items-center space-x-1" title="¡Stock Crítico! Mínimo configurado: ${umbral}">
                     <i class="fa-solid fa-triangle-exclamation text-[10px] text-amber-600"></i>
-                    <span>${item.stock}</span>
+                    <span>${stock} (Bajo)</span>
                 </span>`;
             } else {
-                badgeStock = `<span class="px-2 py-0.5 rounded font-bold text-[11px] bg-emerald-100 text-emerald-800 border border-emerald-200">${item.stock}</span>`;
+                badgeStock = `<span class="px-2 py-0.5 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-800 border border-emerald-200">${stock}</span>`;
             }
 
             const precioBs = (item.precio * TASA_BCV).toFixed(2);
 
             tr.innerHTML = `
                 <td class="px-4 py-3 font-mono font-bold text-slate-500">${item.codigo}</td>
-                <td class="px-4 py-3 font-semibold text-slate-800">${item.nombre}</td>
-                <td class="px-3 py-3 text-slate-500">${item.categoria || 'GENERAL'}</td>
+                <td class="px-4 py-3 font-bold text-slate-800">${item.nombre}</td>
+                <td class="px-3 py-3 text-slate-500 font-semibold">${item.categoria || 'GENERAL'}</td>
                 <td class="px-3 py-3 text-center">
                     <div class="flex flex-col items-center">
                         ${badgeStock}
-                        <span class="text-[9px] text-slate-400 font-semibold mt-0.5" title="Alerta crítica individual">Alerta: &le;${umbral}</span>
+                        <span class="text-[9px] text-slate-400 font-medium mt-0.5" title="Alerta configurada">Mínimo: &le;${umbral}</span>
                     </div>
                 </td>
                 <td class="px-3 py-3 text-right font-mono text-slate-600">$${(item.costo_final || 0).toFixed(2)}</td>
@@ -681,6 +874,90 @@
             `;
             tbody.appendChild(tr);
         });
+
+        renderizarPaginador(totalItems, totalPaginasCalculado);
+    }
+
+    function renderizarPaginador(totalItems, totalPags) {
+        const btnPrimera = document.getElementById('btnPagPrimera');
+        const btnAnterior = document.getElementById('btnPagAnterior');
+        const btnSiguiente = document.getElementById('btnPagSiguiente');
+        const btnUltima = document.getElementById('btnPagUltima');
+        const contNumeros = document.getElementById('paginacionBtnsNumeros');
+
+        if (!contNumeros) return;
+
+        if (totalItems === 0 || articulosPorPagina === 0 || totalPags <= 1) {
+            if (btnPrimera) btnPrimera.disabled = true;
+            if (btnAnterior) btnAnterior.disabled = true;
+            if (btnSiguiente) btnSiguiente.disabled = true;
+            if (btnUltima) btnUltima.disabled = true;
+            contNumeros.innerHTML = '<span class="px-3 py-1 bg-[#8B1E24] text-white rounded-lg font-black text-xs">1</span>';
+            return;
+        }
+
+        if (btnPrimera) btnPrimera.disabled = (paginaActual <= 1);
+        if (btnAnterior) btnAnterior.disabled = (paginaActual <= 1);
+        if (btnSiguiente) btnSiguiente.disabled = (paginaActual >= totalPags);
+        if (btnUltima) btnUltima.disabled = (paginaActual >= totalPags);
+
+        contNumeros.innerHTML = '';
+
+        // Generar botones numéricos con rango inteligente
+        let pagsAMostrar = [];
+        if (totalPags <= 7) {
+            for (let i = 1; i <= totalPags; i++) pagsAMostrar.push(i);
+        } else {
+            pagsAMostrar.push(1);
+            if (paginaActual > 3) pagsAMostrar.push('...');
+            
+            const start = Math.max(2, paginaActual - 1);
+            const end = Math.min(totalPags - 1, paginaActual + 1);
+            for (let i = start; i <= end; i++) {
+                if (!pagsAMostrar.includes(i)) pagsAMostrar.push(i);
+            }
+
+            if (paginaActual < totalPags - 2) pagsAMostrar.push('...');
+            if (!pagsAMostrar.includes(totalPags)) pagsAMostrar.push(totalPags);
+        }
+
+        pagsAMostrar.forEach(p => {
+            if (p === '...') {
+                const span = document.createElement('span');
+                span.className = 'px-1.5 py-1 text-slate-400 font-bold text-xs';
+                span.textContent = '...';
+                contNumeros.appendChild(span);
+            } else {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = p;
+                if (p === paginaActual) {
+                    btn.className = 'px-3 py-1.5 rounded-lg bg-[#8B1E24] text-white font-black text-xs shadow-sm shadow-rose-900/20';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition';
+                    btn.onclick = () => cambiarPagina(p);
+                }
+                contNumeros.appendChild(btn);
+            }
+        });
+    }
+
+    function cambiarPagina(nuevaPagina) {
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginasCalculado || nuevaPagina === paginaActual) return;
+        paginaActual = nuevaPagina;
+        renderizarTabla(articulosFiltradosActuales);
+        
+        // Scroll suave hacia la cabecera de la tabla
+        const tablaEl = document.querySelector('.overflow-x-auto');
+        if (tablaEl) {
+            tablaEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function cambiarTamanoPagina(val) {
+        articulosPorPagina = parseInt(val, 10);
+        paginaActual = 1;
+        renderizarTabla(articulosFiltradosActuales);
     }
 
     function recalcularModalPrecios() {

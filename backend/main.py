@@ -254,6 +254,7 @@ def list_articulos(
     search: Optional[str] = None,
     categoria: Optional[str] = None,
     solo_stock: Optional[bool] = False,
+    estado_stock: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -278,9 +279,23 @@ def list_articulos(
         
     if solo_stock:
         query = query.filter(Articulo.stock > 0)
+
+    if estado_stock:
+        est = estado_stock.strip().lower()
+        if est in ["por_agotarse", "alerta", "bajo"]:
+            query = query.filter(Articulo.stock > 0, Articulo.stock <= func.coalesce(Articulo.stock_alerta, 5.0))
+        elif est in ["sin_stock", "agotado", "agotados"]:
+            query = query.filter(Articulo.stock <= 0)
+        elif est in ["con_stock", "disponible"]:
+            query = query.filter(Articulo.stock > 0)
+        elif est in ["sobrestock", "normal", "suficiente"]:
+            query = query.filter(Articulo.stock > func.coalesce(Articulo.stock_alerta, 5.0))
         
     total = query.count()
-    items = query.order_by(Articulo.nombre.asc()).offset(offset).limit(limit).all()
+    if limit > 0:
+        items = query.order_by(Articulo.nombre.asc()).offset(offset).limit(limit).all()
+    else:
+        items = query.order_by(Articulo.nombre.asc()).all()
     return {"total": total, "items": items}
 
 @app.get("/api/precios/consultar")
@@ -1927,6 +1942,112 @@ def get_reporte_ventas(
             }
             for f in facturas[:50]
         ]
+    }
+
+# 1.1 Reporte Específico de Artículos Vendidos por rango de fecha y búsqueda por nombre
+@app.get("/api/reportes/articulos-vendidos")
+def get_reporte_articulos_vendidos(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    search: Optional[str] = None,
+    categoria: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if not user.tiene_permiso("reportes"):
+        raise HTTPException(status_code=403, detail="No tiene permisos para ver reportes")
+    dt_inicio, dt_fin = parse_date_range(desde, hasta)
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+
+    facturas_ids = [f.id for f in db.query(Factura.id).filter(Factura.fecha >= dt_inicio, Factura.fecha <= dt_fin).all()]
+
+    if not facturas_ids:
+        return {
+            "periodo": {
+                "desde": dt_inicio.strftime("%d/%m/%Y"),
+                "hasta": dt_fin.strftime("%d/%m/%Y")
+            },
+            "totales": {
+                "total_articulos_distintos": 0,
+                "total_unidades_vendidas": 0.0,
+                "total_monto_usd": 0.0,
+                "total_monto_bs": 0.0,
+                "promedio_ticket_articulo": 0.0
+            },
+            "tasa_bcv": tasa_bcv,
+            "articulos": []
+        }
+
+    query = (
+        db.query(
+            DetalleFactura.codigo_articulo,
+            DetalleFactura.nombre_articulo,
+            func.sum(DetalleFactura.cantidad).label("cantidad_vendida"),
+            func.sum(DetalleFactura.subtotal).label("total_usd"),
+            func.count(func.distinct(DetalleFactura.factura_id)).label("facturas_count"),
+            func.max(Articulo.categoria).label("categoria"),
+            func.max(Articulo.stock).label("stock_actual"),
+            func.max(Articulo.marca).label("marca")
+        )
+        .outerjoin(Articulo, DetalleFactura.codigo_articulo == Articulo.codigo)
+        .filter(DetalleFactura.factura_id.in_(facturas_ids))
+    )
+
+    if search:
+        s = f"%{search.strip()}%"
+        try:
+            cod_num = int(search.strip())
+            query = query.filter(or_(DetalleFactura.codigo_articulo == cod_num, DetalleFactura.nombre_articulo.ilike(s)))
+        except ValueError:
+            query = query.filter(DetalleFactura.nombre_articulo.ilike(s))
+
+    if categoria and categoria != "TODAS":
+        c_str = categoria.strip()
+        if c_str.lower().startswith("ferr"):
+            query = query.filter(Articulo.categoria.ilike("%ferr%"))
+        else:
+            query = query.filter(or_(Articulo.categoria == c_str, Articulo.categoria.ilike(c_str)))
+
+    query = query.group_by(DetalleFactura.codigo_articulo, DetalleFactura.nombre_articulo)
+    rows = query.order_by(desc("cantidad_vendida")).all()
+
+    items = []
+    tot_unidades = 0.0
+    tot_usd = 0.0
+
+    for r in rows:
+        cant = float(r.cantidad_vendida or 0.0)
+        subt = float(r.total_usd or 0.0)
+        tot_unidades += cant
+        tot_usd += subt
+        precio_prom = round(subt / cant, 2) if cant > 0 else 0.0
+        items.append({
+            "codigo": r.codigo_articulo,
+            "nombre": r.nombre_articulo,
+            "categoria": r.categoria or "GENERAL",
+            "marca": r.marca or "",
+            "stock_actual": float(r.stock_actual or 0.0) if r.stock_actual is not None else 0.0,
+            "cantidad_vendida": round(cant, 2),
+            "precio_promedio": precio_prom,
+            "total_usd": round(subt, 2),
+            "total_bs": round(subt * tasa_bcv, 2),
+            "facturas_count": r.facturas_count or 1
+        })
+
+    return {
+        "periodo": {
+            "desde": dt_inicio.strftime("%d/%m/%Y"),
+            "hasta": dt_fin.strftime("%d/%m/%Y")
+        },
+        "totales": {
+            "total_articulos_distintos": len(items),
+            "total_unidades_vendidas": round(tot_unidades, 2),
+            "total_monto_usd": round(tot_usd, 2),
+            "total_monto_bs": round(tot_usd * tasa_bcv, 2),
+            "promedio_ticket_articulo": round(tot_usd / tot_unidades, 2) if tot_unidades > 0 else 0.0
+        },
+        "tasa_bcv": tasa_bcv,
+        "articulos": items
     }
 
 # 2. Reporte de Compras

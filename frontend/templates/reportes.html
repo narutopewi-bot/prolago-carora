@@ -120,6 +120,11 @@
                 <i class="fa-solid fa-chart-line text-sm"></i>
                 <span>Reporte de Ventas</span>
             </button>
+            <button onclick="cambiarTab('articulos_vendidos')" id="tabBtn_articulos_vendidos"
+                class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
+                <i class="fa-solid fa-boxes-packing text-sm text-indigo-600"></i>
+                <span>Artículos Vendidos</span>
+            </button>
             <button onclick="cambiarTab('compras')" id="tabBtn_compras"
                 class="tab-btn px-4 py-3 rounded-2xl font-bold text-xs flex items-center space-x-2 transition bg-white text-slate-600 hover:bg-slate-50 border border-slate-200">
                 <i class="fa-solid fa-truck-ramp-box text-sm"></i>
@@ -248,6 +253,97 @@
                 <div class="space-y-2" id="vVentasCajeros">
                     <!-- Dinámico -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 1.1 PESTAÑA: REPORTE DE ARTÍCULOS VENDIDOS                -->
+    <!-- ======================================================== -->
+    <div id="panel_articulos_vendidos" class="panel-reporte hidden space-y-6">
+        <!-- 4 Tarjetas KPI -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Facturado en Productos</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 block" id="avTotalUSD">$0.00</span>
+                <span class="text-[10px] text-slate-500 font-bold block" id="avTotalBS">Bs. 0,00</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Unidades Vendidas</span>
+                <span class="text-xl sm:text-2xl font-black text-blue-600 font-mono mt-1 block" id="avTotalUnidades">0</span>
+                <span class="text-[10px] text-slate-400">Total físico despachado</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Artículos Distintos Vendidos</span>
+                <span class="text-xl sm:text-2xl font-black text-indigo-600 font-mono mt-1 block" id="avTotalDistintos">0</span>
+                <span class="text-[10px] text-slate-400">Variedad comercializada</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase block">Precio Promedio por Ítem</span>
+                <span class="text-xl sm:text-2xl font-black text-amber-600 font-mono mt-1 block" id="avPrecioPromedio">$0.00</span>
+                <span class="text-[10px] text-slate-400">Valor promedio ponderado</span>
+            </div>
+        </div>
+
+        <!-- Barra de Búsqueda y Filtros de Artículos Vendidos -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="relative w-full sm:w-80">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="filtroVendidosTexto" oninput="filtrarArticulosVendidosLocal()" placeholder="Buscar producto por nombre o código..."
+                    class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <select id="filtroVendidosCategoria" onchange="filtrarArticulosVendidosLocal()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none">
+                    <option value="TODAS">Todas las Categorías</option>
+                </select>
+
+                <select id="filtroVendidosOrden" onchange="filtrarArticulosVendidosLocal()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none">
+                    <option value="CANT_DESC">Mayor cantidad vendida</option>
+                    <option value="MONTO_DESC">Mayor facturación ($)</option>
+                    <option value="NOMBRE_ASC">Nombre (A - Z)</option>
+                    <option value="CANT_ASC">Menor cantidad vendida</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabla Detallada de Artículos Vendidos -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-boxes-packing text-indigo-600 mr-2"></i>
+                        Listado de Artículos Vendidos en el Período
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Mostrando <strong id="avCountFiltrados" class="text-slate-700">0</strong> productos</span>
+                </div>
+                <span class="text-[11px] text-slate-500 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
+                    <i class="fa-solid fa-calendar-days mr-1 text-slate-400"></i> Rango seleccionado en la cabecera
+                </span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs min-w-[750px]">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] border-b">
+                        <tr>
+                            <th class="py-2.5 px-3">Cód.</th>
+                            <th class="py-2.5 px-3">Descripción del Artículo</th>
+                            <th class="py-2.5 px-3">Categoría</th>
+                            <th class="py-2.5 px-3 text-center">Cant. Vendida</th>
+                            <th class="py-2.5 px-3 text-right">Precio Promedio ($)</th>
+                            <th class="py-2.5 px-3 text-right">Total Facturado ($)</th>
+                            <th class="py-2.5 px-3 text-right">Total Facturado (Bs.)</th>
+                            <th class="py-2.5 px-3 text-center">N° Facturas</th>
+                            <th class="py-2.5 px-3 text-center">Stock Actual</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaArticulosVendidosBody" class="divide-y divide-slate-100">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                    <tfoot id="tablaArticulosVendidosFoot"></tfoot>
+                </table>
             </div>
         </div>
     </div>
@@ -714,6 +810,7 @@
         const hasta = document.getElementById('filtroHasta').value;
 
         if (tabActiva === 'ventas') await cargarReporteVentas(desde, hasta);
+        else if (tabActiva === 'articulos_vendidos') await cargarReporteArticulosVendidos(desde, hasta);
         else if (tabActiva === 'compras') await cargarReporteCompras(desde, hasta);
         else if (tabActiva === 'inventario') await cargarReporteInventario();
         else if (tabActiva === 'stock_alerta') await cargarReporteStockAlerta();
@@ -775,6 +872,131 @@
             }
         } catch (e) {
             console.error("Error al cargar ventas:", e);
+        }
+    }
+
+    let articulosVendidosOriginal = [];
+
+    async function cargarReporteArticulosVendidos(desde, hasta) {
+        try {
+            const res = await fetch(`/api/reportes/articulos-vendidos?desde=${desde}&hasta=${hasta}`);
+            if (res.ok) {
+                const d = await res.json();
+                cacheReporte['articulos_vendidos'] = d;
+                articulosVendidosOriginal = d.articulos || [];
+
+                document.getElementById('avTotalUSD').textContent = `$${(d.totales.total_monto_usd || 0).toFixed(2)}`;
+                document.getElementById('avTotalBS').textContent = `Bs. ${(d.totales.total_monto_bs || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                document.getElementById('avTotalUnidades').textContent = (d.totales.total_unidades_vendidas || 0).toLocaleString('es-VE', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+                document.getElementById('avTotalDistintos').textContent = (d.totales.total_articulos_distintos || 0).toLocaleString('es-VE');
+                document.getElementById('avPrecioPromedio').textContent = `$${(d.totales.promedio_ticket_articulo || 0).toFixed(2)}`;
+
+                // Poblar selector de categorías
+                const selCat = document.getElementById('filtroVendidosCategoria');
+                if (selCat) {
+                    const catActual = selCat.value || 'TODAS';
+                    const cats = new Set();
+                    articulosVendidosOriginal.forEach(it => {
+                        if (it.categoria) cats.add(it.categoria);
+                    });
+                    selCat.innerHTML = '<option value="TODAS">Todas las Categorías</option>';
+                    Array.from(cats).sort().forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c;
+                        opt.textContent = c;
+                        if (c === catActual) opt.selected = true;
+                        selCat.appendChild(opt);
+                    });
+                }
+
+                filtrarArticulosVendidosLocal();
+            }
+        } catch (e) {
+            console.error("Error al cargar reporte de artículos vendidos:", e);
+        }
+    }
+
+    function filtrarArticulosVendidosLocal() {
+        const txt = (document.getElementById('filtroVendidosTexto')?.value || '').trim().toLowerCase();
+        const cat = document.getElementById('filtroVendidosCategoria')?.value || 'TODAS';
+        const orden = document.getElementById('filtroVendidosOrden')?.value || 'CANT_DESC';
+
+        let lista = articulosVendidosOriginal.filter(it => {
+            const matchTxt = !txt || it.nombre.toLowerCase().includes(txt) || String(it.codigo).includes(txt);
+            const matchCat = cat === 'TODAS' || (it.categoria || '').trim().toLowerCase() === cat.trim().toLowerCase();
+            return matchTxt && matchCat;
+        });
+
+        // Ordenamiento
+        if (orden === 'CANT_DESC') {
+            lista.sort((a, b) => b.cantidad_vendida - a.cantidad_vendida);
+        } else if (orden === 'CANT_ASC') {
+            lista.sort((a, b) => a.cantidad_vendida - b.cantidad_vendida);
+        } else if (orden === 'MONTO_DESC') {
+            lista.sort((a, b) => b.total_usd - a.total_usd);
+        } else if (orden === 'NOMBRE_ASC') {
+            lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        }
+
+        const tbody = document.getElementById('tablaArticulosVendidosBody');
+        const tfoot = document.getElementById('tablaArticulosVendidosFoot');
+        const countFiltrados = document.getElementById('avCountFiltrados');
+        if (countFiltrados) countFiltrados.textContent = lista.length.toLocaleString('es-VE');
+
+        if (!tbody) return;
+
+        if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-slate-400 font-semibold">No se encontraron artículos vendidos con ese filtro de búsqueda</td></tr>';
+            if (tfoot) tfoot.innerHTML = '';
+            return;
+        }
+
+        let totCant = 0;
+        let totUSD = 0;
+        let totBS = 0;
+
+        tbody.innerHTML = lista.map(it => {
+            totCant += it.cantidad_vendida;
+            totUSD += it.total_usd;
+            totBS += it.total_bs;
+
+            let badgeStock = '';
+            if (it.stock_actual <= 0) {
+                badgeStock = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">0 (Agotado)</span>';
+            } else if (it.stock_actual <= 5) {
+                badgeStock = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">${it.stock_actual} (Bajo)</span>`;
+            } else {
+                badgeStock = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">${it.stock_actual}</span>`;
+            }
+
+            return `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                    <td class="py-2.5 px-3 font-mono font-bold text-slate-500">${it.codigo}</td>
+                    <td class="py-2.5 px-3 font-bold text-slate-800">${it.nombre}</td>
+                    <td class="py-2.5 px-3 font-semibold text-slate-500">${it.categoria}</td>
+                    <td class="py-2.5 px-3 text-center font-mono font-black text-slate-900 bg-slate-50/50">${it.cantidad_vendida}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-slate-600">$${it.precio_promedio.toFixed(2)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-black text-emerald-700 text-sm">$${it.total_usd.toFixed(2)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-slate-600">Bs. ${it.total_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                    <td class="py-2.5 px-3 text-center font-mono text-slate-700 font-bold">${it.facturas_count}</td>
+                    <td class="py-2.5 px-3 text-center">${badgeStock}</td>
+                </tr>
+            `;
+        }).join('');
+
+        if (tfoot) {
+            tfoot.innerHTML = `
+                <tr class="bg-slate-900 text-white font-black text-xs border-t-2 border-indigo-500">
+                    <td colspan="3" class="py-3 px-3 uppercase text-indigo-300 font-black">
+                        <i class="fa-solid fa-calculator mr-1.5"></i> TOTAL FILTRADO (${lista.length} Productos):
+                    </td>
+                    <td class="py-3 px-3 text-center font-mono text-blue-300 font-black text-sm">${totCant.toLocaleString('es-VE')}</td>
+                    <td class="py-3 px-3 text-right font-mono text-slate-300">$${totCant > 0 ? (totUSD / totCant).toFixed(2) : '0.00'}</td>
+                    <td class="py-3 px-3 text-right font-mono text-emerald-400 font-black text-sm">$${totUSD.toFixed(2)}</td>
+                    <td class="py-3 px-3 text-right font-mono text-slate-200">Bs. ${totBS.toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
+                    <td colspan="2" class="py-3 px-3 text-center text-slate-400 text-[10px]">Consolidado</td>
+                </tr>
+            `;
         }
     }
 
@@ -1235,6 +1457,7 @@
     function imprimirReporteActivo() {
         const nombres = {
             'ventas': 'Informe de Ventas y Facturación',
+            'articulos_vendidos': 'Informe Detallado de Artículos Vendidos',
             'compras': 'Informe de Compras y Reposición',
             'inventario': 'Valoración General del Inventario',
             'stock_alerta': 'Informe de Artículos con Stock por Acabarse (Alerta de Reposición)',
@@ -1265,6 +1488,18 @@
             csv += "TOP PRODUCTOS MAS VENDIDOS\nCodigo,Nombre,Cantidad,Total USD\n";
             (d.top_productos || []).forEach(p => {
                 csv += `"${p.codigo}","${p.nombre.replace(/"/g, '""')}",${p.cantidad},${p.total_usd}\n`;
+            });
+        } else if (tabActiva === 'articulos_vendidos') {
+            csv = "REPORTE DE ARTICULOS VENDIDOS - PROLAGO C.A.\n";
+            csv += `Periodo,Desde: ${d.periodo.desde} Hasta: ${d.periodo.hasta}\n`;
+            csv += `Total Monto Facturado USD,${d.totales.total_monto_usd}\n`;
+            csv += `Total Monto Facturado BS,${d.totales.total_monto_bs}\n`;
+            csv += `Total Unidades Vendidas,${d.totales.total_unidades_vendidas}\n`;
+            csv += `Articulos Distintos Vendidos,${d.totales.total_articulos_distintos}\n`;
+            csv += `Tasa BCV,${d.tasa_bcv}\n\n`;
+            csv += "Codigo,Producto,Categoria,Cantidad_Vendida,Precio_Promedio_USD,Total_Facturado_USD,Total_Facturado_BS,Facturas_Count,Stock_Actual\n";
+            (d.articulos || []).forEach(it => {
+                csv += `"${it.codigo}","${it.nombre.replace(/"/g, '""')}","${it.categoria}",${it.cantidad_vendida},${it.precio_promedio},${it.total_usd},${it.total_bs},${it.facturas_count},${it.stock_actual}\n`;
             });
         } else if (tabActiva === 'compras') {
             csv = "REPORTE DE COMPRAS PROLAGO C.A.\nFecha,Codigo,Producto,Cantidad,Costo Unit USD,Subtotal USD\n";
