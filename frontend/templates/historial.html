@@ -422,6 +422,51 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Paginador / Navegación de 20 en 20 para Ventas -->
+            <div class="px-5 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-600">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span>
+                        Mostrando <strong id="cantVentasRango" class="text-slate-900 font-mono font-bold">0 - 0</strong> de 
+                        <strong id="cantVentasMostradas" class="text-slate-900 font-mono font-bold">0</strong> facturas
+                        &bull; Pág. <strong id="numPaginaActualVentas" class="text-slate-900 font-mono font-bold">1</strong> de 
+                        <strong id="numPaginasTotalVentas" class="text-slate-900 font-mono font-bold">1</strong>
+                    </span>
+
+                    <div class="flex items-center space-x-1.5 pl-2 border-l border-slate-200">
+                        <span class="text-slate-400 font-medium">Ver:</span>
+                        <select id="selectTamanoPaginaVentas" onchange="cambiarTamanoPaginaVentas(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none shadow-2xs">
+                            <option value="20" selected>20 por página</option>
+                            <option value="50">50 por página</option>
+                            <option value="100">100 por página</option>
+                            <option value="0">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botones de Navegación Paginador Ventas -->
+                <div id="paginacionControlesVentas" class="flex items-center space-x-1">
+                    <button type="button" id="btnPagPrimeraVentas" onclick="cambiarPaginaVentas(1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition shadow-2xs" title="Primera página">
+                        <i class="fa-solid fa-angles-left"></i>
+                    </button>
+                    <button type="button" id="btnPagAnteriorVentas" onclick="cambiarPaginaVentas(paginaActualVentas - 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition flex items-center space-x-1 shadow-2xs" title="Página anterior">
+                        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                        <span>Anterior</span>
+                    </button>
+
+                    <div id="paginacionBtnsNumerosVentas" class="flex items-center space-x-1">
+                        <!-- Botones numéricos dinámicos -->
+                    </div>
+
+                    <button type="button" id="btnPagSiguienteVentas" onclick="cambiarPaginaVentas(paginaActualVentas + 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition flex items-center space-x-1 shadow-2xs" title="Página siguiente">
+                        <span>Siguiente</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button type="button" id="btnPagUltimaVentas" onclick="cambiarPaginaVentas(totalPaginasCalculadoVentas)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition shadow-2xs" title="Última página">
+                        <i class="fa-solid fa-angles-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     <!-- FIN SECCIÓN HISTORIAL VENTAS -->
@@ -527,6 +572,51 @@
                         <!-- Filas dinámicas de compras -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Paginador / Navegación de 20 en 20 para Compras -->
+            <div class="px-5 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-slate-600">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span>
+                        Mostrando <strong id="cantComprasRango" class="text-slate-900 font-mono font-bold">0 - 0</strong> de 
+                        <strong id="cantComprasMostradas" class="text-slate-900 font-mono font-bold">0</strong> compras
+                        &bull; Pág. <strong id="numPaginaActualCompras" class="text-slate-900 font-mono font-bold">1</strong> de 
+                        <strong id="numPaginasTotalCompras" class="text-slate-900 font-mono font-bold">1</strong>
+                    </span>
+
+                    <div class="flex items-center space-x-1.5 pl-2 border-l border-slate-200">
+                        <span class="text-slate-400 font-medium">Ver:</span>
+                        <select id="selectTamanoPaginaCompras" onchange="cambiarTamanoPaginaCompras(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none shadow-2xs">
+                            <option value="20" selected>20 por página</option>
+                            <option value="50">50 por página</option>
+                            <option value="100">100 por página</option>
+                            <option value="0">Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botones de Navegación Paginador Compras -->
+                <div id="paginacionControlesCompras" class="flex items-center space-x-1">
+                    <button type="button" id="btnPagPrimeraCompras" onclick="cambiarPaginaCompras(1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition shadow-2xs" title="Primera página">
+                        <i class="fa-solid fa-angles-left"></i>
+                    </button>
+                    <button type="button" id="btnPagAnteriorCompras" onclick="cambiarPaginaCompras(paginaActualCompras - 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition flex items-center space-x-1 shadow-2xs" title="Página anterior">
+                        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                        <span>Anterior</span>
+                    </button>
+
+                    <div id="paginacionBtnsNumerosCompras" class="flex items-center space-x-1">
+                        <!-- Botones numéricos dinámicos -->
+                    </div>
+
+                    <button type="button" id="btnPagSiguienteCompras" onclick="cambiarPaginaCompras(paginaActualCompras + 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition flex items-center space-x-1 shadow-2xs" title="Página siguiente">
+                        <span>Siguiente</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                    <button type="button" id="btnPagUltimaCompras" onclick="cambiarPaginaCompras(totalPaginasCalculadoCompras)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold transition shadow-2xs" title="Última página">
+                        <i class="fa-solid fa-angles-right"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1125,6 +1215,18 @@
     let detalleCompraActual = null;
     let compraModActual = null;
 
+    // Estado de Paginación Ventas
+    let paginaActualVentas = 1;
+    let ventasPorPagina = 20;
+    let totalPaginasCalculadoVentas = 1;
+    let facturasFiltradasActuales = [];
+
+    // Estado de Paginación Compras
+    let paginaActualCompras = 1;
+    let comprasPorPagina = 20;
+    let totalPaginasCalculadoCompras = 1;
+    let comprasFiltradasActuales = [];
+
     async function actualizarHistorialActivo() {
         if (tabHistorialActiva === 'ventas') {
             await cargarHistorial();
@@ -1325,16 +1427,58 @@
         document.getElementById('kpiTotalContado').textContent = `$${totalCont.toFixed(2)}`;
         document.getElementById('kpiTotalDebe').textContent = `$${totalDebe.toFixed(2)}`;
 
-        // Renderizar Tabla
+        // Renderizar Tabla con Paginación
+        paginaActualVentas = 1;
+        facturasFiltradasActuales = filtradas;
+        renderizarTablaVentas(facturasFiltradasActuales);
+    }
+
+    function cambiarPaginaVentas(nuevaPagina) {
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginasCalculadoVentas || nuevaPagina === paginaActualVentas) return;
+        paginaActualVentas = nuevaPagina;
+        renderizarTablaVentas(facturasFiltradasActuales);
+        const tablaEl = document.getElementById('contenedorTablaHistorial');
+        if (tablaEl) {
+            tablaEl.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function cambiarTamanoPaginaVentas(val) {
+        ventasPorPagina = parseInt(val, 10);
+        paginaActualVentas = 1;
+        renderizarTablaVentas(facturasFiltradasActuales);
+    }
+
+    function renderizarTablaVentas(lista) {
+        const totalItems = lista.length;
+        totalPaginasCalculadoVentas = ventasPorPagina > 0 ? Math.ceil(totalItems / ventasPorPagina) : 1;
+        if (totalPaginasCalculadoVentas < 1) totalPaginasCalculadoVentas = 1;
+        if (paginaActualVentas > totalPaginasCalculadoVentas) paginaActualVentas = totalPaginasCalculadoVentas;
+
+        const inicio = ventasPorPagina > 0 ? (paginaActualVentas - 1) * ventasPorPagina : 0;
+        const fin = ventasPorPagina > 0 ? Math.min(inicio + ventasPorPagina, totalItems) : totalItems;
+        const itemsPagina = ventasPorPagina > 0 ? lista.slice(inicio, fin) : lista;
+
+        const elRango = document.getElementById('cantVentasRango');
+        if (elRango) elRango.textContent = totalItems === 0 ? '0 - 0' : `${(inicio + 1).toLocaleString('es-VE')} - ${fin.toLocaleString('es-VE')}`;
+        const elMostradas = document.getElementById('cantVentasMostradas');
+        if (elMostradas) elMostradas.textContent = totalItems.toLocaleString('es-VE');
+        const elPagAct = document.getElementById('numPaginaActualVentas');
+        if (elPagAct) elPagAct.textContent = paginaActualVentas.toLocaleString('es-VE');
+        const elPagTot = document.getElementById('numPaginasTotalVentas');
+        if (elPagTot) elPagTot.textContent = totalPaginasCalculadoVentas.toLocaleString('es-VE');
+
         const tbody = document.getElementById('tablaHistorialBody');
+        if (!tbody) return;
         tbody.innerHTML = '';
 
-        if (filtradas.length === 0) {
+        if (totalItems === 0) {
             tbody.innerHTML = '<tr><td colspan="13" class="p-8 text-center text-slate-400 font-medium">No se encontraron ventas que coincidan con los filtros seleccionados</td></tr>';
+            renderizarPaginadorVentas(0, 1);
             return;
         }
 
-        filtradas.forEach(f => {
+        itemsPagina.forEach(f => {
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-50 transition';
             const fFecha = f.fecha_formateada || new Date(f.fecha).toLocaleString();
@@ -1435,6 +1579,71 @@
                 </td>
             `;
             tbody.appendChild(tr);
+        });
+
+        renderizarPaginadorVentas(totalItems, totalPaginasCalculadoVentas);
+    }
+
+    function renderizarPaginadorVentas(totalItems, totalPags) {
+        const btnPrimera = document.getElementById('btnPagPrimeraVentas');
+        const btnAnterior = document.getElementById('btnPagAnteriorVentas');
+        const btnSiguiente = document.getElementById('btnPagSiguienteVentas');
+        const btnUltima = document.getElementById('btnPagUltimaVentas');
+        const contNumeros = document.getElementById('paginacionBtnsNumerosVentas');
+
+        if (!contNumeros) return;
+
+        if (totalItems === 0 || ventasPorPagina === 0 || totalPags <= 1) {
+            if (btnPrimera) btnPrimera.disabled = true;
+            if (btnAnterior) btnAnterior.disabled = true;
+            if (btnSiguiente) btnSiguiente.disabled = true;
+            if (btnUltima) btnUltima.disabled = true;
+            contNumeros.innerHTML = '<span class="px-3 py-1 bg-[#8B1E24] text-white rounded-lg font-black text-xs">1</span>';
+            return;
+        }
+
+        if (btnPrimera) btnPrimera.disabled = (paginaActualVentas <= 1);
+        if (btnAnterior) btnAnterior.disabled = (paginaActualVentas <= 1);
+        if (btnSiguiente) btnSiguiente.disabled = (paginaActualVentas >= totalPags);
+        if (btnUltima) btnUltima.disabled = (paginaActualVentas >= totalPags);
+
+        contNumeros.innerHTML = '';
+
+        let pagsAMostrar = [];
+        if (totalPags <= 7) {
+            for (let i = 1; i <= totalPags; i++) pagsAMostrar.push(i);
+        } else {
+            pagsAMostrar.push(1);
+            if (paginaActualVentas > 3) pagsAMostrar.push('...');
+            
+            const start = Math.max(2, paginaActualVentas - 1);
+            const end = Math.min(totalPags - 1, paginaActualVentas + 1);
+            for (let i = start; i <= end; i++) {
+                if (!pagsAMostrar.includes(i)) pagsAMostrar.push(i);
+            }
+
+            if (paginaActualVentas < totalPags - 2) pagsAMostrar.push('...');
+            if (!pagsAMostrar.includes(totalPags)) pagsAMostrar.push(totalPags);
+        }
+
+        pagsAMostrar.forEach(p => {
+            if (p === '...') {
+                const span = document.createElement('span');
+                span.className = 'px-1 text-slate-400 font-bold';
+                span.textContent = '...';
+                contNumeros.appendChild(span);
+            } else {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = p;
+                if (p === paginaActualVentas) {
+                    btn.className = 'px-3 py-1.5 rounded-lg bg-[#8B1E24] text-white font-black text-xs shadow-sm shadow-rose-900/20';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition';
+                    btn.onclick = () => cambiarPaginaVentas(p);
+                }
+                contNumeros.appendChild(btn);
+            }
         });
     }
 
@@ -3082,11 +3291,51 @@
         document.getElementById('kpiTotalComprasUSD').textContent = `$${totalUSD.toFixed(2)}`;
         document.getElementById('kpiTotalComprasBS').textContent = `Bs. ${totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-        // Renderizar tabla
+        // Renderizar tabla con Paginación
+        paginaActualCompras = 1;
+        comprasFiltradasActuales = filtradas;
+        renderizarTablaCompras(comprasFiltradasActuales);
+    }
+
+    function cambiarPaginaCompras(nuevaPagina) {
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginasCalculadoCompras || nuevaPagina === paginaActualCompras) return;
+        paginaActualCompras = nuevaPagina;
+        renderizarTablaCompras(comprasFiltradasActuales);
+        const tablaEl = document.getElementById('contenedorTablaCompras');
+        if (tablaEl) {
+            tablaEl.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function cambiarTamanoPaginaCompras(val) {
+        comprasPorPagina = parseInt(val, 10);
+        paginaActualCompras = 1;
+        renderizarTablaCompras(comprasFiltradasActuales);
+    }
+
+    function renderizarTablaCompras(lista) {
+        const totalItems = lista.length;
+        totalPaginasCalculadoCompras = comprasPorPagina > 0 ? Math.ceil(totalItems / comprasPorPagina) : 1;
+        if (totalPaginasCalculadoCompras < 1) totalPaginasCalculadoCompras = 1;
+        if (paginaActualCompras > totalPaginasCalculadoCompras) paginaActualCompras = totalPaginasCalculadoCompras;
+
+        const inicio = comprasPorPagina > 0 ? (paginaActualCompras - 1) * comprasPorPagina : 0;
+        const fin = comprasPorPagina > 0 ? Math.min(inicio + comprasPorPagina, totalItems) : totalItems;
+        const itemsPagina = comprasPorPagina > 0 ? lista.slice(inicio, fin) : lista;
+
+        const elRango = document.getElementById('cantComprasRango');
+        if (elRango) elRango.textContent = totalItems === 0 ? '0 - 0' : `${(inicio + 1).toLocaleString('es-VE')} - ${fin.toLocaleString('es-VE')}`;
+        const elMostradas = document.getElementById('cantComprasMostradas');
+        if (elMostradas) elMostradas.textContent = totalItems.toLocaleString('es-VE');
+        const elPagAct = document.getElementById('numPaginaActualCompras');
+        if (elPagAct) elPagAct.textContent = paginaActualCompras.toLocaleString('es-VE');
+        const elPagTot = document.getElementById('numPaginasTotalCompras');
+        if (elPagTot) elPagTot.textContent = totalPaginasCalculadoCompras.toLocaleString('es-VE');
+
         const tbody = document.getElementById('tablaComprasBody');
         if (!tbody) return;
 
-        if (filtradas.length === 0) {
+        if (totalItems === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="11" class="py-12 text-center text-slate-400">
@@ -3095,10 +3344,11 @@
                     </td>
                 </tr>
             `;
+            renderizarPaginadorCompras(0, 1);
             return;
         }
 
-        tbody.innerHTML = filtradas.map(c => {
+        tbody.innerHTML = itemsPagina.map(c => {
             const costoBase = (c.costo || 0).toFixed(2);
             const flete = (c.flete || 0).toFixed(2);
             const costoFinal = (c.costo_final || 0).toFixed(2);
@@ -3106,7 +3356,6 @@
             const precio = (c.precio || 0).toFixed(2);
             const totalInv = (c.subtotal_usd || 0).toFixed(2);
             const totalBs = (c.subtotal_bs || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
             const nombreEscaped = (c.nombre_articulo || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
             return `
@@ -3155,6 +3404,71 @@
                 </tr>
             `;
         }).join('');
+
+        renderizarPaginadorCompras(totalItems, totalPaginasCalculadoCompras);
+    }
+
+    function renderizarPaginadorCompras(totalItems, totalPags) {
+        const btnPrimera = document.getElementById('btnPagPrimeraCompras');
+        const btnAnterior = document.getElementById('btnPagAnteriorCompras');
+        const btnSiguiente = document.getElementById('btnPagSiguienteCompras');
+        const btnUltima = document.getElementById('btnPagUltimaCompras');
+        const contNumeros = document.getElementById('paginacionBtnsNumerosCompras');
+
+        if (!contNumeros) return;
+
+        if (totalItems === 0 || comprasPorPagina === 0 || totalPags <= 1) {
+            if (btnPrimera) btnPrimera.disabled = true;
+            if (btnAnterior) btnAnterior.disabled = true;
+            if (btnSiguiente) btnSiguiente.disabled = true;
+            if (btnUltima) btnUltima.disabled = true;
+            contNumeros.innerHTML = '<span class="px-3 py-1 bg-cyan-700 text-white rounded-lg font-black text-xs">1</span>';
+            return;
+        }
+
+        if (btnPrimera) btnPrimera.disabled = (paginaActualCompras <= 1);
+        if (btnAnterior) btnAnterior.disabled = (paginaActualCompras <= 1);
+        if (btnSiguiente) btnSiguiente.disabled = (paginaActualCompras >= totalPags);
+        if (btnUltima) btnUltima.disabled = (paginaActualCompras >= totalPags);
+
+        contNumeros.innerHTML = '';
+
+        let pagsAMostrar = [];
+        if (totalPags <= 7) {
+            for (let i = 1; i <= totalPags; i++) pagsAMostrar.push(i);
+        } else {
+            pagsAMostrar.push(1);
+            if (paginaActualCompras > 3) pagsAMostrar.push('...');
+            
+            const start = Math.max(2, paginaActualCompras - 1);
+            const end = Math.min(totalPags - 1, paginaActualCompras + 1);
+            for (let i = start; i <= end; i++) {
+                if (!pagsAMostrar.includes(i)) pagsAMostrar.push(i);
+            }
+
+            if (paginaActualCompras < totalPags - 2) pagsAMostrar.push('...');
+            if (!pagsAMostrar.includes(totalPags)) pagsAMostrar.push(totalPags);
+        }
+
+        pagsAMostrar.forEach(p => {
+            if (p === '...') {
+                const span = document.createElement('span');
+                span.className = 'px-1 text-slate-400 font-bold';
+                span.textContent = '...';
+                contNumeros.appendChild(span);
+            } else {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = p;
+                if (p === paginaActualCompras) {
+                    btn.className = 'px-3 py-1.5 rounded-lg bg-cyan-700 text-white font-black text-xs shadow-sm shadow-cyan-900/20';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition';
+                    btn.onclick = () => cambiarPaginaCompras(p);
+                }
+                contNumeros.appendChild(btn);
+            }
+        });
     }
 
     async function verDetalleCompra(id) {
