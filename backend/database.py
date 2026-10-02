@@ -26,9 +26,11 @@ else:
 # Si está en la nube (Render/Railway), DATABASE_URL existirá. Si es local, utiliza SQLite
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB}")
 
-# Si Railway proporciona postgres:// lo convertimos a postgresql:// para SQLAlchemy 2.0+
+# Si Railway/Render proporciona postgres:// o postgresql://, especificamos el driver psycopg2 explícitamente
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
