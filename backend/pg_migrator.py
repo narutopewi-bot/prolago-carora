@@ -13,14 +13,15 @@ def migrate_sqlite_to_pg_if_needed():
         return
 
     # Verificar si PostgreSQL ya tiene datos en la tabla articulos
-    with engine.connect() as conn:
-        try:
+    try:
+        with engine.connect() as conn:
             art_count = conn.execute(text("SELECT COUNT(*) FROM articulos")).scalar()
             if art_count and art_count > 0:
                 print(f"[PG MIGRATOR] PostgreSQL ya contiene {art_count} artículos. Omitiendo migración.")
                 return
-        except Exception as e:
-            print(f"[PG MIGRATOR] Comprobación inicial de artículos: {e}")
+    except Exception as e:
+        print(f"[PG MIGRATOR] Comprobación inicial de artículos: {e}")
+        return
 
     if not os.path.exists(TARGET_DB):
         print(f"[PG MIGRATOR] Archivo SQLite {TARGET_DB} no encontrado. No se puede migrar.")

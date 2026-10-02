@@ -35,10 +35,16 @@ from .auth import (
 from .pg_migrator import migrate_sqlite_to_pg_if_needed
 
 # Inicializar tablas
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[DB INIT] Advertencia al crear tablas: {e}")
 
 # Migración automática si está conectado a PostgreSQL nuevo
-migrate_sqlite_to_pg_if_needed()
+try:
+    migrate_sqlite_to_pg_if_needed()
+except Exception as e:
+    print(f"[PG MIGRATOR] Advertencia en migración inicial: {e}")
 
 # Auto-migración segura de columnas nuevas y ajustes (aislada por sentencia para PostgreSQL y SQLite)
 def ejecutar_ddl_seguro(sql_str: str, params: dict = None):
