@@ -487,6 +487,9 @@
         window.CURRENT_USER_PERMISOS = {{ (user.lista_permisos if user else []) | tojson }};
         window.CURRENT_USER_ROL = "{{ user.rol if user else '' }}";
         window.IS_ADMIN = {{ 'true' if (user and user.rol == 'admin') else 'false' }};
+        window.CURRENT_USER_ID = {{ user.id if user else 'null' }};
+        window.CURRENT_USER_NAME = "{{ (user.nombre or user.username or 'Administrador') if user else 'Administrador' }}";
+        window.CURRENT_USER_USERNAME = "{{ user.username if user else '' }}";
         function tienePermiso(perm) {
             if (window.IS_ADMIN) return true;
             return window.CURRENT_USER_PERMISOS.includes('*') || window.CURRENT_USER_PERMISOS.includes(perm);

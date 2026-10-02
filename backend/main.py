@@ -693,6 +693,9 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
     if not cli and payload.cliente_nombre:
         cli = db.query(Cliente).filter(Cliente.nombre == payload.cliente_nombre.strip().upper()).first()
 
+    caja_obj = db.query(Caja).filter(Caja.id == factura.caja_id).first() if factura.caja_id else None
+    caja_nombre = caja_obj.nombre_caja if caja_obj else ""
+
     return {
         "status": "ok",
         "factura_id": factura.id,
@@ -716,7 +719,11 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         "cliente_cedula": cli.cedula_rif if cli else "",
         "cliente_telefono": cli.telefono if cli else "",
         "cliente_direccion": cli.direccion if cli else "",
-        "fecha": factura.fecha.strftime("%d/%m/%Y %I:%M %p") if factura.fecha else ""
+        "fecha": factura.fecha.strftime("%d/%m/%Y %I:%M %p") if factura.fecha else "",
+        "usuario_id": factura.usuario_id,
+        "usuario_nombre": (factura.usuario_nombre or user.nombre or user.username or "Administrador").strip(),
+        "caja_id": factura.caja_id,
+        "caja_nombre": caja_nombre
     }
 
 @app.get("/api/facturas")
@@ -789,6 +796,8 @@ def list_facturas(
             "usuario_id": f.usuario_id,
             "usuario_nombre": usuario_nom.strip(),
             "usuario_username": f.usuario.username if f.usuario else "",
+            "caja_id": f.caja_id,
+            "caja_nombre": (f.caja.nombre_caja if f.caja else "") or "",
             "condicion": f.condicion or "contado",
             "total": f.total or 0.0,
             "tasa_bcv": f.tasa_bcv or 1.0,
@@ -854,6 +863,8 @@ def get_factura(id: int, db: Session = Depends(get_db), user: Usuario = Depends(
         "usuario_id": factura.usuario_id,
         "usuario_nombre": usuario_nom.strip(),
         "usuario_username": factura.usuario.username if factura.usuario else "",
+        "caja_id": factura.caja_id,
+        "caja_nombre": (factura.caja.nombre_caja if factura.caja else "") or "",
         "total_usd": factura.total,
         "total_bs": round(factura.total * factura.tasa_bcv, 2),
         "tasa_bcv": factura.tasa_bcv,

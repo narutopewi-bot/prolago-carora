@@ -1227,7 +1227,9 @@
         const totalBS = (d.total_bs !== undefined && d.total_bs !== null) ? d.total_bs : (totalUSD * tasa);
 
         const fechaStr = d.fecha || '';
-        const vendedorStr = d.usuario_nombre || 'Administrador';
+        const nomVendedor = (d.usuario_nombre || d.usuario_username || (typeof window.CURRENT_USER_NAME !== 'undefined' ? window.CURRENT_USER_NAME : '') || 'Cajero').trim();
+        const nomCaja = (d.caja_nombre || '').trim();
+        const vendedorStr = nomCaja ? `${nomVendedor} (${nomCaja})` : nomVendedor;
         const clienteNom = d.cliente_nombre || 'CLIENTE GENERAL';
         const clienteCed = d.cliente_cedula || '';
         const clienteTel = d.cliente_telefono || '';

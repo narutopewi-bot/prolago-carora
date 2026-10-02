@@ -2937,7 +2937,9 @@
         const totalUSD = factData.total_usd || factData.total || 0;
         const totalBS = factData.total_bs || 0;
         const tasa = factData.tasa_bcv || 1;
-        const vendedorStr = factData.usuario_nombre || 'Vendedor';
+        const nomVendedor = (factData.usuario_nombre || (typeof window.CURRENT_USER_NAME !== 'undefined' ? window.CURRENT_USER_NAME : '') || 'Cajero').trim();
+        const nomCaja = (factData.caja_nombre || (typeof cajaActualPOS !== 'undefined' && cajaActualPOS && cajaActualPOS.nombre_caja ? cajaActualPOS.nombre_caja : '')).trim();
+        const vendedorStr = nomCaja ? `${nomVendedor} (${nomCaja})` : nomVendedor;
 
         let condicionHtml = '';
         if (esCred) {
