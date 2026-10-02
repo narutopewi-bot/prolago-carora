@@ -262,141 +262,276 @@
 {% block content %}
 <div class="space-y-6">
 
-    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <!-- ENCABEZADO Y SELECTOR DE PESTAÑAS (VENTAS / COMPRAS) -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl font-extrabold text-slate-800">Historial de Facturación</h1>
-            <p class="text-xs text-slate-500">Registro cronológico de ventas, filtros avanzados por calendario y condición de pago</p>
+            <div class="flex items-center space-x-2.5">
+                <h1 id="tituloHistorial" class="text-xl font-extrabold text-slate-800">Historial de Facturación</h1>
+                <span id="badgeSubtituloTab" class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-cyan-100 text-cyan-800">VENTAS</span>
+            </div>
+            <p id="subtituloHistorial" class="text-xs text-slate-500">Registro cronológico de ventas, filtros avanzados por calendario y condición de pago</p>
         </div>
 
-        <button onclick="cargarHistorial()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 self-start sm:self-auto">
-            <i class="fa-solid fa-arrows-rotate"></i>
-            <span>Actualizar</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+            <!-- Pestañas Switcher -->
+            <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-2xs">
+                <button type="button" id="btnTabVentas" onclick="cambiarTabHistorial('ventas')"
+                    class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 bg-cyan-700 text-white shadow-sm">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Historial de Ventas</span>
+                </button>
+                <button type="button" id="btnTabCompras" onclick="cambiarTabHistorial('compras')"
+                    class="px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                    <span>Historial de Compras</span>
+                </button>
+            </div>
+
+            <!-- Botón Actualizar Dinámico -->
+            <button onclick="actualizarHistorialActivo()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Actualizar</span>
+            </button>
+        </div>
     </div>
 
-    <!-- PANEL DE FILTROS: CALENDARIO Y CONDICIÓN DE VENTA -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-        
-        <!-- Fila 1: Búsqueda y Condición (Contado vs Crédito) -->
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div class="sm:col-span-6 relative">
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Buscar por N° de Factura o Cliente</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </span>
-                    <input type="text" id="filtroHistorial" oninput="aplicarFiltrosHistorial()" placeholder="Escribe el número de factura o nombre..."
-                        class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                </div>
-            </div>
+    <!-- ======================================================== -->
+    <!-- SECCIÓN: HISTORIAL DE VENTAS                             -->
+    <!-- ======================================================== -->
+    <div id="seccionHistorialVentas" class="space-y-6">
 
-            <div class="sm:col-span-6">
-                <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Condición de Venta</span>
-                    <span class="text-[10px] text-cyan-600 font-bold">Filtro Rápido</span>
-                </label>
-                <select id="filtroCondicion" onchange="aplicarFiltrosHistorial()"
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                    <option value="TODAS">Todas las Ventas (Contado y Crédito)</option>
-                    <option value="contado">Solo Ventas al Contado</option>
-                    <option value="credito">Todas las Ventas a Crédito</option>
-                    <option value="credito_pendiente">Solo Créditos Pendientes (Con Saldo Debe)</option>
-                    <option value="credito_saldado">Solo Créditos Saldados</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Fila 2: Filtro por Calendario (Rango de Fechas) y Filtro por Trabajador -->
-        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                <span class="text-xs font-bold text-slate-700 flex items-center">
-                    <i class="fa-solid fa-calendar-days text-cyan-600 mr-1.5"></i>
-                    Filtrar por Calendario:
-                </span>
-                <div class="flex items-center space-x-1.5 text-xs">
-                    <span class="text-slate-500 font-semibold">Desde:</span>
-                    <input type="date" id="filtroFechaDesde" onchange="aplicarFiltrosHistorial()"
-                        class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                </div>
-                <div class="flex items-center space-x-1.5 text-xs">
-                    <span class="text-slate-500 font-semibold">Hasta:</span>
-                    <input type="date" id="filtroFechaHasta" onchange="aplicarFiltrosHistorial()"
-                        class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        <!-- PANEL DE FILTROS: CALENDARIO Y CONDICIÓN DE VENTA -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            
+            <!-- Fila 1: Búsqueda y Condición (Contado vs Crédito) -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div class="sm:col-span-6 relative">
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Buscar por N° de Factura o Cliente</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" id="filtroHistorial" oninput="aplicarFiltrosHistorial()" placeholder="Escribe el número de factura o nombre..."
+                            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
                 </div>
 
-                <!-- Separador vertical -->
-                <div class="hidden sm:block h-6 w-px bg-slate-300 mx-1"></div>
-
-                <!-- Filtro por Trabajador / Vendedor -->
-                <div class="flex items-center space-x-1.5 text-xs">
-                    <span class="text-slate-700 font-bold flex items-center whitespace-nowrap">
-                        <i class="fa-solid fa-user-tag text-amber-600 mr-1.5"></i>
-                        Trabajador:
-                    </span>
-                    <select id="filtroUsuario" onchange="aplicarFiltrosHistorial()"
-                        class="px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs min-w-[190px]">
-                        <option value="TODOS">👤 Todos los Trabajadores</option>
+                <div class="sm:col-span-6">
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex items-center justify-between">
+                        <span>Condición de Venta</span>
+                        <span class="text-[10px] text-cyan-600 font-bold">Filtro Rápido</span>
+                    </label>
+                    <select id="filtroCondicion" onchange="aplicarFiltrosHistorial()"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <option value="TODAS">Todas las Ventas (Contado y Crédito)</option>
+                        <option value="contado">Solo Ventas al Contado</option>
+                        <option value="credito">Todas las Ventas a Crédito</option>
+                        <option value="credito_pendiente">Solo Créditos Pendientes (Con Saldo Debe)</option>
+                        <option value="credito_saldado">Solo Créditos Saldados</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Accesos rápidos de calendario -->
-            <div class="flex items-center space-x-1 text-[11px] self-end xl:self-auto">
-                <button type="button" onclick="establecerRangoFecha('hoy')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Hoy</button>
-                <button type="button" onclick="establecerRangoFecha('semana')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Últimos 7 días</button>
-                <button type="button" onclick="establecerRangoFecha('mes')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Este Mes</button>
-                <button type="button" onclick="establecerRangoFecha('limpiar')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold text-rose-700 transition" title="Ver todas las ventas">Limpiar</button>
+            <!-- Fila 2: Filtro por Calendario (Rango de Fechas) y Filtro por Trabajador -->
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                    <span class="text-xs font-bold text-slate-700 flex items-center">
+                        <i class="fa-solid fa-calendar-days text-cyan-600 mr-1.5"></i>
+                        Filtrar por Calendario:
+                    </span>
+                    <div class="flex items-center space-x-1.5 text-xs">
+                        <span class="text-slate-500 font-semibold">Desde:</span>
+                        <input type="date" id="filtroFechaDesde" onchange="aplicarFiltrosHistorial()"
+                            class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div class="flex items-center space-x-1.5 text-xs">
+                        <span class="text-slate-500 font-semibold">Hasta:</span>
+                        <input type="date" id="filtroFechaHasta" onchange="aplicarFiltrosHistorial()"
+                            class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+
+                    <!-- Separador vertical -->
+                    <div class="hidden sm:block h-6 w-px bg-slate-300 mx-1"></div>
+
+                    <!-- Filtro por Trabajador / Vendedor -->
+                    <div class="flex items-center space-x-1.5 text-xs">
+                        <span class="text-slate-700 font-bold flex items-center whitespace-nowrap">
+                            <i class="fa-solid fa-user-tag text-amber-600 mr-1.5"></i>
+                            Trabajador:
+                        </span>
+                        <select id="filtroUsuario" onchange="aplicarFiltrosHistorial()"
+                            class="px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs min-w-[190px]">
+                            <option value="TODOS">👤 Todos los Trabajadores</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Accesos rápidos de calendario -->
+                <div class="flex items-center space-x-1 text-[11px] self-end xl:self-auto">
+                    <button type="button" onclick="establecerRangoFecha('hoy')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Hoy</button>
+                    <button type="button" onclick="establecerRangoFecha('semana')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Últimos 7 días</button>
+                    <button type="button" onclick="establecerRangoFecha('mes')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Este Mes</button>
+                    <button type="button" onclick="establecerRangoFecha('limpiar')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold text-rose-700 transition" title="Ver todas las ventas">Limpiar</button>
+                </div>
+            </div>
+
+            <!-- Indicadores de Totales Filtrados -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+                <div class="p-3 bg-slate-50/70 rounded-xl border border-slate-200 flex justify-between items-center">
+                    <span class="text-slate-500 font-medium">Facturas:</span>
+                    <strong id="kpiCantFacturas" class="text-slate-900 font-bold text-sm">0</strong>
+                </div>
+                <div class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 flex justify-between items-center">
+                    <span class="text-emerald-800 font-medium">Total Facturado:</span>
+                    <strong id="kpiTotalFacturado" class="text-emerald-700 font-black font-mono text-sm">$0.00</strong>
+                </div>
+                <div class="p-3 bg-cyan-50/70 rounded-xl border border-cyan-200 flex justify-between items-center">
+                    <span class="text-cyan-800 font-medium">Cobrado Contado:</span>
+                    <strong id="kpiTotalContado" class="text-cyan-700 font-black font-mono text-sm">$0.00</strong>
+                </div>
+                <div class="p-3 bg-rose-50/70 rounded-xl border border-rose-200 flex justify-between items-center">
+                    <span class="text-rose-800 font-medium">Saldo por Cobrar:</span>
+                    <strong id="kpiTotalDebe" class="text-rose-700 font-black font-mono text-sm">$0.00</strong>
+                </div>
             </div>
         </div>
 
-        <!-- Indicadores de Totales Filtrados -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
-            <div class="p-3 bg-slate-50/70 rounded-xl border border-slate-200 flex justify-between items-center">
-                <span class="text-slate-500 font-medium">Facturas:</span>
-                <strong id="kpiCantFacturas" class="text-slate-900 font-bold text-sm">0</strong>
-            </div>
-            <div class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 flex justify-between items-center">
-                <span class="text-emerald-800 font-medium">Total Facturado:</span>
-                <strong id="kpiTotalFacturado" class="text-emerald-700 font-black font-mono text-sm">$0.00</strong>
-            </div>
-            <div class="p-3 bg-cyan-50/70 rounded-xl border border-cyan-200 flex justify-between items-center">
-                <span class="text-cyan-800 font-medium">Cobrado Contado:</span>
-                <strong id="kpiTotalContado" class="text-cyan-700 font-black font-mono text-sm">$0.00</strong>
-            </div>
-            <div class="p-3 bg-rose-50/70 rounded-xl border border-rose-200 flex justify-between items-center">
-                <span class="text-rose-800 font-medium">Saldo por Cobrar:</span>
-                <strong id="kpiTotalDebe" class="text-rose-700 font-black font-mono text-sm">$0.00</strong>
+        <!-- TABLA HISTORIAL CON SCROLLBAR INDEPENDIENTE -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div id="contenedorTablaHistorial" class="overflow-x-auto overflow-y-auto max-h-[66vh] min-h-[350px]">
+                <table class="w-full text-left text-xs min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200 sticky top-0 z-20 shadow-xs backdrop-blur-sm">
+                        <tr>
+                            <th class="px-3 py-3.5 whitespace-nowrap">Factura N°</th>
+                            <th class="px-2.5 py-3.5 text-center whitespace-nowrap">Condición</th>
+                            <th class="px-3 py-3.5 whitespace-nowrap">Fecha y Hora</th>
+                            <th class="px-3.5 py-3.5">Cliente</th>
+                            <th class="px-3 py-3.5 whitespace-nowrap">Facturado Por</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Efectivo ($)</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Zelle ($)</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Transferencia ($)</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Punto ($)</th>
+                            <th class="px-2.5 py-3.5 text-right font-bold text-rose-600 whitespace-nowrap">Crédito / Debe ($)</th>
+                            <th class="px-3 py-3.5 text-right whitespace-nowrap">Total ($)</th>
+                            <th class="px-3 py-3.5 text-right whitespace-nowrap">Total (Bs.)</th>
+                            <th class="px-3 py-3.5 text-center whitespace-nowrap">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaHistorialBody" class="divide-y divide-slate-100">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+    <!-- FIN SECCIÓN HISTORIAL VENTAS -->
 
-    <!-- TABLA HISTORIAL CON SCROLLBAR INDEPENDIENTE -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-        <div id="contenedorTablaHistorial" class="overflow-x-auto overflow-y-auto max-h-[66vh] min-h-[350px]">
-            <table class="w-full text-left text-xs min-w-full border-collapse">
-                <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200 sticky top-0 z-20 shadow-xs backdrop-blur-sm">
-                    <tr>
-                        <th class="px-3 py-3.5 whitespace-nowrap">Factura N°</th>
-                        <th class="px-2.5 py-3.5 text-center whitespace-nowrap">Condición</th>
-                        <th class="px-3 py-3.5 whitespace-nowrap">Fecha y Hora</th>
-                        <th class="px-3.5 py-3.5">Cliente</th>
-                        <th class="px-3 py-3.5 whitespace-nowrap">Facturado Por</th>
-                        <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Efectivo ($)</th>
-                        <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Zelle ($)</th>
-                        <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Transferencia ($)</th>
-                        <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Punto ($)</th>
-                        <th class="px-2.5 py-3.5 text-right font-bold text-rose-600 whitespace-nowrap">Crédito / Debe ($)</th>
-                        <th class="px-3 py-3.5 text-right whitespace-nowrap">Total ($)</th>
-                        <th class="px-3 py-3.5 text-right whitespace-nowrap">Total (Bs.)</th>
-                        <th class="px-3 py-3.5 text-center whitespace-nowrap">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaHistorialBody" class="divide-y divide-slate-100">
-                    <!-- Filas dinámicas -->
-                </tbody>
-            </table>
+    <!-- ======================================================== -->
+    <!-- SECCIÓN: HISTORIAL DE COMPRAS (ENTRADAS DE MERCANCÍA)    -->
+    <!-- ======================================================== -->
+    <div id="seccionHistorialCompras" class="space-y-6 hidden">
+
+        <!-- PANEL DE FILTROS: CALENDARIO Y BÚSQUEDA DE COMPRAS -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            
+            <!-- Fila 1: Búsqueda y Botón Nueva Compra -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div class="sm:col-span-8 relative">
+                    <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Buscar por Código o Nombre de Artículo</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" id="filtroCompraBuscar" oninput="aplicarFiltrosCompras()" placeholder="Escribe el código o nombre del producto comprado..."
+                            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="sm:col-span-4 flex items-end">
+                    <a href="/compras" class="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 shadow-sm shadow-emerald-600/20">
+                        <i class="fa-solid fa-cart-plus text-sm"></i>
+                        <span>Registrar Nueva Compra</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Fila 2: Filtro por Calendario y Accesos Rápidos -->
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                    <span class="text-xs font-bold text-slate-700 flex items-center">
+                        <i class="fa-solid fa-calendar-days text-cyan-600 mr-1.5"></i>
+                        Filtrar por Fecha de Compra:
+                    </span>
+                    <div class="flex items-center space-x-1.5 text-xs">
+                        <span class="text-slate-500 font-semibold">Desde:</span>
+                        <input type="date" id="filtroCompraFechaDesde" onchange="aplicarFiltrosCompras()"
+                            class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                    <div class="flex items-center space-x-1.5 text-xs">
+                        <span class="text-slate-500 font-semibold">Hasta:</span>
+                        <input type="date" id="filtroCompraFechaHasta" onchange="aplicarFiltrosCompras()"
+                            class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    </div>
+                </div>
+
+                <!-- Accesos rápidos de calendario -->
+                <div class="flex items-center space-x-1 text-[11px] self-end xl:self-auto">
+                    <button type="button" onclick="establecerRangoFechaCompras('hoy')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Hoy</button>
+                    <button type="button" onclick="establecerRangoFechaCompras('semana')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Últimos 7 días</button>
+                    <button type="button" onclick="establecerRangoFechaCompras('mes')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Este Mes</button>
+                    <button type="button" onclick="establecerRangoFechaCompras('limpiar')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold text-rose-700 transition" title="Ver todas las compras">Limpiar</button>
+                </div>
+            </div>
+
+            <!-- Indicadores de Totales Filtrados de Compras -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+                <div class="p-3 bg-slate-50/70 rounded-xl border border-slate-200 flex justify-between items-center">
+                    <span class="text-slate-500 font-medium">Registros:</span>
+                    <strong id="kpiCantCompras" class="text-slate-900 font-bold text-sm">0</strong>
+                </div>
+                <div class="p-3 bg-blue-50/70 rounded-xl border border-blue-200 flex justify-between items-center">
+                    <span class="text-blue-800 font-medium">Unidades Ingresadas:</span>
+                    <strong id="kpiUnidadesCompras" class="text-blue-700 font-black font-mono text-sm">0</strong>
+                </div>
+                <div class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 flex justify-between items-center">
+                    <span class="text-emerald-800 font-medium">Total Invertido ($):</span>
+                    <strong id="kpiTotalComprasUSD" class="text-emerald-700 font-black font-mono text-sm">$0.00</strong>
+                </div>
+                <div class="p-3 bg-cyan-50/70 rounded-xl border border-cyan-200 flex justify-between items-center">
+                    <span class="text-cyan-800 font-medium">Total Invertido (Bs.):</span>
+                    <strong id="kpiTotalComprasBS" class="text-cyan-700 font-black font-mono text-sm">Bs. 0,00</strong>
+                </div>
+            </div>
         </div>
+
+        <!-- TABLA HISTORIAL DE COMPRAS CON SCROLLBAR INDEPENDIENTE -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div id="contenedorTablaCompras" class="overflow-x-auto overflow-y-auto max-h-[66vh] min-h-[350px]">
+                <table class="w-full text-left text-xs min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-[11px] tracking-wider border-b border-slate-200 sticky top-0 z-20 shadow-xs backdrop-blur-sm">
+                        <tr>
+                            <th class="px-3 py-3.5 whitespace-nowrap">ID / Fecha</th>
+                            <th class="px-3 py-3.5 whitespace-nowrap">Código</th>
+                            <th class="px-3.5 py-3.5">Artículo / Producto</th>
+                            <th class="px-2.5 py-3.5 text-center whitespace-nowrap">Cant. Ingresada</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Costo Base ($)</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Flete ($)</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">Costo Final ($)</th>
+                            <th class="px-2.5 py-3.5 text-center whitespace-nowrap">Margen (%)</th>
+                            <th class="px-2.5 py-3.5 text-right whitespace-nowrap">PVP Venta ($)</th>
+                            <th class="px-3 py-3.5 text-right whitespace-nowrap font-bold text-slate-800">Total Inversión ($)</th>
+                            <th class="px-3 py-3.5 text-center whitespace-nowrap">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaComprasBody" class="divide-y divide-slate-100">
+                        <!-- Filas dinámicas de compras -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
+    <!-- FIN SECCIÓN HISTORIAL COMPRAS -->
 </div>
 
 <!-- MODAL VER DETALLE DE FACTURA -->
@@ -769,12 +904,273 @@
 
     </div>
 </div>
+
+<!-- ======================================================== -->
+<!-- MODAL VER DETALLE DE COMPRA                              -->
+<!-- ======================================================== -->
+<div id="modalDetalleCompra" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-5 sm:p-6 text-xs text-slate-800 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-3 mb-3">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h3 class="font-bold text-sm">Entrada de Compra #<span id="detCompraId" class="text-blue-600"></span></h3>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-800">MERCANCÍA INGRESADA</span>
+                </div>
+                <span id="detCompraFecha" class="text-slate-400 text-[11px]"></span>
+            </div>
+            <button onclick="cerrarDetalleCompra()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 mb-3 space-y-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Producto / Artículo</span>
+                    <strong id="detCompraNombre" class="text-sm font-extrabold text-slate-800"></strong>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Código</span>
+                    <span id="detCompraCodigo" class="font-mono font-bold px-2 py-0.5 bg-slate-200/80 rounded-md text-slate-700"></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/80">
+                <div class="bg-white p-2.5 rounded-xl border border-slate-200">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold block">Cantidad Ingresada</span>
+                    <strong id="detCompraCantidad" class="text-base font-black text-blue-700 font-mono">0</strong>
+                </div>
+                <div class="bg-white p-2.5 rounded-xl border border-slate-200">
+                    <span class="text-[10px] text-slate-400 uppercase font-bold block">Stock Actual en Tienda</span>
+                    <strong id="detCompraStockActual" class="text-base font-black text-slate-700 font-mono">0</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desglose de Costos y Rentabilidad -->
+        <div class="p-3.5 bg-blue-50/50 rounded-2xl border border-blue-100 mb-3 space-y-2">
+            <span class="text-[10px] font-black uppercase tracking-wider text-blue-800 block">Estructura de Costo y Venta</span>
+            
+            <div class="grid grid-cols-3 gap-2 text-center font-mono">
+                <div class="bg-white p-2 rounded-xl border border-blue-100 shadow-2xs">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Costo Base</span>
+                    <span id="detCompraCostoBase" class="font-bold text-slate-700">$0.00</span>
+                </div>
+                <div class="bg-white p-2 rounded-xl border border-blue-100 shadow-2xs">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Flete</span>
+                    <span id="detCompraFlete" class="font-bold text-slate-700">$0.00</span>
+                </div>
+                <div class="bg-white p-2 rounded-xl border border-blue-100 shadow-2xs">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Costo Final</span>
+                    <span id="detCompraCostoFinal" class="font-black text-blue-700">$0.00</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-center font-mono pt-1">
+                <div class="bg-white p-2 rounded-xl border border-blue-100 shadow-2xs">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">Margen Rentab.</span>
+                    <span id="detCompraRentab" class="font-bold text-purple-700">0%</span>
+                </div>
+                <div class="bg-white p-2 rounded-xl border border-blue-100 shadow-2xs">
+                    <span class="text-[10px] text-slate-400 block uppercase font-sans font-bold">PVP Fijado</span>
+                    <span id="detCompraPrecio" class="font-black text-emerald-700">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total de la Inversión -->
+        <div class="border-t pt-2.5 pb-1 space-y-1 text-right font-bold">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-600 font-bold">TOTAL INVERSIÓN ($):</span>
+                <span id="detCompraTotalUSD" class="text-emerald-700 font-mono text-base font-black"></span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+                <span>TOTAL INVERSIÓN (BS.):</span>
+                <span id="detCompraTotalBS" class="font-mono font-bold"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+            <button onclick="cerrarDetalleCompra()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-700 transition">Cerrar</button>
+            <button type="button" onclick="intentarModificarCompra(detalleCompraActual ? detalleCompraActual.id : null)" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 font-bold rounded-xl text-white flex items-center justify-center space-x-1.5 shadow transition" title="Modificar esta compra">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Modificar</span>
+            </button>
+            <button type="button" onclick="intentarEliminarCompra(detalleCompraActual ? detalleCompraActual.id : null, detalleCompraActual ? detalleCompraActual.nombre_articulo : '')" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 font-bold rounded-xl text-white flex items-center justify-center space-x-1.5 shadow transition" title="Anular o revertir esta compra">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Anular</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL MODIFICAR COMPRA                                    -->
+<!-- ======================================================== -->
+<div id="modalModificarCompra" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-5 sm:p-6 text-xs text-slate-800 max-h-[96vh] flex flex-col overflow-hidden">
+        
+        <!-- Cabecera del Modal -->
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-3 shrink-0">
+            <div class="flex items-center space-x-2">
+                <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm shadow-sm">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </span>
+                <div>
+                    <h3 class="font-extrabold text-slate-800 text-sm">Modificar Registro de Compra</h3>
+                    <p class="text-[11px] text-slate-500">Ajusta cantidades o costos con recálculo automático de inventario</p>
+                </div>
+            </div>
+            <button onclick="cerrarModalModificarCompra()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="space-y-3.5 overflow-y-auto pr-1">
+            <input type="hidden" id="modCompraId">
+
+            <!-- Info del Producto -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Artículo</span>
+                <div class="flex items-center justify-between">
+                    <strong id="modCompraNombre" class="text-sm text-slate-800 font-extrabold"></strong>
+                    <span id="modCompraCodigo" class="font-mono font-bold text-xs bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600"></span>
+                </div>
+                <div class="mt-1 text-[11px] text-slate-500">
+                    Stock actual en tienda: <strong id="modCompraStockActualInfo" class="font-mono text-slate-700">0</strong> unid.
+                </div>
+            </div>
+
+            <!-- Cantidad Comprada -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Cantidad Comprada
+                </label>
+                <div class="relative">
+                    <input type="number" step="any" min="0.01" id="modCompraCantidad" oninput="recalcularModalModificarCompra()"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm font-extrabold text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-bold text-slate-400">unid.</span>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">El stock en inventario se actualizará sumando o restando la diferencia automáticamente.</p>
+            </div>
+
+            <!-- Costos -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Costo Unit. Base ($)</label>
+                    <input type="number" step="any" min="0" id="modCompraCosto" oninput="recalcularModalModificarCompra()"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Flete Unitario ($)</label>
+                    <input type="number" step="any" min="0" id="modCompraFlete" oninput="recalcularModalModificarCompra()"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Rentabilidad y Precio Venta -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Margen Rentab. (%)</label>
+                    <input type="number" step="any" min="0" id="modCompraRentabilidad" oninput="recalcularModalModificarCompra(true)"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs font-bold text-purple-700 focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Precio Venta PVP ($)</label>
+                    <input type="number" step="any" min="0" id="modCompraPrecio" oninput="recalcularModalModificarCompra(false)"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs font-black text-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Previsualización de Totales -->
+            <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-200/80 space-y-1.5 font-mono text-xs">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-600 font-sans font-semibold">Costo Final Unitario:</span>
+                    <strong id="modCompraCostoFinalPreview" class="text-blue-800">$0.00</strong>
+                </div>
+                <div class="flex justify-between items-center text-sm border-t border-blue-200/60 pt-1.5 font-sans font-bold">
+                    <span class="text-slate-700">Total Inversión ($):</span>
+                    <strong id="modCompraTotalUSDPreview" class="text-emerald-700 font-mono font-black text-base">$0.00</strong>
+                </div>
+                <div class="flex justify-between items-center text-xs text-slate-500 font-sans">
+                    <span>Equivalente en Bolívares:</span>
+                    <strong id="modCompraTotalBSPreview" class="font-mono text-slate-700">Bs. 0,00</strong>
+                </div>
+            </div>
+
+            <div id="modCompraPasswordContainer" class="hidden pt-1">
+                <label class="block text-[11px] font-bold text-rose-700 uppercase tracking-wider mb-1">Clave de Administrador Requerida</label>
+                <input type="password" id="modCompraAdminPassword" placeholder="Ingrese contraseña de admin..."
+                    class="w-full px-3 py-2 bg-rose-50 border border-rose-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+            </div>
+        </div>
+
+        <!-- Botones Inferiores -->
+        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 mt-3 shrink-0">
+            <button type="button" onclick="cerrarModalModificarCompra()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition">
+                Cancelar
+            </button>
+            <button type="button" onclick="guardarModificacionCompra()" id="btnGuardarModCompra" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black shadow-md shadow-amber-600/30 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-check"></i>
+                <span>Guardar Cambios</span>
+            </button>
+        </div>
+
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     let todasLasFacturas = [];
     let detalleFacturaActual = null;
+    let tabHistorialActiva = 'ventas';
+    let todasLasCompras = [];
+    let detalleCompraActual = null;
+    let compraModActual = null;
+
+    async function actualizarHistorialActivo() {
+        if (tabHistorialActiva === 'ventas') {
+            await cargarHistorial();
+        } else {
+            await cargarHistorialCompras();
+        }
+    }
+
+    function cambiarTabHistorial(tab) {
+        tabHistorialActiva = tab;
+        const btnVentas = document.getElementById('btnTabVentas');
+        const btnCompras = document.getElementById('btnTabCompras');
+        const secVentas = document.getElementById('seccionHistorialVentas');
+        const secCompras = document.getElementById('seccionHistorialCompras');
+        const badgeTab = document.getElementById('badgeSubtituloTab');
+        const titulo = document.getElementById('tituloHistorial');
+        const subtitulo = document.getElementById('subtituloHistorial');
+
+        if (tab === 'ventas') {
+            if (btnVentas) btnVentas.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 bg-cyan-700 text-white shadow-sm";
+            if (btnCompras) btnCompras.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900";
+            if (secVentas) secVentas.classList.remove('hidden');
+            if (secCompras) secCompras.classList.add('hidden');
+            if (badgeTab) {
+                badgeTab.textContent = "VENTAS";
+                badgeTab.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-cyan-100 text-cyan-800";
+            }
+            if (titulo) titulo.textContent = "Historial de Facturación";
+            if (subtitulo) subtitulo.textContent = "Registro cronológico de ventas, filtros avanzados por calendario y condición de pago";
+        } else {
+            if (btnCompras) btnCompras.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 bg-cyan-700 text-white shadow-sm";
+            if (btnVentas) btnVentas.className = "px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 text-slate-600 hover:text-slate-900";
+            if (secVentas) secVentas.classList.add('hidden');
+            if (secCompras) secCompras.classList.remove('hidden');
+            if (badgeTab) {
+                badgeTab.textContent = "COMPRAS";
+                badgeTab.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide uppercase bg-blue-100 text-blue-800";
+            }
+            if (titulo) titulo.textContent = "Historial de Compras";
+            if (subtitulo) subtitulo.textContent = "Registro cronológico de compras, entradas de inventario, costos, precios y márgenes";
+
+            if (!todasLasCompras || todasLasCompras.length === 0) {
+                cargarHistorialCompras();
+            }
+        }
+    }
 
     async function cargarHistorial() {
         try {
@@ -2563,6 +2959,554 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', cargarHistorial);
+    // ==========================================
+    // HISTORIAL DE COMPRAS (ENTRADAS DE MERCANCÍA)
+    // ==========================================
+
+    async function cargarHistorialCompras() {
+        const tbody = document.getElementById('tablaComprasBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-blue-600"></i>
+                        <p class="font-medium text-xs">Cargando historial de compras...</p>
+                    </td>
+                </tr>
+            `;
+        }
+
+        try {
+            const res = await fetch('/api/compras?limit=500');
+            if (res.ok) {
+                const data = await res.json();
+                todasLasCompras = data.items || [];
+                aplicarFiltrosCompras();
+            } else {
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="11" class="py-8 text-center text-rose-500 font-bold text-xs">
+                                <i class="fa-solid fa-triangle-exclamation text-base mb-1"></i>
+                                <p>Error al cargar el historial de compras.</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar compras:", e);
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="py-8 text-center text-rose-500 font-bold text-xs">
+                            <i class="fa-solid fa-wifi text-base mb-1"></i>
+                            <p>Error de conexión al cargar compras.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    }
+
+    function establecerRangoFechaCompras(tipo) {
+        const inpDesde = document.getElementById('filtroCompraFechaDesde');
+        const inpHasta = document.getElementById('filtroCompraFechaHasta');
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        const hoyStr = `${yyyy}-${mm}-${dd}`;
+
+        if (tipo === 'hoy') {
+            inpDesde.value = hoyStr;
+            inpHasta.value = hoyStr;
+        } else if (tipo === 'semana') {
+            const hace7 = new Date();
+            hace7.setDate(hace7.getDate() - 7);
+            const yyyy7 = hace7.getFullYear();
+            const mm7 = String(hace7.getMonth() + 1).padStart(2, '0');
+            const dd7 = String(hace7.getDate()).padStart(2, '0');
+            inpDesde.value = `${yyyy7}-${mm7}-${dd7}`;
+            inpHasta.value = hoyStr;
+        } else if (tipo === 'mes') {
+            inpDesde.value = `${yyyy}-${mm}-01`;
+            inpHasta.value = hoyStr;
+        } else if (tipo === 'limpiar') {
+            inpDesde.value = '';
+            inpHasta.value = '';
+        }
+
+        aplicarFiltrosCompras();
+    }
+
+    function aplicarFiltrosCompras() {
+        if (!todasLasCompras) return;
+
+        const q = (document.getElementById('filtroCompraBuscar') ? document.getElementById('filtroCompraBuscar').value : '').trim().toLowerCase();
+        const fDesde = document.getElementById('filtroCompraFechaDesde') ? document.getElementById('filtroCompraFechaDesde').value : '';
+        const fHasta = document.getElementById('filtroCompraFechaHasta') ? document.getElementById('filtroCompraFechaHasta').value : '';
+
+        const filtradas = todasLasCompras.filter(c => {
+            // Filtro búsqueda por código o nombre
+            if (q) {
+                const nom = (c.nombre_articulo || '').toLowerCase();
+                const cod = String(c.codigo_articulo || '');
+                if (!nom.includes(q) && !cod.includes(q)) {
+                    return false;
+                }
+            }
+
+            // Filtro por fecha ISO
+            if (c.fecha_iso) {
+                if (fDesde && c.fecha_iso < fDesde) return false;
+                if (fHasta && c.fecha_iso > fHasta) return false;
+            }
+
+            return true;
+        });
+
+        // Totales KPI
+        let totalUnidades = 0;
+        let totalUSD = 0;
+        let totalBS = 0;
+
+        filtradas.forEach(c => {
+            totalUnidades += (c.cantidad || 0);
+            totalUSD += (c.subtotal_usd || 0);
+            totalBS += (c.subtotal_bs || 0);
+        });
+
+        document.getElementById('kpiCantCompras').textContent = filtradas.length;
+        document.getElementById('kpiUnidadesCompras').textContent = totalUnidades.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        document.getElementById('kpiTotalComprasUSD').textContent = `$${totalUSD.toFixed(2)}`;
+        document.getElementById('kpiTotalComprasBS').textContent = `Bs. ${totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        // Renderizar tabla
+        const tbody = document.getElementById('tablaComprasBody');
+        if (!tbody) return;
+
+        if (filtradas.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-box-open text-3xl mb-2 text-slate-300"></i>
+                        <p class="font-bold text-xs">No se encontraron compras con los filtros seleccionados.</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = filtradas.map(c => {
+            const costoBase = (c.costo || 0).toFixed(2);
+            const flete = (c.flete || 0).toFixed(2);
+            const costoFinal = (c.costo_final || 0).toFixed(2);
+            const rentab = (c.rentabilidad || 0).toFixed(1);
+            const precio = (c.precio || 0).toFixed(2);
+            const totalInv = (c.subtotal_usd || 0).toFixed(2);
+            const totalBs = (c.subtotal_bs || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const nombreEscaped = (c.nombre_articulo || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+            return `
+                <tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100 font-sans">
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <div class="font-bold text-slate-800 text-xs flex items-center space-x-1">
+                            <span class="text-blue-600 font-mono">#${c.id}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 font-mono">${c.fecha || ''}</div>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <span class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded font-mono font-bold text-slate-700 text-xs">
+                            ${c.codigo_articulo}
+                        </span>
+                    </td>
+                    <td class="px-3.5 py-3 font-semibold text-slate-800 max-w-xs truncate" title="${nombreEscaped}">
+                        ${c.nombre_articulo || 'Sin descripción'}
+                    </td>
+                    <td class="px-2.5 py-3 text-center whitespace-nowrap font-mono">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
+                            +${c.cantidad} unid.
+                        </span>
+                    </td>
+                    <td class="px-2.5 py-3 text-right font-mono text-slate-600 whitespace-nowrap">$${costoBase}</td>
+                    <td class="px-2.5 py-3 text-right font-mono text-slate-500 whitespace-nowrap">${c.flete > 0 ? '$' + flete : '-'}</td>
+                    <td class="px-2.5 py-3 text-right font-mono font-bold text-blue-700 whitespace-nowrap">$${costoFinal}</td>
+                    <td class="px-2.5 py-3 text-center font-mono font-bold text-purple-700 whitespace-nowrap">${rentab}%</td>
+                    <td class="px-2.5 py-3 text-right font-mono font-black text-emerald-700 whitespace-nowrap">$${precio}</td>
+                    <td class="px-3 py-3 text-right whitespace-nowrap font-mono">
+                        <div class="font-black text-slate-900 text-xs">$${totalInv}</div>
+                        <div class="text-[10px] text-slate-400">Bs. ${totalBs}</div>
+                    </td>
+                    <td class="px-3 py-3 text-center whitespace-nowrap">
+                        <div class="flex items-center justify-center space-x-1">
+                            <button type="button" onclick="verDetalleCompra(${c.id})" class="p-1.5 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition" title="Ver detalle de compra">
+                                <i class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                            <button type="button" onclick="intentarModificarCompra(${c.id})" class="p-1.5 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-600 rounded-lg transition" title="Modificar compra">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
+                            <button type="button" onclick="intentarEliminarCompra(${c.id}, '${nombreEscaped}')" class="p-1.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-lg transition" title="Anular entrada de compra">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function verDetalleCompra(id) {
+        if (!id) return;
+        try {
+            const res = await fetch(`/api/compras/${id}`);
+            if (!res.ok) {
+                Swal.fire('Error', 'No se pudo obtener el detalle de la compra.', 'error');
+                return;
+            }
+            const d = await res.json();
+            detalleCompraActual = d;
+
+            document.getElementById('detCompraId').textContent = d.id;
+            document.getElementById('detCompraFecha').textContent = d.fecha || '';
+            document.getElementById('detCompraNombre').textContent = d.nombre_articulo || '';
+            document.getElementById('detCompraCodigo').textContent = d.codigo_articulo || '';
+            document.getElementById('detCompraCantidad').textContent = `${d.cantidad || 0} unid.`;
+            document.getElementById('detCompraStockActual').textContent = `${d.stock_actual_tienda !== undefined ? d.stock_actual_tienda : '-'} unid.`;
+
+            document.getElementById('detCompraCostoBase').textContent = `$${(d.costo || 0).toFixed(2)}`;
+            document.getElementById('detCompraFlete').textContent = `$${(d.flete || 0).toFixed(2)}`;
+            document.getElementById('detCompraCostoFinal').textContent = `$${(d.costo_final || 0).toFixed(2)}`;
+            document.getElementById('detCompraRentab').textContent = `${(d.rentabilidad || 0).toFixed(1)}%`;
+            document.getElementById('detCompraPrecio').textContent = `$${(d.precio || 0).toFixed(2)}`;
+
+            document.getElementById('detCompraTotalUSD').textContent = `$${(d.subtotal_usd || 0).toFixed(2)}`;
+            document.getElementById('detCompraTotalBS').textContent = `Bs. ${(d.subtotal_bs || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            document.getElementById('modalDetalleCompra').classList.remove('hidden');
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Fallo de conexión al cargar la compra.', 'error');
+        }
+    }
+
+    function cerrarDetalleCompra() {
+        document.getElementById('modalDetalleCompra').classList.add('hidden');
+    }
+
+    async function intentarModificarCompra(id) {
+        if (!id) return;
+        cerrarDetalleCompra();
+
+        const esAdmin = (typeof window.IS_ADMIN !== 'undefined' && window.IS_ADMIN === true) || (window.CURRENT_USER_ROL === 'admin') || (typeof tienePermiso === 'function' && tienePermiso('compras'));
+
+        let adminPassword = null;
+        if (!esAdmin) {
+            const { value: pwd } = await Swal.fire({
+                title: 'Autorización Requerida',
+                text: 'Se requiere la clave del administrador para modificar registros de compras:',
+                input: 'password',
+                inputPlaceholder: 'Contraseña de administrador...',
+                icon: 'lock',
+                showCancelButton: true,
+                confirmButtonText: 'Autorizar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#d97706'
+            });
+
+            if (!pwd) return;
+
+            try {
+                const resVerif = await fetch('/api/auth/verificar_admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const dVerif = await resVerif.json();
+                if (!resVerif.ok || dVerif.status !== 'ok') {
+                    Swal.fire('No Autorizado', dVerif.detail || 'Contraseña de administrador incorrecta.', 'error');
+                    return;
+                }
+                adminPassword = pwd;
+            } catch (err) {
+                Swal.fire('Error', 'Fallo de conexión al verificar credenciales.', 'error');
+                return;
+            }
+        }
+
+        try {
+            const res = await fetch(`/api/compras/${id}`);
+            if (!res.ok) {
+                Swal.fire('Error', 'No se pudo cargar la compra a modificar.', 'error');
+                return;
+            }
+            const compra = await res.json();
+            abrirModalModificarCompra(compra, adminPassword);
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Error al abrir la compra para modificación.', 'error');
+        }
+    }
+
+    function abrirModalModificarCompra(compra, adminPassword) {
+        compraModActual = { ...compra, adminPassword };
+
+        document.getElementById('modCompraId').value = compra.id;
+        document.getElementById('modCompraNombre').textContent = compra.nombre_articulo;
+        document.getElementById('modCompraCodigo').textContent = compra.codigo_articulo;
+        document.getElementById('modCompraStockActualInfo').textContent = compra.stock_actual_tienda !== undefined ? compra.stock_actual_tienda : '-';
+
+        document.getElementById('modCompraCantidad').value = compra.cantidad;
+        document.getElementById('modCompraCosto').value = compra.costo;
+        document.getElementById('modCompraFlete').value = compra.flete || 0;
+        document.getElementById('modCompraRentabilidad').value = compra.rentabilidad || 20;
+        document.getElementById('modCompraPrecio').value = compra.precio;
+
+        const pwdBox = document.getElementById('modCompraPasswordContainer');
+        const pwdInput = document.getElementById('modCompraAdminPassword');
+        if (pwdBox) {
+            if (adminPassword) {
+                pwdBox.classList.add('hidden');
+                pwdInput.value = adminPassword;
+            } else {
+                pwdBox.classList.add('hidden');
+                pwdInput.value = '';
+            }
+        }
+
+        recalcularModalModificarCompra();
+        document.getElementById('modalModificarCompra').classList.remove('hidden');
+    }
+
+    function cerrarModalModificarCompra() {
+        document.getElementById('modalModificarCompra').classList.add('hidden');
+        compraModActual = null;
+    }
+
+    function recalcularModalModificarCompra(desdeRentabilidad = false) {
+        const cant = parseFloat(document.getElementById('modCompraCantidad').value) || 0;
+        const costoBase = parseFloat(document.getElementById('modCompraCosto').value) || 0;
+        const flete = parseFloat(document.getElementById('modCompraFlete').value) || 0;
+        const inpRentab = document.getElementById('modCompraRentabilidad');
+        const inpPrecio = document.getElementById('modCompraPrecio');
+
+        const costoFinal = Math.round((costoBase + flete) * 100) / 100;
+        document.getElementById('modCompraCostoFinalPreview').textContent = `$${costoFinal.toFixed(2)}`;
+
+        if (desdeRentabilidad) {
+            const rent = parseFloat(inpRentab.value) || 0;
+            const nuevoPrecio = Math.round((costoFinal * (1 + rent / 100)) * 100) / 100;
+            inpPrecio.value = nuevoPrecio.toFixed(2);
+        } else {
+            const precio = parseFloat(inpPrecio.value) || 0;
+            if (costoFinal > 0) {
+                const nuevaRent = Math.round(((precio - costoFinal) / costoFinal * 100) * 10) / 10;
+                inpRentab.value = nuevaRent;
+            }
+        }
+
+        const totalUSD = Math.round((cant * costoFinal) * 100) / 100;
+        const tasa = (compraModActual && compraModActual.tasa_bcv) ? compraModActual.tasa_bcv : (typeof TASA_BCV !== 'undefined' ? TASA_BCV : 473.92);
+        const totalBS = Math.round((totalUSD * tasa) * 100) / 100;
+
+        document.getElementById('modCompraTotalUSDPreview').textContent = `$${totalUSD.toFixed(2)}`;
+        document.getElementById('modCompraTotalBSPreview').textContent = `Bs. ${totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    async function guardarModificacionCompra() {
+        if (!compraModActual) return;
+
+        const cant = parseFloat(document.getElementById('modCompraCantidad').value);
+        const costo = parseFloat(document.getElementById('modCompraCosto').value);
+        const flete = parseFloat(document.getElementById('modCompraFlete').value) || 0;
+        const rent = parseFloat(document.getElementById('modCompraRentabilidad').value) || 0;
+        const precio = parseFloat(document.getElementById('modCompraPrecio').value);
+
+        if (isNaN(cant) || cant <= 0) {
+            Swal.fire('Atención', 'La cantidad debe ser mayor que 0.', 'warning');
+            return;
+        }
+        if (isNaN(costo) || costo < 0) {
+            Swal.fire('Atención', 'El costo no puede ser negativo.', 'warning');
+            return;
+        }
+        if (isNaN(precio) || precio < 0) {
+            Swal.fire('Atención', 'El precio de venta no es válido.', 'warning');
+            return;
+        }
+
+        const dif = cant - compraModActual.cantidad;
+        let textoDif = '';
+        if (dif > 0) {
+            textoDif = `Se sumarán +${dif.toFixed(2)} unidades al inventario actual.`;
+        } else if (dif < 0) {
+            textoDif = `Se restarán ${Math.abs(dif).toFixed(2)} unidades del inventario actual.`;
+        } else {
+            textoDif = `El inventario se mantendrá con la misma cantidad y se actualizarán costos/precios.`;
+        }
+
+        const confirm = await Swal.fire({
+            title: '¿Confirmar modificación de compra?',
+            html: `
+                <div class="text-left text-xs space-y-2">
+                    <p><strong>Artículo:</strong> ${compraModActual.nombre_articulo}</p>
+                    <p><strong>Ajuste de inventario:</strong> <span class="font-bold text-blue-600">${textoDif}</span></p>
+                    <p><strong>Nuevo costo final:</strong> $${(costo + flete).toFixed(2)}</p>
+                    <p><strong>Nuevo PVP:</strong> $${precio.toFixed(2)}</p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, guardar cambios',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d97706'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        const payload = {
+            cantidad: cant,
+            costo: costo,
+            flete: flete,
+            mas: compraModActual.mas || 0,
+            rentabilidad: rent,
+            precio: precio,
+            admin_password: compraModActual.adminPassword || adminOverridePassword || null
+        };
+
+        try {
+            const res = await fetch(`/api/compras/${compraModActual.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            let data = {};
+            try {
+                data = await res.json();
+            } catch (err) {
+                data = { detail: 'Respuesta inválida del servidor.' };
+            }
+
+            if (res.ok) {
+                cerrarModalModificarCompra();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Compra Modificada!',
+                    text: data.mensaje || 'Registro de compra e inventario actualizados con éxito.',
+                    timer: 2200,
+                    showConfirmButton: false
+                });
+                await cargarHistorialCompras();
+            } else {
+                Swal.fire('Error', data.detail || 'No se pudo modificar la compra.', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Fallo de conexión al guardar cambios de compra: ' + (e.message || ''), 'error');
+        }
+    }
+
+    async function intentarEliminarCompra(id, nombreArticulo) {
+        if (!id) return;
+
+        const esAdmin = (typeof window.IS_ADMIN !== 'undefined' && window.IS_ADMIN === true) || (window.CURRENT_USER_ROL === 'admin');
+        let adminPassword = null;
+
+        if (!esAdmin) {
+            const { value: pwd } = await Swal.fire({
+                title: 'Autorización de Administrador',
+                text: 'Solo un usuario administrador puede anular o eliminar registros de compra. Ingrese la contraseña de administrador:',
+                input: 'password',
+                inputPlaceholder: 'Contraseña del administrador...',
+                icon: 'lock',
+                showCancelButton: true,
+                confirmButtonText: 'Autorizar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#e11d48'
+            });
+
+            if (!pwd) return;
+
+            try {
+                const resVerif = await fetch('/api/auth/verificar_admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const dVerif = await resVerif.json();
+                if (!resVerif.ok || dVerif.status !== 'ok') {
+                    Swal.fire('No Autorizado', dVerif.detail || 'Contraseña de administrador incorrecta.', 'error');
+                    return;
+                }
+                adminPassword = pwd;
+            } catch (e) {
+                Swal.fire('Error', 'Fallo al verificar contraseña con el servidor', 'error');
+                return;
+            }
+        }
+
+        const confirm = await Swal.fire({
+            title: '¿Anular esta entrada de compra?',
+            html: `
+                <div class="text-left text-xs space-y-2">
+                    <p class="font-bold text-slate-800">Producto: ${nombreArticulo}</p>
+                    <p class="text-rose-600 font-bold bg-rose-50 p-2 rounded-lg border border-rose-200">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                        ADVERTENCIA: Esta acción eliminará el registro de compra y revertirá las unidades ingresadas restándolas del inventario actual.
+                    </p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, anular compra',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#e11d48'
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+            let url = `/api/compras/${id}`;
+            if (adminPassword) {
+                url += `?admin_password=${encodeURIComponent(adminPassword)}`;
+            }
+
+            const res = await fetch(url, { method: 'DELETE' });
+            let data = {};
+            try {
+                data = await res.json();
+            } catch (err) {
+                data = { detail: 'Error en la respuesta del servidor.' };
+            }
+
+            if (res.ok) {
+                cerrarDetalleCompra();
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Compra Anulada!',
+                    text: data.mensaje || 'Registro eliminado y stock de inventario revertido correctamente.',
+                    timer: 2200,
+                    showConfirmButton: false
+                });
+                await cargarHistorialCompras();
+            } else {
+                Swal.fire('Error', data.detail || 'No se pudo anular la compra.', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Fallo de conexión al anular la compra.', 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'compras' || window.location.hash === '#compras') {
+            cambiarTabHistorial('compras');
+        } else {
+            cargarHistorial();
+        }
+    });
 </script>
 {% endblock %}

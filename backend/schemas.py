@@ -102,6 +102,15 @@ class CompraCreate(BaseModel):
     rentabilidad: Optional[float] = 20.0
     precio: float
 
+class CompraUpdate(BaseModel):
+    cantidad: Optional[float] = None
+    costo: Optional[float] = None
+    flete: Optional[float] = 0.0
+    mas: Optional[float] = 0.0
+    rentabilidad: Optional[float] = 20.0
+    precio: Optional[float] = None
+    admin_password: Optional[str] = None
+
 # Esquemas de Usuarios y Permisos
 class UsuarioCreate(BaseModel):
     username: str

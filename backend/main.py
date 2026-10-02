@@ -24,7 +24,7 @@ from .models import (
 )
 from .schemas import (
     LoginRequest, TasaBCVUpdate, ArticuloCreate, ArticuloOut,
-    ClienteCreate, ClienteUpdate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, AbonoCreate,
+    ClienteCreate, ClienteUpdate, ClienteOut, FacturaCreate, DespachoCreate, CompraCreate, CompraUpdate, AbonoCreate,
     UsuarioCreate, UsuarioUpdate, UsuarioOut, VerificarAdminRequest, ItemFacturaUpdate, FacturaUpdate,
     CajaApertura, CajaCierre
 )
@@ -1444,6 +1444,212 @@ def create_compra(payload: CompraCreate, db: Session = Depends(get_db), user: Us
         "articulo": articulo.nombre,
         "nuevo_stock": articulo.stock,
         "nuevo_precio": articulo.precio
+    }
+
+@app.get("/api/compras")
+def list_compras(
+    limit: int = 150,
+    offset: int = 0,
+    search: Optional[str] = None,
+    fecha_inicio: Optional[str] = None,
+    fecha_fin: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    query = db.query(Compra)
+
+    if search:
+        s = f"%{search.strip().lower()}%"
+        try:
+            cod_num = int(search.strip())
+            query = query.filter(or_(func.lower(Compra.nombre_articulo).like(s), Compra.codigo_articulo == cod_num))
+        except ValueError:
+            query = query.filter(func.lower(Compra.nombre_articulo).like(s))
+
+    if fecha_inicio:
+        try:
+            dt_ini = datetime.strptime(fecha_inicio, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+            query = query.filter(Compra.fecha >= dt_ini)
+        except Exception:
+            pass
+
+    if fecha_fin:
+        try:
+            dt_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Compra.fecha <= dt_fin)
+        except Exception:
+            pass
+
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+
+    # Totales filtrados para KPIs
+    todas_filtradas = query.all()
+    total_compras = len(todas_filtradas)
+    total_unidades = sum((c.cantidad or 0.0) for c in todas_filtradas)
+    total_invertido_usd = sum(((c.cantidad or 0.0) * ((c.costo or 0.0) + (c.flete or 0.0))) for c in todas_filtradas)
+    total_invertido_bs = round(total_invertido_usd * tasa_bcv, 2)
+
+    # Orden cronológico descendente y paginación
+    compras_pag = query.order_by(Compra.fecha.desc()).offset(offset).limit(limit).all()
+
+    items = []
+    for c in compras_pag:
+        costo_final = round((c.costo or 0.0) + (c.flete or 0.0), 2)
+        subtotal_usd = round((c.cantidad or 0.0) * costo_final, 2)
+        subtotal_bs = round(subtotal_usd * tasa_bcv, 2)
+        items.append({
+            "id": c.id,
+            "fecha": c.fecha.strftime("%d/%m/%Y %I:%M %p") if c.fecha else "",
+            "fecha_iso": c.fecha.isoformat() if c.fecha else "",
+            "codigo_articulo": c.codigo_articulo,
+            "nombre_articulo": c.nombre_articulo,
+            "cantidad": c.cantidad or 0.0,
+            "costo": c.costo or 0.0,
+            "flete": c.flete or 0.0,
+            "costo_final": costo_final,
+            "mas": c.mas or 0.0,
+            "rentabilidad": c.rentabilidad or 0.0,
+            "precio": c.precio or 0.0,
+            "subtotal_usd": subtotal_usd,
+            "subtotal_bs": subtotal_bs
+        })
+
+    return {
+        "status": "ok",
+        "total": total_compras,
+        "totales": {
+            "total_compras": total_compras,
+            "total_unidades": round(total_unidades, 2),
+            "total_invertido_usd": round(total_invertido_usd, 2),
+            "total_invertido_bs": total_invertido_bs,
+            "tasa_bcv": tasa_bcv
+        },
+        "items": items
+    }
+
+@app.get("/api/compras/{id}")
+def get_compra(id: int, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    compra = db.query(Compra).filter(Compra.id == id).first()
+    if not compra:
+        raise HTTPException(status_code=404, detail="Compra no encontrada")
+
+    articulo = db.query(Articulo).filter(Articulo.codigo == compra.codigo_articulo).first()
+    tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
+    costo_final = round((compra.costo or 0.0) + (compra.flete or 0.0), 2)
+    subtotal_usd = round((compra.cantidad or 0.0) * costo_final, 2)
+    sugerido = round(costo_final + (costo_final * (compra.rentabilidad or 0.0) / 100.0) + (compra.mas or 0.0), 2)
+
+    return {
+        "id": compra.id,
+        "fecha": compra.fecha.strftime("%d/%m/%Y %I:%M %p") if compra.fecha else "",
+        "codigo_articulo": compra.codigo_articulo,
+        "nombre_articulo": compra.nombre_articulo,
+        "cantidad": compra.cantidad,
+        "costo": compra.costo,
+        "flete": compra.flete or 0.0,
+        "costo_final": costo_final,
+        "mas": compra.mas or 0.0,
+        "rentabilidad": compra.rentabilidad or 0.0,
+        "sugerido": sugerido,
+        "precio": compra.precio,
+        "subtotal_usd": subtotal_usd,
+        "subtotal_bs": round(subtotal_usd * tasa_bcv, 2),
+        "tasa_bcv": tasa_bcv,
+        "articulo_stock_actual": articulo.stock if articulo else 0.0,
+        "articulo_precio_actual": articulo.precio if articulo else 0.0
+    }
+
+@app.put("/api/compras/{id}")
+def update_compra(id: int, payload: CompraUpdate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    # Autorización
+    if not (user.rol == "admin" or user.tiene_permiso("compras") or user.tiene_permiso("historial")):
+        if payload.admin_password:
+            check_admin_password(db, payload.admin_password)
+        else:
+            raise HTTPException(status_code=403, detail="Se requiere autorización de administrador para modificar compras.")
+
+    compra = db.query(Compra).filter(Compra.id == id).first()
+    if not compra:
+        raise HTTPException(status_code=404, detail="Compra no encontrada")
+
+    articulo = db.query(Articulo).filter(Articulo.codigo == compra.codigo_articulo).first()
+    if not articulo:
+        raise HTTPException(status_code=404, detail="Artículo asociado a esta compra no existe en inventario")
+
+    # Ajuste de stock diferencial: resta o suma la diferencia exacta
+    if payload.cantidad is not None and payload.cantidad >= 0:
+        dif_cantidad = payload.cantidad - compra.cantidad
+        articulo.stock = max(0.0, round(articulo.stock + dif_cantidad, 2))
+        compra.cantidad = payload.cantidad
+
+    if payload.costo is not None and payload.costo >= 0:
+        compra.costo = payload.costo
+        articulo.costo = payload.costo
+
+    if payload.flete is not None:
+        compra.flete = payload.flete
+        articulo.flete = payload.flete
+
+    if payload.mas is not None:
+        compra.mas = payload.mas
+        articulo.mas = payload.mas
+
+    if payload.rentabilidad is not None:
+        compra.rentabilidad = payload.rentabilidad
+        articulo.rentabilidad = payload.rentabilidad
+
+    costo_final = round((compra.costo or 0.0) + (compra.flete or 0.0), 2)
+    articulo.costo_final = costo_final
+
+    if payload.precio is not None and payload.precio >= 0:
+        compra.precio = payload.precio
+        articulo.precio = payload.precio
+    else:
+        sugerido = round(costo_final + (costo_final * (compra.rentabilidad or 0.0) / 100.0) + (compra.mas or 0.0), 2)
+        compra.precio = sugerido
+        articulo.precio = sugerido
+
+    db.commit()
+    db.refresh(compra)
+    db.refresh(articulo)
+
+    return {
+        "status": "ok",
+        "message": f"Compra #{compra.id} actualizada correctamente. Stock ajustado a {articulo.stock}.",
+        "compra_id": compra.id,
+        "nuevo_stock": articulo.stock,
+        "nuevo_precio": articulo.precio
+    }
+
+@app.delete("/api/compras/{id}")
+def delete_compra(
+    id: int,
+    admin_password: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    if user.rol != "admin":
+        if admin_password:
+            check_admin_password(db, admin_password)
+        else:
+            raise HTTPException(status_code=403, detail="Se requiere autorización de administrador para anular compras.")
+
+    compra = db.query(Compra).filter(Compra.id == id).first()
+    if not compra:
+        raise HTTPException(status_code=404, detail="Compra no encontrada")
+
+    articulo = db.query(Articulo).filter(Articulo.codigo == compra.codigo_articulo).first()
+    cant_revertida = compra.cantidad
+    if articulo:
+        articulo.stock = max(0.0, round(articulo.stock - cant_revertida, 2))
+
+    nom_art = compra.nombre_articulo
+    db.delete(compra)
+    db.commit()
+
+    return {
+        "status": "ok",
+        "message": f"Compra #{id} de '{nom_art}' anulada con éxito. Se restaron {cant_revertida} unidades del inventario."
     }
 
 # ==========================================
