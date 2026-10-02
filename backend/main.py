@@ -78,6 +78,16 @@ ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN total_esperado_efectivo_bs FLO
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN declarado_efectivo_bs FLOAT DEFAULT 0.0")
 ejecutar_ddl_seguro("ALTER TABLE cajas ADD COLUMN diferencia_efectivo_bs FLOAT DEFAULT 0.0")
 
+# Migraciones de empaque y unidades
+ejecutar_ddl_seguro("ALTER TABLE articulos ADD COLUMN es_empaque BOOLEAN DEFAULT FALSE")
+ejecutar_ddl_seguro("ALTER TABLE articulos ADD COLUMN nombre_empaque VARCHAR(50) DEFAULT 'PAQUETE'")
+ejecutar_ddl_seguro("ALTER TABLE articulos ADD COLUMN unidades_por_paquete FLOAT DEFAULT 1.0")
+ejecutar_ddl_seguro("ALTER TABLE articulos ADD COLUMN precio_unidad FLOAT DEFAULT 0.0")
+ejecutar_ddl_seguro("ALTER TABLE compras ADD COLUMN tipo_unidad VARCHAR(20) DEFAULT 'unidad'")
+ejecutar_ddl_seguro("ALTER TABLE compras ADD COLUMN factor_empaque FLOAT DEFAULT 1.0")
+ejecutar_ddl_seguro("ALTER TABLE detalles_factura ADD COLUMN tipo_unidad VARCHAR(20) DEFAULT 'unidad'")
+ejecutar_ddl_seguro("ALTER TABLE detalles_factura ADD COLUMN factor_empaque FLOAT DEFAULT 1.0")
+
 # Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) (solo si SQLite)
 try:
     if not engine.url.drivername.startswith("postgresql"):
@@ -412,7 +422,11 @@ def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user
         precio=precio,
         stock=payload.stock or 0.0,
         stock_alerta=stock_alerta,
-        activo=True
+        activo=True,
+        es_empaque=bool(payload.es_empaque),
+        nombre_empaque=(payload.nombre_empaque or "PAQUETE").strip().upper(),
+        unidades_por_paquete=float(payload.unidades_por_paquete or 1.0),
+        precio_unidad=float(payload.precio_unidad or 0.0)
     )
     db.add(item)
     db.commit()
@@ -446,6 +460,10 @@ def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(
     item.stock = payload.stock
     if payload.stock_alerta is not None:
         item.stock_alerta = payload.stock_alerta
+    item.es_empaque = bool(payload.es_empaque)
+    item.nombre_empaque = (payload.nombre_empaque or "PAQUETE").strip().upper()
+    item.unidades_por_paquete = float(payload.unidades_por_paquete or 1.0)
+    item.precio_unidad = float(payload.precio_unidad or 0.0)
     
     db.commit()
     db.refresh(item)
@@ -605,10 +623,16 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
                 status_code=400,
                 detail=f"No se puede facturar '{articulo.nombre}'. El producto no tiene unidades en inventario (Stock: 0)."
             )
-        if float(it.cantidad) > stock_actual:
+        factor = 1.0
+        if getattr(it, "tipo_unidad", "unidad") == "paquete" and articulo.es_empaque:
+            factor = float(it.factor_empaque or articulo.unidades_por_paquete or 1.0)
+
+        cant_unidades = round(it.cantidad * factor, 2)
+        if cant_unidades > stock_actual:
+            tipo_label = "paquetes" if getattr(it, "tipo_unidad", "unidad") == "paquete" else "unidades"
             raise HTTPException(
                 status_code=400,
-                detail=f"Stock insuficiente para '{articulo.nombre}'. Solicitado: {it.cantidad}, Disponible en inventario: {stock_actual}."
+                detail=f"Stock insuficiente para '{articulo.nombre}'. Solicitado: {it.cantidad} {tipo_label} ({cant_unidades} unid.), Disponible: {stock_actual} unid."
             )
 
         # Descuento en %
@@ -618,16 +642,25 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         total_factura += subtotal
 
         # Disminuir stock
-        articulo.stock = round(articulo.stock - it.cantidad, 2)
+        articulo.stock = round(articulo.stock - cant_unidades, 2)
+
+        nombre_item = articulo.nombre
+        if getattr(it, "tipo_unidad", "unidad") == "paquete" and articulo.es_empaque:
+            nombre_empaque_label = (articulo.nombre_empaque or "PAQ").strip().upper()
+            nombre_item = f"{articulo.nombre} ({nombre_empaque_label} x{int(articulo.unidades_por_paquete) if (articulo.unidades_por_paquete or 1.0).is_integer() else articulo.unidades_por_paquete})"
+        elif getattr(it, "tipo_unidad", "unidad") == "unidad" and articulo.es_empaque:
+            nombre_item = f"{articulo.nombre} (UNIDAD)"
 
         detalles.append(DetalleFactura(
             codigo_articulo=articulo.codigo,
-            nombre_articulo=articulo.nombre,
+            nombre_articulo=nombre_item,
             cantidad=it.cantidad,
             precio_unitario=it.precio_unitario,
             descuento_pct=dcto,
             subtotal=subtotal,
-            costo_unitario=articulo.costo_final
+            costo_unitario=articulo.costo_final,
+            tipo_unidad=getattr(it, "tipo_unidad", "unidad"),
+            factor_empaque=factor
         ))
 
     total_factura = round(total_factura, 2)
@@ -938,7 +971,8 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
             for item_antiguo in (factura.items or []):
                 art = db.query(Articulo).filter(Articulo.codigo == item_antiguo.codigo_articulo).first()
                 if art:
-                    art.stock = round(art.stock + item_antiguo.cantidad, 2)
+                    fact_ant = getattr(item_antiguo, "factor_empaque", 1.0) or 1.0
+                    art.stock = round(art.stock + (item_antiguo.cantidad * fact_ant), 2)
 
             # 2. Reemplazar items en la relación limpiamente
             total_nuevo = 0.0
@@ -952,20 +986,35 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
                 art = db.query(Articulo).filter(Articulo.codigo == cod_num).first()
                 nombre_art = art.nombre if art else f"Artículo #{cod_num}"
                 costo_art = art.costo_final if art else 0.0
+
+                factor = 1.0
+                if getattr(it, "tipo_unidad", "unidad") == "paquete" and art and art.es_empaque:
+                    factor = float(it.factor_empaque or art.unidades_por_paquete or 1.0)
+
+                cant_unidades = round(it.cantidad * factor, 2)
                 if art:
-                    art.stock = round(art.stock - it.cantidad, 2)
+                    art.stock = round(art.stock - cant_unidades, 2)
+
+                nombre_item = nombre_art
+                if getattr(it, "tipo_unidad", "unidad") == "paquete" and art and art.es_empaque:
+                    nombre_empaque_label = (art.nombre_empaque or "PAQ").strip().upper()
+                    nombre_item = f"{art.nombre} ({nombre_empaque_label} x{int(art.unidades_por_paquete) if (art.unidades_por_paquete or 1.0).is_integer() else art.unidades_por_paquete})"
+                elif getattr(it, "tipo_unidad", "unidad") == "unidad" and art and art.es_empaque:
+                    nombre_item = f"{art.nombre} (UNIDAD)"
                 
                 dcto = max(0.0, min(100.0, it.descuento_pct or 0.0))
                 subt = round(it.cantidad * it.precio_unitario * (1.0 - dcto / 100.0), 2)
                 total_nuevo += subt
                 nuevos_detalles.append(DetalleFactura(
                     codigo_articulo=cod_num,
-                    nombre_articulo=nombre_art,
+                    nombre_articulo=nombre_item,
                     cantidad=it.cantidad,
                     precio_unitario=it.precio_unitario,
                     descuento_pct=dcto,
                     subtotal=subt,
-                    costo_unitario=costo_art
+                    costo_unitario=costo_art,
+                    tipo_unidad=getattr(it, "tipo_unidad", "unidad"),
+                    factor_empaque=factor
                 ))
             
             # Asignar directamente a factura.items (cascade='all, delete-orphan' gestiona los antiguos)
@@ -1070,7 +1119,8 @@ def delete_factura(
                 cod_num = it.codigo_articulo
             art = db.query(Articulo).filter(Articulo.codigo == cod_num).first()
             if art:
-                art.stock = round((art.stock or 0.0) + (it.cantidad or 0.0), 2)
+                fact = getattr(it, "factor_empaque", 1.0) or 1.0
+                art.stock = round((art.stock or 0.0) + ((it.cantidad or 0.0) * fact), 2)
 
         # 2. Eliminar factura (los abonos y detalles se eliminan por cascade)
         db.delete(factura)
@@ -1432,7 +1482,13 @@ def create_compra(payload: CompraCreate, db: Session = Depends(get_db), user: Us
     articulo.rentabilidad = rent
     articulo.sugerido = sugerido
     articulo.precio = precio_final
-    articulo.stock = round(articulo.stock + payload.cantidad, 2)
+    
+    factor = 1.0
+    if getattr(payload, "tipo_unidad", "unidad") == "paquete" and articulo.es_empaque:
+        factor = float(payload.factor_empaque or articulo.unidades_por_paquete or 1.0)
+    
+    cant_stock = round(payload.cantidad * factor, 2)
+    articulo.stock = round(articulo.stock + cant_stock, 2)
 
     # Registrar en compras
     compra = Compra(
@@ -1444,7 +1500,9 @@ def create_compra(payload: CompraCreate, db: Session = Depends(get_db), user: Us
         flete=payload.flete or 0.0,
         mas=payload.mas or 0.0,
         rentabilidad=rent,
-        precio=precio_final
+        precio=precio_final,
+        tipo_unidad=getattr(payload, "tipo_unidad", "unidad"),
+        factor_empaque=factor
     )
     db.add(compra)
     db.commit()
@@ -1522,6 +1580,8 @@ def list_compras(
             "mas": c.mas or 0.0,
             "rentabilidad": c.rentabilidad or 0.0,
             "precio": c.precio or 0.0,
+            "tipo_unidad": getattr(c, "tipo_unidad", "unidad") or "unidad",
+            "factor_empaque": getattr(c, "factor_empaque", 1.0) or 1.0,
             "subtotal_usd": subtotal_usd,
             "subtotal_bs": subtotal_bs
         })
@@ -1564,6 +1624,8 @@ def get_compra(id: int, db: Session = Depends(get_db), user: Usuario = Depends(r
         "rentabilidad": compra.rentabilidad or 0.0,
         "sugerido": sugerido,
         "precio": compra.precio,
+        "tipo_unidad": getattr(compra, "tipo_unidad", "unidad") or "unidad",
+        "factor_empaque": getattr(compra, "factor_empaque", 1.0) or 1.0,
         "subtotal_usd": subtotal_usd,
         "subtotal_bs": round(subtotal_usd * tasa_bcv, 2),
         "tasa_bcv": tasa_bcv,
@@ -1588,11 +1650,22 @@ def update_compra(id: int, payload: CompraUpdate, db: Session = Depends(get_db),
     if not articulo:
         raise HTTPException(status_code=404, detail="Artículo asociado a esta compra no existe en inventario")
 
-    # Ajuste de stock diferencial: resta o suma la diferencia exacta
+    # Ajuste de stock diferencial: resta o suma la diferencia exacta teniendo en cuenta el factor_empaque
     if payload.cantidad is not None and payload.cantidad >= 0:
-        dif_cantidad = payload.cantidad - compra.cantidad
+        factor_ant = getattr(compra, "factor_empaque", 1.0) or 1.0
+        cant_ant_unid = compra.cantidad * factor_ant
+
+        tipo_u = payload.tipo_unidad if payload.tipo_unidad is not None else (getattr(compra, "tipo_unidad", "unidad") or "unidad")
+        factor_nuevo = 1.0
+        if tipo_u == "paquete" and articulo.es_empaque:
+            factor_nuevo = float(payload.factor_empaque or articulo.unidades_por_paquete or 1.0)
+
+        cant_nueva_unid = payload.cantidad * factor_nuevo
+        dif_cantidad = cant_nueva_unid - cant_ant_unid
         articulo.stock = max(0.0, round(articulo.stock + dif_cantidad, 2))
         compra.cantidad = payload.cantidad
+        compra.tipo_unidad = tipo_u
+        compra.factor_empaque = factor_nuevo
 
     if payload.costo is not None and payload.costo >= 0:
         compra.costo = payload.costo
@@ -1651,7 +1724,8 @@ def delete_compra(
         raise HTTPException(status_code=404, detail="Compra no encontrada")
 
     articulo = db.query(Articulo).filter(Articulo.codigo == compra.codigo_articulo).first()
-    cant_revertida = compra.cantidad
+    factor = getattr(compra, "factor_empaque", 1.0) or 1.0
+    cant_revertida = round(compra.cantidad * factor, 2)
     if articulo:
         articulo.stock = max(0.0, round(articulo.stock - cant_revertida, 2))
 

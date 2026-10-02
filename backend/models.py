@@ -142,6 +142,12 @@ class Articulo(Base):
     stock_alerta = Column(Float, default=5.0)
     activo = Column(Boolean, default=True)
 
+    # Empaque y Venta por Unidad
+    es_empaque = Column(Boolean, default=False)
+    nombre_empaque = Column(String(50), default="PAQUETE")
+    unidades_por_paquete = Column(Float, default=1.0)
+    precio_unidad = Column(Float, default=0.0)
+
 class Cliente(Base):
     __tablename__ = "clientes"
 
@@ -165,6 +171,8 @@ class Compra(Base):
     mas = Column(Float, default=0.0)
     rentabilidad = Column(Float, default=0.0)
     precio = Column(Float, default=0.0)
+    tipo_unidad = Column(String(20), default="unidad")  # 'paquete' o 'unidad'
+    factor_empaque = Column(Float, default=1.0)
 
 class Factura(Base):
     __tablename__ = "facturas"
@@ -228,6 +236,8 @@ class DetalleFactura(Base):
     descuento_pct = Column(Float, default=0.0)
     subtotal = Column(Float, default=0.0)
     costo_unitario = Column(Float, default=0.0)
+    tipo_unidad = Column(String(20), default="unidad")  # 'paquete' o 'unidad'
+    factor_empaque = Column(Float, default=1.0)
 
     factura = relationship("Factura", back_populates="items")
 

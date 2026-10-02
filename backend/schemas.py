@@ -25,6 +25,10 @@ class ArticuloBase(BaseModel):
     stock: Optional[float] = 0.0
     stock_alerta: Optional[float] = 5.0
     activo: Optional[bool] = True
+    es_empaque: Optional[bool] = False
+    nombre_empaque: Optional[str] = "PAQUETE"
+    unidades_por_paquete: Optional[float] = 1.0
+    precio_unidad: Optional[float] = 0.0
 
 class ArticuloCreate(ArticuloBase):
     pass
@@ -60,6 +64,8 @@ class ItemFacturaCreate(BaseModel):
     cantidad: float
     precio_unitario: float
     descuento_pct: Optional[float] = 0.0
+    tipo_unidad: Optional[str] = "unidad"
+    factor_empaque: Optional[float] = 1.0
 
 class FacturaCreate(BaseModel):
     cliente_nombre: Optional[str] = "CLIENTE DE CONTADO"
@@ -101,6 +107,8 @@ class CompraCreate(BaseModel):
     mas: Optional[float] = 0.0
     rentabilidad: Optional[float] = 20.0
     precio: float
+    tipo_unidad: Optional[str] = "unidad"
+    factor_empaque: Optional[float] = 1.0
 
 class CompraUpdate(BaseModel):
     cantidad: Optional[float] = None
@@ -109,6 +117,8 @@ class CompraUpdate(BaseModel):
     mas: Optional[float] = 0.0
     rentabilidad: Optional[float] = 20.0
     precio: Optional[float] = None
+    tipo_unidad: Optional[str] = "unidad"
+    factor_empaque: Optional[float] = 1.0
     admin_password: Optional[str] = None
 
 # Esquemas de Usuarios y Permisos
@@ -147,6 +157,8 @@ class ItemFacturaUpdate(BaseModel):
     cantidad: float
     precio_unitario: float
     descuento_pct: Optional[float] = 0.0
+    tipo_unidad: Optional[str] = "unidad"
+    factor_empaque: Optional[float] = 1.0
 
 class FacturaUpdate(BaseModel):
     cliente_nombre: Optional[str] = None

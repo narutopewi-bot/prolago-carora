@@ -50,6 +50,41 @@
                         <span class="text-slate-600 ml-3">Precio Actual: <strong id="selPrecio" class="text-emerald-700">$0.00</strong></span>
                     </div>
                 </div>
+
+                <!-- Selector de Presentación de Compra (Paquete vs Unidad) -->
+                <div id="seccionTipoPresentacionCompra" class="hidden mt-3 p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center">
+                            <i class="fa-solid fa-boxes-stacked text-indigo-600 mr-1.5"></i>
+                            ¿Cómo compraste esta mercancía?
+                        </span>
+                        <span id="badgeInfoEmpaqueCompra" class="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                            1 PAQUETE = 10 unidades
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <label id="optCompraPaquete" onclick="setTipoUnidadCompra('paquete')" class="cursor-pointer p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 flex items-center space-x-3 transition">
+                            <input type="radio" name="radioTipoCompra" id="rbCompraPaquete" value="paquete" checked class="text-indigo-600">
+                            <div>
+                                <span class="font-bold text-slate-800 text-xs block" id="lblTituloCompraPaquete">📦 Por Paquetes / Cajas</span>
+                                <span class="text-[10px] text-slate-500 block">La cantidad multiplicará las unidades físicas</span>
+                            </div>
+                        </label>
+                        <label id="optCompraUnidad" onclick="setTipoUnidadCompra('unidad')" class="cursor-pointer p-3 rounded-xl border-2 border-slate-200 bg-white hover:border-slate-300 flex items-center space-x-3 transition">
+                            <input type="radio" name="radioTipoCompra" id="rbCompraUnidad" value="unidad" class="text-indigo-600">
+                            <div>
+                                <span class="font-bold text-slate-800 text-xs block">🔹 Por Unidades Sueltas</span>
+                                <span class="text-[10px] text-slate-500 block">Ingresará unidad por unidad al inventario</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="p-2.5 bg-white/90 border border-indigo-200 rounded-xl text-xs flex items-center justify-between text-slate-700">
+                        <span>Equivalente en inventario físico:</span>
+                        <span id="lblEquivalenciaStockCompra" class="font-bold text-indigo-900 font-mono">1 Paquete = 10 unidades</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Cantidad y Costos -->
@@ -205,6 +240,40 @@
                 </div>
             </div>
 
+            <!-- Configuración de Venta por Paquete y Unidad Suelta -->
+            <div class="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center space-x-2.5 cursor-pointer">
+                        <input type="checkbox" id="artEsEmpaqueCompra" onchange="toggleSeccionEmpaqueCompra()" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300">
+                        <span class="font-bold text-indigo-950 text-xs uppercase tracking-wider flex items-center">
+                            <i class="fa-solid fa-boxes-stacked text-indigo-600 mr-1.5"></i>
+                            ¿Se vende en Paquete/Caja y también por Unidad?
+                        </span>
+                    </label>
+                    <span class="text-[10px] text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded-full">Doble Venta</span>
+                </div>
+
+                <div id="seccionCamposEmpaqueCompra" class="hidden space-y-3 pt-2 border-t border-indigo-200/60">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Nombre Presentación</label>
+                            <input type="text" id="artNombreEmpaqueCompra" value="PAQUETE" placeholder="Ej: PAQUETE, CAJA"
+                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 uppercase font-bold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Unidades x Empaque</label>
+                            <input type="number" step="1" min="2" id="artUnidadesPorPaqueteCompra" value="10"
+                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800 text-center">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-indigo-950 mb-1">Precio x Unidad Suelta ($)</label>
+                            <input type="number" step="any" min="0" id="artPrecioUnidadCompra" value="0.00"
+                                class="w-full px-3 py-2 bg-white border-2 border-indigo-400 rounded-xl focus:ring-2 focus:ring-indigo-500 font-black text-indigo-700 text-center">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Control de Existencias y Alerta Crítica Personalizada -->
             <div class="p-4 bg-amber-50/50 rounded-2xl border border-amber-200 space-y-3">
                 <div class="flex items-center justify-between">
@@ -245,6 +314,29 @@
 {% block extra_scripts %}
 <script>
     let articuloSeleccionado = null;
+    let tipoUnidadCompraActual = 'unidad';
+
+    function setTipoUnidadCompra(tipo) {
+        tipoUnidadCompraActual = tipo;
+        const rbPaq = document.getElementById('rbCompraPaquete');
+        const rbUni = document.getElementById('rbCompraUnidad');
+        const optPaq = document.getElementById('optCompraPaquete');
+        const optUni = document.getElementById('optCompraUnidad');
+
+        if (tipo === 'paquete') {
+            if (rbPaq) rbPaq.checked = true;
+            if (rbUni) rbUni.checked = false;
+            if (optPaq) optPaq.className = 'cursor-pointer p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 flex items-center space-x-3 transition';
+            if (optUni) optUni.className = 'cursor-pointer p-3 rounded-xl border-2 border-slate-200 bg-white hover:border-slate-300 flex items-center space-x-3 transition';
+        } else {
+            if (rbPaq) rbPaq.checked = false;
+            if (rbUni) rbUni.checked = true;
+            if (optPaq) optPaq.className = 'cursor-pointer p-3 rounded-xl border-2 border-slate-200 bg-white hover:border-slate-300 flex items-center space-x-3 transition';
+            if (optUni) optUni.className = 'cursor-pointer p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 flex items-center space-x-3 transition';
+        }
+
+        calcularCompra();
+    }
 
     function configurarBuscadorCompra() {
         const inp = document.getElementById('compraBuscarArticulo');
@@ -277,9 +369,12 @@
                         data.items.forEach(it => {
                             const d = document.createElement('div');
                             d.className = 'p-3 hover:bg-amber-50 cursor-pointer flex justify-between items-center text-xs';
+                            const badgeEmp = (it.es_empaque && it.unidades_por_paquete > 1) ? 
+                                `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 ml-1.5">📦 ${it.nombre_empaque || 'PAQ'} (${it.unidades_por_paquete}u)</span>` : '';
+                            
                             d.innerHTML = `
                                 <div>
-                                    <strong class="text-slate-800">${it.nombre}</strong>
+                                    <strong class="text-slate-800">${it.nombre}</strong>${badgeEmp}
                                     <span class="text-slate-400 block text-[10px]">Cód: ${it.codigo}</span>
                                 </div>
                                 <div class="text-right">
@@ -308,6 +403,19 @@
         document.getElementById('selPrecio').textContent = `$${it.precio.toFixed(2)}`;
         document.getElementById('badgeProductoSeleccionado').classList.remove('hidden');
 
+        // Configurar panel de empaque si aplica
+        const secEmp = document.getElementById('seccionTipoPresentacionCompra');
+        if (it.es_empaque && it.unidades_por_paquete > 1) {
+            secEmp.classList.remove('hidden');
+            const nomEmp = it.nombre_empaque || 'PAQUETE';
+            document.getElementById('badgeInfoEmpaqueCompra').textContent = `1 ${nomEmp} = ${it.unidades_por_paquete} unidades`;
+            document.getElementById('lblTituloCompraPaquete').textContent = `📦 Por ${nomEmp}S`;
+            setTipoUnidadCompra('paquete');
+        } else {
+            secEmp.classList.add('hidden');
+            setTipoUnidadCompra('unidad');
+        }
+
         document.getElementById('compraCosto').value = it.costo || 0;
         document.getElementById('compraFlete').value = it.flete || 0;
         document.getElementById('compraMas').value = it.mas || 0;
@@ -317,10 +425,11 @@
     }
 
     function calcularCompra() {
-        const costo = parseFloat(document.getElementById('compraCosto').value) || 0;
-        const flete = parseFloat(document.getElementById('compraFlete').value) || 0;
-        const mas = parseFloat(document.getElementById('compraMas').value) || 0;
-        const rent = parseFloat(document.getElementById('compraRent').value) || 0;
+        const cantEntrante = parseFloat(document.getElementById('compraCant')?.value) || 0;
+        const costo = parseFloat(document.getElementById('compraCosto')?.value) || 0;
+        const flete = parseFloat(document.getElementById('compraFlete')?.value) || 0;
+        const mas = parseFloat(document.getElementById('compraMas')?.value) || 0;
+        const rent = parseFloat(document.getElementById('compraRent')?.value) || 0;
 
         const costoFinal = costo + flete;
         const sugerido = costoFinal + (costoFinal * rent / 100) + mas;
@@ -328,6 +437,19 @@
         document.getElementById('compraCostoFinalLbl').textContent = `$${costoFinal.toFixed(2)}`;
         document.getElementById('compraSugeridoLbl').textContent = `$${sugerido.toFixed(2)}`;
         document.getElementById('compraPrecioFinal').value = sugerido.toFixed(2);
+
+        // Equivalencia de inventario en vivo
+        const lblEq = document.getElementById('lblEquivalenciaStockCompra');
+        if (lblEq && articuloSeleccionado) {
+            const factor = (articuloSeleccionado.es_empaque && tipoUnidadCompraActual === 'paquete') ? (articuloSeleccionado.unidades_por_paquete || 1) : 1;
+            const uFisicas = cantEntrante * factor;
+            if (articuloSeleccionado.es_empaque && tipoUnidadCompraActual === 'paquete') {
+                const nom = articuloSeleccionado.nombre_empaque || 'Paquetes';
+                lblEq.textContent = `${cantEntrante} ${nom} = ${uFisicas.toLocaleString('es-VE')} unidades físicas a ingresar al stock`;
+            } else {
+                lblEq.textContent = `${cantEntrante.toLocaleString('es-VE')} unidades físicas a ingresar al stock`;
+            }
+        }
     }
 
     async function registrarCompra(e) {
@@ -337,6 +459,8 @@
             return;
         }
 
+        const factor = (articuloSeleccionado.es_empaque && tipoUnidadCompraActual === 'paquete') ? (articuloSeleccionado.unidades_por_paquete || 1) : 1;
+
         const payload = {
             codigo_articulo: articuloSeleccionado.codigo,
             cantidad: parseFloat(document.getElementById('compraCant').value) || 0,
@@ -344,7 +468,9 @@
             flete: parseFloat(document.getElementById('compraFlete').value) || 0,
             mas: parseFloat(document.getElementById('compraMas').value) || 0,
             rentabilidad: parseFloat(document.getElementById('compraRent').value) || 0,
-            precio: parseFloat(document.getElementById('compraPrecioFinal').value) || 0
+            precio: parseFloat(document.getElementById('compraPrecioFinal').value) || 0,
+            tipo_unidad: tipoUnidadCompraActual,
+            factor_empaque: factor
         };
 
         try {
@@ -375,12 +501,35 @@
         }
     }
 
+    function toggleSeccionEmpaqueCompra() {
+        const chk = document.getElementById('artEsEmpaqueCompra');
+        const sec = document.getElementById('seccionCamposEmpaqueCompra');
+        if (chk && sec) {
+            if (chk.checked) {
+                sec.classList.remove('hidden');
+            } else {
+                sec.classList.add('hidden');
+            }
+        }
+    }
+
     function abrirModalNuevoArticuloCompra(sugerencia = '') {
         document.getElementById('formArticuloCompra').reset();
         document.getElementById('artStockAlertaCompra').value = 5;
         document.getElementById('artRentCompra').value = 20;
         document.getElementById('artStockCompra').value = 0;
         document.getElementById('artCategoriaCompra').value = 'Alimento';
+
+        // Reset empaque
+        const chk = document.getElementById('artEsEmpaqueCompra');
+        if (chk) chk.checked = false;
+        const inpNom = document.getElementById('artNombreEmpaqueCompra');
+        if (inpNom) inpNom.value = 'PAQUETE';
+        const inpCant = document.getElementById('artUnidadesPorPaqueteCompra');
+        if (inpCant) inpCant.value = '10';
+        const inpPreUni = document.getElementById('artPrecioUnidadCompra');
+        if (inpPreUni) inpPreUni.value = '0.00';
+        toggleSeccionEmpaqueCompra();
 
         if (sugerencia) {
             const num = parseInt(sugerencia);
@@ -425,6 +574,11 @@
             return;
         }
 
+        const esEmpaque = document.getElementById('artEsEmpaqueCompra')?.checked || false;
+        const nomEmpaque = (document.getElementById('artNombreEmpaqueCompra')?.value || 'PAQUETE').trim().toUpperCase() || 'PAQUETE';
+        const uXPaq = parseFloat(document.getElementById('artUnidadesPorPaqueteCompra')?.value) || 1;
+        const pUnidad = parseFloat(document.getElementById('artPrecioUnidadCompra')?.value) || 0;
+
         const payload = {
             codigo: codigo,
             nombre: document.getElementById('artNombreCompra').value.trim(),
@@ -437,7 +591,11 @@
             rentabilidad: parseFloat(document.getElementById('artRentCompra').value) || 20,
             precio: parseFloat(document.getElementById('artPrecioCompra').value) || 0,
             stock: parseFloat(document.getElementById('artStockCompra').value) || 0,
-            stock_alerta: parseFloat(document.getElementById('artStockAlertaCompra').value) || 5
+            stock_alerta: parseFloat(document.getElementById('artStockAlertaCompra').value) || 5,
+            es_empaque: esEmpaque,
+            nombre_empaque: nomEmpaque,
+            unidades_por_paquete: uXPaq,
+            precio_unidad: pUnidad
         };
 
         try {

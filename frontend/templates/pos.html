@@ -1988,41 +1988,93 @@
                 data.items.forEach(item => {
                     const div = document.createElement('div');
                     const estaAgotado = (item.stock || 0) <= 0;
-                    div.className = `p-3 flex items-center justify-between transition ${estaAgotado ? 'bg-red-50/40 hover:bg-red-50 cursor-not-allowed opacity-75' : 'hover:bg-emerald-50/70 cursor-pointer'}`;
                     const stockClass = item.stock > 10 ? 'bg-emerald-100 text-emerald-800' : (item.stock > 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700 font-black');
                     const precioBs = (item.precio * TASA_BCV).toFixed(2);
 
-                    div.innerHTML = `
-                        <div>
-                            <div class="font-bold text-slate-800 text-xs flex items-center space-x-1.5">
-                                <span>${item.nombre}</span>
-                                ${estaAgotado ? '<span class="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded font-black uppercase tracking-wider">Agotado</span>' : ''}
+                    if (item.es_empaque) {
+                        const nombreEmpaque = (item.nombre_empaque || 'PAQUETE').toUpperCase();
+                        const unids = item.unidades_por_paquete || 1;
+                        const precioPaq = item.precio || 0;
+                        const precioUnid = item.precio_unidad || 0;
+
+                        div.className = `p-3 border-b border-slate-100 last:border-b-0 transition ${estaAgotado ? 'bg-red-50/40 opacity-75' : 'hover:bg-slate-50'}`;
+                        div.innerHTML = `
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <div class="font-bold text-slate-800 text-xs flex items-center space-x-1.5 flex-wrap gap-1">
+                                        <span>${item.nombre}</span>
+                                        <span class="text-[9px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black uppercase">📦 ${nombreEmpaque} x${unids}</span>
+                                        ${estaAgotado ? '<span class="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded font-black uppercase">Agotado</span>' : ''}
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 mt-0.5">
+                                        Cód: <span class="font-mono font-bold text-slate-600">${item.codigo}</span> | Cat: ${item.categoria || 'GENERAL'} |
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${stockClass}">${estaAgotado ? 'Sin Stock: 0' : 'Stock: ' + item.stock + ' unid.'}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">
-                                Cód: <span class="font-mono font-bold text-slate-600">${item.codigo}</span> | Cat: ${item.categoria || 'GENERAL'}
+                            ${!estaAgotado ? `
+                            <div class="mt-2.5 flex items-center justify-end space-x-2">
+                                <button type="button" class="btn-add-paq px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer shadow-xs">
+                                    <span>📦 ${nombreEmpaque}</span>
+                                    <span class="text-indigo-200">($${precioPaq.toFixed(2)})</span>
+                                </button>
+                                <button type="button" class="btn-add-unid px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer shadow-xs">
+                                    <span>🔹 UNIDAD</span>
+                                    <span class="text-amber-950 font-black">($${precioUnid.toFixed(2)})</span>
+                                </button>
                             </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-sm font-black text-emerald-600">$${item.precio.toFixed(2)}</div>
-                            <div class="text-[10px] text-slate-400 font-medium">Bs. ${precioBs}</div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${stockClass}">${estaAgotado ? 'Sin Stock: 0' : 'Stock: ' + item.stock}</span>
-                        </div>
-                    `;
-                    div.onclick = () => {
-                        if (estaAgotado) {
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Artículo Agotado',
-                                text: `El producto "${item.nombre}" no tiene unidades disponibles en inventario (Stock: 0). No se puede facturar.`,
-                                confirmButtonColor: '#8B1E24'
+                            ` : ''}
+                        `;
+
+                        if (!estaAgotado) {
+                            div.querySelector('.btn-add-paq')?.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                agregarAlCarrito(item, 'paquete');
+                                document.getElementById('buscadorArticulo').value = '';
+                                dropdown.classList.add('hidden');
                             });
-                            return;
+                            div.querySelector('.btn-add-unid')?.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                agregarAlCarrito(item, 'unidad');
+                                document.getElementById('buscadorArticulo').value = '';
+                                dropdown.classList.add('hidden');
+                            });
                         }
-                        agregarAlCarrito(item);
-                        document.getElementById('buscadorArticulo').value = '';
-                        dropdown.classList.add('hidden');
-                    };
-                    dropdown.appendChild(div);
+                        dropdown.appendChild(div);
+                    } else {
+                        div.className = `p-3 flex items-center justify-between transition ${estaAgotado ? 'bg-red-50/40 hover:bg-red-50 cursor-not-allowed opacity-75' : 'hover:bg-emerald-50/70 cursor-pointer'}`;
+                        div.innerHTML = `
+                            <div>
+                                <div class="font-bold text-slate-800 text-xs flex items-center space-x-1.5">
+                                    <span>${item.nombre}</span>
+                                    ${estaAgotado ? '<span class="text-[9px] bg-red-600 text-white px-1.5 py-0.2 rounded font-black uppercase tracking-wider">Agotado</span>' : ''}
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">
+                                    Cód: <span class="font-mono font-bold text-slate-600">${item.codigo}</span> | Cat: ${item.categoria || 'GENERAL'}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-emerald-600">$${item.precio.toFixed(2)}</div>
+                                <div class="text-[10px] text-slate-400 font-medium">Bs. ${precioBs}</div>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${stockClass}">${estaAgotado ? 'Sin Stock: 0' : 'Stock: ' + item.stock}</span>
+                            </div>
+                        `;
+                        div.onclick = () => {
+                            if (estaAgotado) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Artículo Agotado',
+                                    text: `El producto "${item.nombre}" no tiene unidades disponibles en inventario (Stock: 0). No se puede facturar.`,
+                                    confirmButtonColor: '#8B1E24'
+                                });
+                                return;
+                            }
+                            agregarAlCarrito(item, 'unidad');
+                            document.getElementById('buscadorArticulo').value = '';
+                            dropdown.classList.add('hidden');
+                        };
+                        dropdown.appendChild(div);
+                    }
                 });
 
                 dropdown.classList.remove('hidden');
@@ -2032,7 +2084,7 @@
         }
     }
 
-    function agregarAlCarrito(prod) {
+    function agregarAlCarrito(prod, tipoVenta = 'paquete') {
         const stockDisp = parseFloat(prod.stock || 0);
         if (stockDisp <= 0) {
             Swal.fire({
@@ -2044,28 +2096,78 @@
             return;
         }
 
-        const existe = carrito.find(x => x.codigo === prod.codigo);
+        const esEmpaque = !!prod.es_empaque;
+        const nombreEmpaque = (prod.nombre_empaque || 'PAQUETE').toUpperCase();
+        const factorEmpaque = esEmpaque ? (parseFloat(prod.unidades_por_paquete) || 1.0) : 1.0;
+        const precioPaquete = parseFloat(prod.precio || 0);
+        const precioUnidad = esEmpaque ? (parseFloat(prod.precio_unidad) || precioPaquete) : precioPaquete;
+
+        const tipoFinal = esEmpaque ? tipoVenta : 'unidad';
+        const precioAplicado = (tipoFinal === 'unidad') ? precioUnidad : precioPaquete;
+
+        // Calcular cuántas unidades físicas totales de este artículo ya están en el carrito
+        const unidadesEnCarrito = carrito
+            .filter(x => x.codigo === prod.codigo)
+            .reduce((acc, it) => acc + (it.cantidad * ((it.tipo_venta === 'paquete' && it.es_empaque) ? it.unidades_por_paquete : 1)), 0);
+
+        const unidadesParaEstaAdicion = (tipoFinal === 'paquete' && esEmpaque) ? factorEmpaque : 1;
+
+        if (unidadesEnCarrito + unidadesParaEstaAdicion > stockDisp) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Stock Límite Alcanzado',
+                text: `No puedes agregar más unidades de "${prod.nombre}". Solo quedan ${stockDisp} unidades disponibles en inventario.`,
+                confirmButtonColor: '#8B1E24'
+            });
+            return;
+        }
+
+        const existe = carrito.find(x => x.codigo === prod.codigo && (x.tipo_venta || 'paquete') === tipoFinal);
         if (existe) {
-            if (existe.cantidad + 1 > stockDisp) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Stock Límite Alcanzado',
-                    text: `No puedes agregar más unidades de "${prod.nombre}". Solo hay ${stockDisp} unidades en inventario.`,
-                    confirmButtonColor: '#8B1E24'
-                });
-                return;
-            }
             existe.cantidad += 1;
         } else {
             carrito.push({
                 codigo: prod.codigo,
                 nombre: prod.nombre,
-                precio: prod.precio,
+                precio: precioAplicado,
+                precio_paquete: precioPaquete,
+                precio_unidad: precioUnidad,
                 descuento: 0,
                 cantidad: 1,
-                stock: stockDisp
+                stock: stockDisp,
+                es_empaque: esEmpaque,
+                nombre_empaque: nombreEmpaque,
+                unidades_por_paquete: factorEmpaque,
+                tipo_venta: tipoFinal
             });
         }
+        renderizarCarrito();
+    }
+
+    function cambiarPresentacionCarrito(idx, nuevoTipo) {
+        const item = carrito[idx];
+        if (!item || !item.es_empaque) return;
+
+        const factorNuevo = (nuevoTipo === 'paquete') ? item.unidades_por_paquete : 1;
+
+        // Validar stock disponible
+        const otrasUnidades = carrito
+            .filter((x, i) => x.codigo === item.codigo && i !== idx)
+            .reduce((acc, it) => acc + (it.cantidad * ((it.tipo_venta === 'paquete' && it.es_empaque) ? it.unidades_por_paquete : 1)), 0);
+
+        const unidadesRequeridas = item.cantidad * factorNuevo;
+        if (otrasUnidades + unidadesRequeridas > item.stock) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Stock Insuficiente',
+                text: `No hay suficiente stock para cambiar a ${nuevoTipo}. Se requieren ${unidadesRequeridas} unidades y solo hay ${Math.max(0, item.stock - otrasUnidades)} disponibles.`,
+                confirmButtonColor: '#8B1E24'
+            });
+            return;
+        }
+
+        item.tipo_venta = nuevoTipo;
+        item.precio = (nuevoTipo === 'unidad') ? item.precio_unidad : item.precio_paquete;
         renderizarCarrito();
     }
 
@@ -2113,8 +2215,29 @@
                 tr.innerHTML = `
                     <td class="px-4 py-3 font-mono text-xs font-bold text-slate-500">${item.codigo}</td>
                     <td class="px-4 py-3 font-medium text-slate-800 text-xs">
-                        ${item.nombre}
-                        ${item.stock <= 5 ? `<span class="ml-1 text-[10px] text-amber-600 font-bold">(Stock: ${item.stock})</span>` : ''}
+                        <div class="font-bold flex items-center space-x-1.5 flex-wrap gap-1">
+                            <span>${item.nombre}</span>
+                            ${item.es_empaque ? `
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${item.tipo_venta === 'paquete' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : 'bg-amber-100 text-amber-900 border border-amber-200'}">
+                                    ${item.tipo_venta === 'paquete' ? `📦 ${item.nombre_empaque} (x${item.unidades_por_paquete})` : '🔹 UNIDAD SUELTA'}
+                                </span>
+                            ` : ''}
+                        </div>
+                        ${item.es_empaque ? `
+                        <div class="mt-1 flex items-center space-x-1.5">
+                            <button type="button" onclick="cambiarPresentacionCarrito(${idx}, 'paquete')"
+                                class="px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition ${item.tipo_venta === 'paquete' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                                📦 Paq ($${(item.precio_paquete || 0).toFixed(2)})
+                            </button>
+                            <button type="button" onclick="cambiarPresentacionCarrito(${idx}, 'unidad')"
+                                class="px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition ${item.tipo_venta === 'unidad' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                                🔹 Unid ($${(item.precio_unidad || 0).toFixed(2)})
+                            </button>
+                        </div>
+                        ` : ''}
+                        <div class="text-[10px] text-slate-400 mt-0.5">
+                            Existencia total: <span class="font-bold text-slate-600">${item.stock} unid.</span>
+                        </div>
                     </td>
                     <td class="px-3 py-3 text-center">
                         <div class="inline-flex items-center space-x-1 border border-slate-300 rounded-lg bg-white p-0.5">
@@ -2147,11 +2270,22 @@
                     <div class="flex items-start justify-between gap-2">
                         <div class="flex-1">
                             <div class="font-bold text-slate-800 text-xs leading-snug line-clamp-2">${item.nombre}</div>
+                            ${item.es_empaque ? `
+                                <div class="mt-1 flex items-center space-x-1.5">
+                                    <button type="button" onclick="cambiarPresentacionCarrito(${idx}, 'paquete')"
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition ${item.tipo_venta === 'paquete' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-200 text-slate-700'}">
+                                        📦 Paq
+                                    </button>
+                                    <button type="button" onclick="cambiarPresentacionCarrito(${idx}, 'unidad')"
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition ${item.tipo_venta === 'unidad' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-200 text-slate-700'}">
+                                        🔹 Unid
+                                    </button>
+                                </div>
+                            ` : ''}
                             <div class="flex items-center space-x-2 text-[10px] text-slate-400 mt-1">
                                 <span>Cód: <strong class="font-mono text-slate-600">${item.codigo}</strong></span>
                                 <span>&bull;</span>
                                 <span>P.U: <strong class="text-slate-700 font-mono">$${item.precio.toFixed(2)}</strong></span>
-                                ${item.stock <= 5 ? `<span class="text-amber-600 font-bold bg-amber-50 px-1 rounded">Stock: ${item.stock}</span>` : ''}
                             </div>
                         </div>
                         <button onclick="eliminarDelCarrito(${idx})" class="text-slate-400 hover:text-red-500 p-1.5 active:scale-90 transition" title="Eliminar">
@@ -2160,7 +2294,6 @@
                     </div>
 
                     <div class="flex items-center justify-between pt-2 border-t border-slate-200/60">
-                        <!-- Control táctil de cantidad -->
                         <div class="inline-flex items-center space-x-1.5 bg-white border border-slate-300 rounded-xl p-1 shadow-xs">
                             <button onclick="cambiarCantidad(${idx}, -1)" class="w-8 h-8 flex items-center justify-center bg-slate-100 text-slate-700 rounded-lg text-sm font-bold active:bg-slate-300">-</button>
                             <input type="number" step="any" min="0.001" value="${item.cantidad}" onchange="ajustarCantidad(${idx}, this.value)"
@@ -2168,7 +2301,6 @@
                             <button onclick="cambiarCantidad(${idx}, 1)" class="w-8 h-8 flex items-center justify-center bg-emerald-100 text-emerald-800 rounded-lg text-sm font-bold active:bg-emerald-300">+</button>
                         </div>
 
-                        <!-- Descuento y Subtotal -->
                         <div class="flex items-center space-x-3 text-right">
                             <div>
                                 <span class="text-[9px] text-slate-400 block uppercase font-bold">Dcto %</span>
@@ -2192,7 +2324,6 @@
         document.getElementById('totalItemsCount').textContent = totalItems;
         document.getElementById('btnCobrar').disabled = false;
 
-        // Sincronizar barra flotante móvil
         const mobTotalUSD = document.getElementById('mobTotalUSD');
         if (mobTotalUSD) {
             mobTotalUSD.textContent = `$${totalUSD.toFixed(2)}`;
@@ -2210,14 +2341,21 @@
             renderizarCarrito();
             return;
         }
-        if (item.stock !== undefined && nuevaCant > item.stock) {
+
+        const factor = (item.tipo_venta === 'paquete' && item.es_empaque) ? item.unidades_por_paquete : 1;
+        const otrasUnidades = carrito
+            .filter((x, i) => x.codigo === item.codigo && i !== idx)
+            .reduce((acc, it) => acc + (it.cantidad * ((it.tipo_venta === 'paquete' && it.es_empaque) ? it.unidades_por_paquete : 1)), 0);
+
+        if (item.stock !== undefined && (otrasUnidades + nuevaCant * factor) > item.stock) {
+            const disponiblesParaItem = Math.max(0, Math.floor((item.stock - otrasUnidades) / factor));
             Swal.fire({
                 icon: 'warning',
                 title: 'Stock Límite',
-                text: `Solo dispones de ${item.stock} unidades en inventario para "${item.nombre}".`,
+                text: `Solo dispones de ${disponiblesParaItem} ${(item.tipo_venta === 'paquete' && item.es_empaque) ? item.nombre_empaque : 'unidades'} disponibles en inventario para "${item.nombre}".`,
                 confirmButtonColor: '#8B1E24'
             });
-            item.cantidad = item.stock;
+            if (disponiblesParaItem > 0) item.cantidad = disponiblesParaItem;
             renderizarCarrito();
             return;
         }
@@ -2226,21 +2364,26 @@
     }
 
     function ajustarCantidad(idx, val) {
-        const n = parseFloat(val);
         const item = carrito[idx];
-        if (isNaN(n) || n <= 0) {
-            item.cantidad = 1;
-        } else if (item.stock !== undefined && n > item.stock) {
+        let cant = parseFloat(val);
+        if (isNaN(cant) || cant <= 0) cant = 1;
+
+        const factor = (item.tipo_venta === 'paquete' && item.es_empaque) ? item.unidades_por_paquete : 1;
+        const otrasUnidades = carrito
+            .filter((x, i) => x.codigo === item.codigo && i !== idx)
+            .reduce((acc, it) => acc + (it.cantidad * ((it.tipo_venta === 'paquete' && it.es_empaque) ? it.unidades_por_paquete : 1)), 0);
+
+        if (item.stock !== undefined && (otrasUnidades + cant * factor) > item.stock) {
+            const disponiblesParaItem = Math.max(0, Math.floor((item.stock - otrasUnidades) / factor));
             Swal.fire({
                 icon: 'warning',
                 title: 'Stock Límite',
-                text: `Solo dispones de ${item.stock} unidades en inventario para "${item.nombre}".`,
+                text: `Solo dispones de ${disponiblesParaItem} ${(item.tipo_venta === 'paquete' && item.es_empaque) ? item.nombre_empaque : 'unidades'} disponibles en inventario para "${item.nombre}".`,
                 confirmButtonColor: '#8B1E24'
             });
-            item.cantidad = item.stock;
-        } else {
-            item.cantidad = n;
+            cant = disponiblesParaItem > 0 ? disponiblesParaItem : 1;
         }
+        item.cantidad = cant;
         renderizarCarrito();
     }
 
@@ -2574,7 +2717,9 @@
                 codigo_articulo: it.codigo,
                 cantidad: it.cantidad,
                 precio_unitario: it.precio,
-                descuento_pct: it.descuento
+                descuento_pct: it.descuento || 0,
+                tipo_unidad: it.tipo_venta || (it.es_empaque ? 'paquete' : 'unidad'),
+                factor_empaque: (it.tipo_venta === 'paquete' && it.es_empaque) ? (it.unidades_por_paquete || 1) : 1
             }))
         };
 
@@ -2757,11 +2902,14 @@
 
         const itemsFilasHtml = items.map(it => {
             const subt = it.subtotal || (it.cantidad * it.precio * (1 - (it.descuento || 0) / 100));
+            const nombreLinea = (it.tipo_venta === 'paquete' && it.es_empaque)
+                ? `${it.nombre} (${it.nombre_empaque || 'PAQ.'} x${it.unidades_por_paquete || 1})`
+                : (it.es_empaque ? `${it.nombre} (UNID.)` : it.nombre);
             return `
                 <tr>
                     <td class="${padTabla} font-mono font-bold text-center text-slate-500">${it.codigo || '-'}</td>
                     <td class="${padTabla} font-bold text-center">${it.cantidad}</td>
-                    <td class="${padTabla} font-semibold text-slate-800 truncate max-w-[220px]">${it.nombre}</td>
+                    <td class="${padTabla} font-semibold text-slate-800 truncate max-w-[220px]">${nombreLinea}</td>
                     <td class="${padTabla} text-right font-mono">$${(it.precio || 0).toFixed(2)}</td>
                     <td class="${padTabla} text-right font-mono font-bold text-slate-900">$${subt.toFixed(2)}</td>
                 </tr>
@@ -3049,12 +3197,15 @@
             const desc = Number(it.descuento || 0);
             const subt = it.subtotal !== undefined ? Number(it.subtotal) : (cant * prec * (1 - desc / 100));
             const descTag = desc > 0 ? `<span class="text-[9px] block text-slate-600">(Desc: ${desc}%)</span>` : '';
+            const nombreLinea = (it.tipo_venta === 'paquete' && it.es_empaque)
+                ? `${it.nombre} (${it.nombre_empaque || 'PAQ.'} x${it.unidades_por_paquete || 1})`
+                : (it.es_empaque ? `${it.nombre} (UNID.)` : it.nombre);
 
             return `
                 <tr>
                     <td class="py-1 font-bold text-center align-top">${cant % 1 === 0 ? cant : cant.toFixed(2)}</td>
                     <td class="py-1 pr-1 font-medium align-top leading-tight">
-                        <div>${it.nombre}</div>
+                        <div>${nombreLinea}</div>
                         ${descTag}
                     </td>
                     <td class="py-1 text-right font-mono align-top">$${prec.toFixed(2)}</td>

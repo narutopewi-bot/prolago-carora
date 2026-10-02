@@ -354,7 +354,55 @@
 
                 <div class="pt-2 border-t border-slate-200">
                     <label class="block font-bold text-slate-800 mb-1">Precio de Venta Definitivo ($ USD)</label>
-                    <input type="number" step="any" min="0" id="artPrecio" required class="w-full px-3 py-2 bg-white border border-emerald-400 rounded-xl text-base font-black text-emerald-700 text-center focus:ring-2 focus:ring-emerald-500">
+                    <input type="number" step="any" min="0" id="artPrecio" required oninput="actualizarResumenEmpaque()" class="w-full px-3 py-2 bg-white border border-emerald-400 rounded-xl text-base font-black text-emerald-700 text-center focus:ring-2 focus:ring-emerald-500">
+                </div>
+            </div>
+
+            <!-- Configuración de Venta por Paquete y Unidad Suelta -->
+            <div class="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center space-x-2.5 cursor-pointer">
+                        <input type="checkbox" id="artEsEmpaque" onchange="toggleSeccionEmpaque()" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300">
+                        <span class="font-bold text-indigo-950 text-xs uppercase tracking-wider flex items-center">
+                            <i class="fa-solid fa-boxes-stacked text-indigo-600 mr-1.5"></i>
+                            ¿Se vende en Paquete/Caja y también por Unidad?
+                        </span>
+                    </label>
+                    <span class="text-[10px] text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded-full">Doble Venta</span>
+                </div>
+
+                <div id="seccionCamposEmpaque" class="hidden space-y-3 pt-2 border-t border-indigo-200/60">
+                    <p class="text-[11px] text-indigo-900 leading-tight">
+                        Permite vender el artículo por <strong>paquete completo</strong> o por <strong>unidades sueltas</strong> con diferente precio, descontando automáticamente del mismo inventario sin duplicar productos ni transferencias manuales.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Nombre Presentación</label>
+                            <input type="text" id="artNombreEmpaque" value="PAQUETE" placeholder="Ej: PAQUETE, CAJA"
+                                oninput="actualizarResumenEmpaque()"
+                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 uppercase font-bold text-slate-800">
+                            <p class="text-[10px] text-slate-400 mt-1">Ej: PAQUETE, CAJA, DISPLAY.</p>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Unidades por Empaque</label>
+                            <input type="number" step="1" min="2" id="artUnidadesPorPaquete" value="10"
+                                oninput="actualizarResumenEmpaque()"
+                                class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800 text-center">
+                            <p class="text-[10px] text-slate-400 mt-1">Cuántas unidades trae (ej: 10).</p>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-indigo-950 mb-1">Precio x Unidad Suelta ($)</label>
+                            <input type="number" step="any" min="0" id="artPrecioUnidad" value="0.00"
+                                oninput="actualizarResumenEmpaque()"
+                                class="w-full px-3 py-2 bg-white border-2 border-indigo-400 rounded-xl focus:ring-2 focus:ring-indigo-500 font-black text-indigo-700 text-center">
+                            <p class="text-[10px] text-indigo-600 font-semibold mt-1">Precio venta al detal.</p>
+                        </div>
+                    </div>
+
+                    <div id="boxResumenEmpaque" class="p-2.5 bg-white/90 rounded-xl border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-700 gap-1">
+                        <span>📦 1 <strong id="lblResumenEmpaqueNom" class="text-indigo-900">PAQUETE</strong> = <strong id="lblResumenEmpaqueCant" class="text-indigo-900 font-mono">10</strong> unidades físicas</span>
+                        <span id="lblResumenComparacion" class="font-bold text-indigo-700 font-mono"></span>
+                    </div>
                 </div>
             </div>
 
@@ -845,20 +893,54 @@
 
             const precioBs = (item.precio * TASA_BCV).toFixed(2);
 
+            // Desglose de empaque si aplica
+            let badgeEmpaque = '';
+            let subStockEmpaque = '';
+            let celdaPrecio = `<td class="px-4 py-3 text-right font-mono font-black text-emerald-700 text-sm">$${item.precio.toFixed(2)}</td>`;
+
+            if (item.es_empaque && item.unidades_por_paquete > 1) {
+                const nomPaq = item.nombre_empaque || 'PAQUETE';
+                const uXPaq = item.unidades_por_paquete;
+                const paqs = Math.floor(stock / uXPaq);
+                const sueltas = Math.round(stock % uXPaq);
+                let desgloseStr = '';
+                if (paqs > 0 && sueltas > 0) {
+                    desgloseStr = `${paqs} ${nomPaq.substring(0,4)}. + ${sueltas} unid.`;
+                } else if (paqs > 0) {
+                    desgloseStr = `${paqs} ${nomPaq}`;
+                } else {
+                    desgloseStr = `${sueltas} unid. sueltas`;
+                }
+
+                badgeEmpaque = `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 ml-1.5" title="${uXPaq} unidades por ${nomPaq}">📦 ${nomPaq} (${uXPaq}u)</span>`;
+                subStockEmpaque = `<span class="text-[9px] text-indigo-700 font-bold mt-0.5 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100" title="Desglose: ${desgloseStr}">${desgloseStr}</span>`;
+                
+                celdaPrecio = `
+                    <td class="px-4 py-3 text-right font-mono whitespace-nowrap">
+                        <div class="font-black text-emerald-700 text-sm">$${item.precio.toFixed(2)} <span class="text-[10px] text-emerald-600 font-semibold">/${nomPaq.substring(0,4)}.</span></div>
+                        <div class="text-[10px] text-indigo-600 font-bold">$${(item.precio_unidad || 0).toFixed(2)} /unid.</div>
+                    </td>
+                `;
+            }
+
             tr.innerHTML = `
                 <td class="px-4 py-3 font-mono font-bold text-slate-500">${item.codigo}</td>
-                <td class="px-4 py-3 font-bold text-slate-800">${item.nombre}</td>
+                <td class="px-4 py-3 font-bold text-slate-800">
+                    <span>${item.nombre}</span>
+                    ${badgeEmpaque}
+                </td>
                 <td class="px-3 py-3 text-slate-500 font-semibold">${item.categoria || 'GENERAL'}</td>
                 <td class="px-3 py-3 text-center">
                     <div class="flex flex-col items-center">
                         ${badgeStock}
+                        ${subStockEmpaque}
                         <span class="text-[9px] text-slate-400 font-medium mt-0.5" title="Alerta configurada">Mínimo: &le;${umbral}</span>
                     </div>
                 </td>
                 <td class="px-3 py-3 text-right font-mono text-slate-600">$${(item.costo_final || 0).toFixed(2)}</td>
                 <td class="px-3 py-3 text-center font-bold text-slate-500">${item.rentabilidad || 0}%</td>
                 <td class="px-3 py-3 text-right font-mono text-slate-500">$${(item.sugerido || 0).toFixed(2)}</td>
-                <td class="px-4 py-3 text-right font-mono font-black text-emerald-700 text-sm">$${item.precio.toFixed(2)}</td>
+                ${celdaPrecio}
                 <td class="px-4 py-3 text-right font-mono text-slate-600">Bs. ${Number(precioBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
                 <td class="px-3 py-3 text-center whitespace-nowrap space-x-1">
                     <button onclick="imprimirEtiquetaIndividual(${item.codigo})" class="text-slate-600 hover:text-[#8B1E24] hover:bg-rose-50 p-1.5 rounded-lg transition" title="Imprimir Etiqueta con Código de Barras">
@@ -978,15 +1060,70 @@
         }
     }
 
+    function toggleSeccionEmpaque() {
+        const chk = document.getElementById('artEsEmpaque');
+        const sec = document.getElementById('seccionCamposEmpaque');
+        if (chk && sec) {
+            if (chk.checked) {
+                sec.classList.remove('hidden');
+            } else {
+                sec.classList.add('hidden');
+            }
+            actualizarResumenEmpaque();
+        }
+    }
+
+    function actualizarResumenEmpaque() {
+        const nom = (document.getElementById('artNombreEmpaque')?.value || 'PAQUETE').trim().toUpperCase() || 'PAQUETE';
+        const cant = parseInt(document.getElementById('artUnidadesPorPaquete')?.value, 10) || 1;
+        const pPaq = parseFloat(document.getElementById('artPrecio')?.value) || 0;
+        const pUni = parseFloat(document.getElementById('artPrecioUnidad')?.value) || 0;
+
+        const lblNom = document.getElementById('lblResumenEmpaqueNom');
+        const lblCant = document.getElementById('lblResumenEmpaqueCant');
+        const lblComp = document.getElementById('lblResumenComparacion');
+
+        if (lblNom) lblNom.textContent = nom;
+        if (lblCant) lblCant.textContent = cant;
+
+        if (lblComp) {
+            if (pPaq > 0 && cant > 0) {
+                const costoEq = pPaq / cant;
+                let txt = `($${costoEq.toFixed(2)} / unid. en ${nom.toLowerCase()})`;
+                if (pUni > 0) {
+                    const dif = ((pUni - costoEq) / costoEq) * 100;
+                    if (dif > 0) {
+                        txt += ` &bull; <span class="text-emerald-600 font-bold">+${dif.toFixed(0)}% al detal</span>`;
+                    }
+                }
+                lblComp.innerHTML = txt;
+            } else {
+                lblComp.innerHTML = '';
+            }
+        }
+    }
+
     function abrirModalNuevoArticulo() {
         document.getElementById('esEdicion').value = "false";
         document.getElementById('tituloModalArticulo').textContent = "Registrar Nuevo Artículo";
         document.getElementById('artCodigo').readOnly = false;
         document.getElementById('formArticulo').reset();
         document.getElementById('artCategoria').value = "Alimento";
-        document.getElementById('lblStockModal').textContent = "Stock Inicial";
+        document.getElementById('lblStockModal').textContent = "Stock Inicial (Unidades Totales)";
         document.getElementById('artStockAlerta').value = 5;
         document.getElementById('artRent').value = 20;
+
+        // Reset Empaque
+        const chkEmp = document.getElementById('artEsEmpaque');
+        if (chkEmp) chkEmp.checked = false;
+        const inpNomEmp = document.getElementById('artNombreEmpaque');
+        if (inpNomEmp) inpNomEmp.value = 'PAQUETE';
+        const inpCantEmp = document.getElementById('artUnidadesPorPaquete');
+        if (inpCantEmp) inpCantEmp.value = '10';
+        const inpPreUni = document.getElementById('artPrecioUnidad');
+        if (inpPreUni) inpPreUni.value = '0.00';
+        toggleSeccionEmpaque();
+
         document.getElementById('btnEliminarDesdeModal').classList.add('hidden');
         recalcularModalPrecios();
         document.getElementById('modalArticulo').classList.remove('hidden');
@@ -1026,9 +1163,21 @@
         document.getElementById('artMas').value = art.mas || 0;
         document.getElementById('artRent').value = art.rentabilidad || 20;
         document.getElementById('artPrecio').value = art.precio || 0;
-        document.getElementById('lblStockModal').textContent = "Stock Actual";
+        document.getElementById('lblStockModal').textContent = "Stock Actual (Unidades Totales)";
         document.getElementById('artStock').value = art.stock || 0;
         document.getElementById('artStockAlerta').value = (art.stock_alerta !== null && art.stock_alerta !== undefined) ? art.stock_alerta : 5;
+
+        // Cargar datos de empaque
+        const chkEmp = document.getElementById('artEsEmpaque');
+        if (chkEmp) chkEmp.checked = Boolean(art.es_empaque);
+        const inpNomEmp = document.getElementById('artNombreEmpaque');
+        if (inpNomEmp) inpNomEmp.value = art.nombre_empaque || 'PAQUETE';
+        const inpCantEmp = document.getElementById('artUnidadesPorPaquete');
+        if (inpCantEmp) inpCantEmp.value = art.unidades_por_paquete || 10;
+        const inpPreUni = document.getElementById('artPrecioUnidad');
+        if (inpPreUni) inpPreUni.value = (art.precio_unidad !== null && art.precio_unidad !== undefined) ? art.precio_unidad : 0.00;
+        toggleSeccionEmpaque();
+
         document.getElementById('btnEliminarDesdeModal').classList.remove('hidden');
 
         recalcularModalPrecios();
@@ -1044,6 +1193,11 @@
         const esEdicion = document.getElementById('esEdicion').value === "true";
         const codigo = parseInt(document.getElementById('artCodigo').value);
 
+        const esEmpaque = document.getElementById('artEsEmpaque')?.checked || false;
+        const nomEmpaque = (document.getElementById('artNombreEmpaque')?.value || 'PAQUETE').trim().toUpperCase() || 'PAQUETE';
+        const uXPaq = parseFloat(document.getElementById('artUnidadesPorPaquete')?.value) || 1;
+        const pUnidad = parseFloat(document.getElementById('artPrecioUnidad')?.value) || 0;
+
         const payload = {
             codigo: codigo,
             nombre: document.getElementById('artNombre').value.trim(),
@@ -1056,7 +1210,11 @@
             rentabilidad: parseFloat(document.getElementById('artRent').value) || 0,
             precio: parseFloat(document.getElementById('artPrecio').value) || 0,
             stock: parseFloat(document.getElementById('artStock').value) || 0,
-            stock_alerta: parseFloat(document.getElementById('artStockAlerta').value) || 0
+            stock_alerta: parseFloat(document.getElementById('artStockAlerta').value) || 0,
+            es_empaque: esEmpaque,
+            nombre_empaque: nomEmpaque,
+            unidades_por_paquete: uXPaq,
+            precio_unidad: pUnidad
         };
 
         try {
