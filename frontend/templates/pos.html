@@ -1337,6 +1337,8 @@
         await cargarClientes();
         await cargarEstadoCajaPOS();
         configurarBuscador();
+        configurarBuscadorClientes();
+        iniciarSincronizacionAutomaticaClientes();
         aplicarFormatoImpresion(formatoImpresion);
         setCondicionVenta('contado');
         cargarVentasPausadasLocalStorage();
@@ -1836,22 +1838,103 @@
         }
     }
 
-    async function cargarClientes() {
+    function actualizarDatalistClientes(clientes) {
+        const datalist = document.getElementById('listaClientes');
+        if (!datalist) return;
+        datalist.innerHTML = '';
+        (clientes || []).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.nombre;
+            if (c.cedula_rif) {
+                opt.label = `${c.cedula_rif} • ${c.nombre}`;
+            }
+            datalist.appendChild(opt);
+        });
+    }
+
+    let ultimaCargaClientes = 0;
+    let cargandoClientes = false;
+    async function cargarClientes(forzar = false) {
+        const ahora = Date.now();
+        if (cargandoClientes) return;
+        if (!forzar && (ahora - ultimaCargaClientes < 10000) && clientesCache.length > 0) {
+            return;
+        }
+
+        cargandoClientes = true;
         try {
-            const res = await fetch('/api/clientes');
+            const res = await fetch('/api/clientes?limit=2000');
             if (res.ok) {
                 clientesCache = await res.json();
-                const datalist = document.getElementById('listaClientes');
-                datalist.innerHTML = '';
-                clientesCache.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.nombre;
-                    datalist.appendChild(opt);
-                });
+                ultimaCargaClientes = Date.now();
+                actualizarDatalistClientes(clientesCache);
             }
         } catch (e) {
-            console.error(e);
+            console.error("Error al cargar clientes en POS:", e);
+        } finally {
+            cargandoClientes = false;
         }
+    }
+
+    function configurarBuscadorClientes() {
+        const input = document.getElementById('clienteNombre');
+        if (!input) return;
+
+        // 1. Refrescar silenciosamente cuando el cajero hace foco o clic en el campo
+        input.addEventListener('focus', () => {
+            cargarClientes(false);
+        });
+
+        // 2. Si escribe o escanea una cédula exacta o nombre exacto, autoseleccionar nombre
+        input.addEventListener('change', () => {
+            const val = input.value.trim().toUpperCase();
+            if (!val) return;
+            const match = clientesCache.find(c => 
+                (c.cedula_rif && c.cedula_rif.toUpperCase() === val) ||
+                (c.nombre && c.nombre.toUpperCase() === val)
+            );
+            if (match) {
+                input.value = match.nombre;
+            }
+        });
+
+        // 3. Búsqueda remota reactiva con debounce de 250ms mientras escribe
+        let timerBusquedaCli = null;
+        input.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            clearTimeout(timerBusquedaCli);
+            if (val.length >= 2) {
+                timerBusquedaCli = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/api/clientes?search=${encodeURIComponent(val)}&limit=50`);
+                        if (res.ok) {
+                            const encontrados = await res.json();
+                            if (encontrados && encontrados.length > 0) {
+                                let huboNuevos = false;
+                                encontrados.forEach(nc => {
+                                    if (!clientesCache.some(c => c.id === nc.id)) {
+                                        clientesCache.push(nc);
+                                        huboNuevos = true;
+                                    }
+                                });
+                                if (huboNuevos) {
+                                    actualizarDatalistClientes(clientesCache);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Error buscando cliente dinámico:", err);
+                    }
+                }, 250);
+            }
+        });
+    }
+
+    function iniciarSincronizacionAutomaticaClientes() {
+        // Refrescar clientes periódicamente cada 30 segundos en segundo plano para sincronizar cajas
+        setInterval(() => {
+            cargarClientes(true);
+        }, 30000);
     }
 
     function configurarBuscador() {
@@ -2535,6 +2618,7 @@
                 renderizarCarrito();
                 cargarSiguienteFactura();
                 cargarEstadoCajaPOS();
+                cargarClientes(true);
             } else {
                 Swal.fire('Error', data.detail || 'No se pudo guardar la factura', 'error');
             }
@@ -3264,7 +3348,7 @@
                 const nuevo = await res.json();
                 document.getElementById('clienteNombre').value = nuevo.nombre;
                 cerrarModalNuevoCliente();
-                cargarClientes();
+                cargarClientes(true);
                 Swal.fire({ icon: 'success', title: 'Cliente registrado', timer: 1000, showConfirmButton: false });
             }
         } catch (e) {

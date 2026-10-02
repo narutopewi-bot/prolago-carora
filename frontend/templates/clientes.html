@@ -99,7 +99,7 @@
 
     async function cargarClientes() {
         try {
-            const res = await fetch('/api/clientes');
+            const res = await fetch('/api/clientes?limit=2000');
             if (res.ok) {
                 clientesCache = await res.json();
                 filtrarClientesLocal();

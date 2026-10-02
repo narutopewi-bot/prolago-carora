@@ -472,6 +472,7 @@ def delete_articulo(codigo: int, db: Session = Depends(get_db), user: Usuario = 
 def list_clientes(
     tipo: Optional[str] = None,
     search: Optional[str] = None,
+    limit: Optional[int] = 2000,
     db: Session = Depends(get_db),
     user: Usuario = Depends(require_user)
 ):
@@ -481,7 +482,9 @@ def list_clientes(
     if search:
         s = f"%{search.strip()}%"
         query = query.filter(or_(Cliente.nombre.ilike(s), Cliente.cedula_rif.ilike(s)))
-    return query.order_by(Cliente.nombre.asc()).limit(150).all()
+    if limit and limit > 0:
+        return query.order_by(Cliente.nombre.asc()).limit(limit).all()
+    return query.order_by(Cliente.nombre.asc()).all()
 
 @app.post("/api/clientes")
 def create_cliente(payload: ClienteCreate, db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
@@ -666,11 +669,26 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         if c_user:
             caja_id = c_user.id
 
+    cli = None
+    if payload.cliente_id:
+        cli = db.query(Cliente).filter(Cliente.id == payload.cliente_id).first()
+    if not cli and payload.cliente_nombre:
+        c_str = payload.cliente_nombre.strip().upper()
+        cli = db.query(Cliente).filter(
+            or_(
+                Cliente.nombre == c_str,
+                Cliente.cedula_rif == c_str
+            )
+        ).first()
+
+    c_nombre_final = cli.nombre if cli else (payload.cliente_nombre or "CLIENTE DE CONTADO").strip().upper()
+    c_id_final = cli.id if cli else payload.cliente_id
+
     factura = Factura(
         numero=next_num,
         fecha=ahora_venezuela(),
-        cliente_nombre=(payload.cliente_nombre or "CLIENTE DE CONTADO").strip().upper(),
-        cliente_id=payload.cliente_id,
+        cliente_nombre=c_nombre_final,
+        cliente_id=c_id_final,
         total=total_factura,
         tasa_bcv=tasa_bcv,
         condicion=condicion,
@@ -692,12 +710,6 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
     db.add(factura)
     db.commit()
     db.refresh(factura)
-
-    cli = None
-    if payload.cliente_id:
-        cli = db.query(Cliente).filter(Cliente.id == payload.cliente_id).first()
-    if not cli and payload.cliente_nombre:
-        cli = db.query(Cliente).filter(Cliente.nombre == payload.cliente_nombre.strip().upper()).first()
 
     caja_obj = db.query(Caja).filter(Caja.id == factura.caja_id).first() if factura.caja_id else None
     caja_nombre = caja_obj.nombre_caja if caja_obj else ""
