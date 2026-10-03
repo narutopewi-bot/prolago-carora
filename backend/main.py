@@ -149,12 +149,76 @@ def inicializar_movimientos_historicos():
 
                 db.commit()
                 print("[MOVIMIENTOS] Población histórica completada con éxito.")
+                recalcular_trazabilidad_continua_en_db(db)
         finally:
             db.close()
     except Exception as e:
         print(f"[MOVIMIENTOS] Aviso en inicialización: {e}")
 
+def recalcular_trazabilidad_continua_en_db(db: Session) -> int:
+    """
+    Recalcula la trazabilidad continua (stock_anterior -> stock_nuevo) para cada artículo,
+    partiendo de su stock actual en el catálogo y deduciendo hacia atrás cronológicamente.
+    JAMÁS modifica el stock real del catálogo, ni facturas ni compras.
+    """
+    codigos = [c[0] for c in db.query(MovimientoInventario.articulo_codigo).distinct().all()]
+    total_arts = 0
+    for cod in codigos:
+        art = db.query(Articulo).filter(Articulo.codigo == cod).first()
+        if not art:
+            continue
+        movs = db.query(MovimientoInventario).filter(
+            MovimientoInventario.articulo_codigo == cod
+        ).order_by(MovimientoInventario.fecha.asc(), MovimientoInventario.id.asc()).all()
+        if not movs:
+            continue
+
+        curr_stock = float(art.stock or 0.0)
+        for m in reversed(movs):
+            m.stock_nuevo = round(curr_stock, 2)
+            cant = float(m.cantidad or 0.0)
+            if m.impacto == "SALIDA":
+                m.stock_anterior = round(curr_stock + cant, 2)
+                curr_stock = m.stock_anterior
+            elif m.impacto == "ENTRADA":
+                m.stock_anterior = max(0.0, round(curr_stock - cant, 2))
+                curr_stock = m.stock_anterior
+            elif m.impacto == "AJUSTE":
+                if m.stock_anterior is not None and m.stock_anterior >= 0:
+                    curr_stock = float(m.stock_anterior)
+                else:
+                    curr_stock = float(m.stock_nuevo)
+
+        total_arts += 1
+
+    db.commit()
+    return total_arts
+
+def recalcular_trazabilidad_continua_si_requerido():
+    try:
+        ejecutar_ddl_seguro("CREATE TABLE IF NOT EXISTS _sistema_migraciones (clave VARCHAR(50) PRIMARY KEY)")
+        with engine.begin() as conn:
+            ya_migrada = conn.execute(text("SELECT clave FROM _sistema_migraciones WHERE clave = 'recalcular_trazabilidad_continua_v1'")).fetchone()
+            if ya_migrada:
+                return
+
+        print("[MOVIMIENTOS] Recalculando trazabilidad continua para movimientos históricos...")
+        db = SessionLocal()
+        try:
+            total = recalcular_trazabilidad_continua_en_db(db)
+            with engine.begin() as conn:
+                conn.execute(text("INSERT INTO _sistema_migraciones (clave) VALUES ('recalcular_trazabilidad_continua_v1')"))
+            print(f"[MOVIMIENTOS] Trazabilidad continua recalculada con éxito para {total} artículos.")
+        except Exception as ex:
+            db.rollback()
+            print(f"[MOVIMIENTOS] Error al recalcular trazabilidad: {ex}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[MOVIMIENTOS] Aviso en verificación de migración: {e}")
+
 inicializar_movimientos_historicos()
+recalcular_trazabilidad_continua_si_requerido()
 
 
 # Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) (solo si SQLite)
@@ -2048,6 +2112,18 @@ def list_movimientos(
             "total_ajustes": total_ajustes
         },
         "items": items
+    }
+
+@app.post("/api/movimientos/recalcular-trazabilidad")
+def api_recalcular_trazabilidad(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    if not (user.rol == "admin" or user.tiene_permiso("movimientos") or user.tiene_permiso("inventario")):
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+    
+    total = recalcular_trazabilidad_continua_en_db(db)
+    return {
+        "status": "ok",
+        "message": f"Trazabilidad continua recalculada exitosamente para {total} artículos.",
+        "total_articulos": total
     }
 
 # ==========================================

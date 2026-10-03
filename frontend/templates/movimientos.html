@@ -42,6 +42,10 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+            <button onclick="recalcularTrazabilidad()" id="btnRecalcular" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm" title="Recalcular trazabilidad matemática continua para todos los artículos">
+                <i class="fa-solid fa-calculator text-amber-400"></i>
+                <span class="hidden sm:inline">Recalcular Trazabilidad</span>
+            </button>
             <a href="/inventario" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs border border-slate-200">
                 <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
                 <span>Ir al Inventario</span>
@@ -258,6 +262,33 @@
     let registrosPorPagina = 20;
     let totalPaginasCalculado = 1;
     let debounceTimer = null;
+
+    async function recalcularTrazabilidad() {
+        const btn = document.getElementById('btnRecalcular');
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> <span class="hidden sm:inline">Recalculando...</span>`;
+        }
+        try {
+            const res = await fetch('/api/movimientos/recalcular-trazabilidad', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (res.ok) {
+                await cargarMovimientos();
+            } else {
+                alert('No se pudo recalcular la trazabilidad.');
+            }
+        } catch (e) {
+            console.error('Error al recalcular:', e);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+        }
+    }
 
     async function cargarMovimientos() {
         const tbody = document.getElementById('tablaMovimientosBody');
