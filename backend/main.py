@@ -242,15 +242,13 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     if user:
         if verify_password(p_str, user.password_hash):
             valido = True
-        elif user.username.lower() == "admin" and p_str in ["admin", "admin123", "1234"]:
-            valido = True
-        elif user.username.lower() == "cajero" and p_str in ["cajero", "cajero123", "123", "1234"]:
-            valido = True
         elif (user.password_hash or "") == p_str:
             valido = True
             
     if not user:
-        if u_str.lower() == "admin" and p_str in ["admin", "admin123", "1234"]:
+        # Solo en caso de que la tabla esté totalmente vacía en un despliegue inicial nuevo
+        total_u = db.query(Usuario).count()
+        if total_u == 0 and u_str.lower() == "admin" and p_str == "admin123":
             user = Usuario(
                 username="admin",
                 password_hash=hash_password(p_str),
@@ -258,19 +256,6 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
                 rol="admin",
                 activo=True,
                 permisos="*"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            valido = True
-        elif u_str.lower() == "cajero" and p_str in ["cajero", "cajero123", "123", "1234"]:
-            user = Usuario(
-                username="cajero",
-                password_hash=hash_password(p_str),
-                nombre="Caja Principal",
-                rol="cajero",
-                activo=True,
-                permisos='["pos", "historial", "clientes"]'
             )
             db.add(user)
             db.commit()

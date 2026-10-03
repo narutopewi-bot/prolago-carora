@@ -97,7 +97,7 @@ def require_admin(user: Usuario = Depends(require_user)) -> Usuario:
 def check_admin_password(db: Session, password: str) -> Optional[Usuario]:
     admins = db.query(Usuario).filter(Usuario.rol == "admin", Usuario.activo == True).all()
     for adm in admins:
-        if verify_password(password, adm.password_hash) or (adm.username == "admin" and password in ["admin", "admin123", "1234"]):
+        if verify_password(password, adm.password_hash) or (adm.password_hash and adm.password_hash == password):
             return adm
     return None
 
