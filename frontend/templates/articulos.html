@@ -285,7 +285,7 @@
             <button onclick="cerrarModalArticulo()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
 
-        <form id="formArticulo" onsubmit="guardarArticulo(event)" class="space-y-4 text-xs">
+        <form id="formArticulo" novalidate onsubmit="guardarArticulo(event)" class="space-y-4 text-xs">
             <input type="hidden" id="esEdicion" value="false">
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
@@ -385,7 +385,7 @@
                         </div>
                         <div>
                             <label class="block font-bold text-slate-700 mb-1">Unidades por Empaque</label>
-                            <input type="number" step="1" min="2" id="artUnidadesPorPaquete" value="10"
+                            <input type="number" step="1" min="1" id="artUnidadesPorPaquete" value="10"
                                 oninput="actualizarResumenEmpaque()"
                                 class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800 text-center">
                             <p class="text-[10px] text-slate-400 mt-1">Cuántas unidades trae (ej: 10).</p>
@@ -440,7 +440,7 @@
                     <span>Eliminar</span>
                 </button>
                 <button type="button" onclick="cerrarModalArticulo()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">Cancelar</button>
-                <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition">Guardar Producto</button>
+                <button type="button" onclick="guardarArticulo(event)" id="btnGuardarArticuloModal" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition">Guardar Producto</button>
             </div>
         </form>
     </div>
@@ -1169,11 +1169,14 @@
 
         // Cargar datos de empaque
         const chkEmp = document.getElementById('artEsEmpaque');
-        if (chkEmp) chkEmp.checked = Boolean(art.es_empaque);
+        const esEmp = Boolean(art.es_empaque);
+        if (chkEmp) chkEmp.checked = esEmp;
         const inpNomEmp = document.getElementById('artNombreEmpaque');
         if (inpNomEmp) inpNomEmp.value = art.nombre_empaque || 'PAQUETE';
         const inpCantEmp = document.getElementById('artUnidadesPorPaquete');
-        if (inpCantEmp) inpCantEmp.value = art.unidades_por_paquete || 10;
+        if (inpCantEmp) {
+            inpCantEmp.value = (esEmp && art.unidades_por_paquete && art.unidades_por_paquete >= 1) ? art.unidades_por_paquete : 10;
+        }
         const inpPreUni = document.getElementById('artPrecioUnidad');
         if (inpPreUni) inpPreUni.value = (art.precio_unidad !== null && art.precio_unidad !== undefined) ? art.precio_unidad : 0.00;
         toggleSeccionEmpaque();
@@ -1189,33 +1192,70 @@
     }
 
     async function guardarArticulo(e) {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        const btnSubmit = document.getElementById('btnGuardarArticuloModal');
+        const textoOriginalBtn = btnSubmit ? btnSubmit.innerHTML : 'Guardar Producto';
+
         const esEdicion = document.getElementById('esEdicion').value === "true";
-        const codigo = parseInt(document.getElementById('artCodigo').value);
+        const codigoRaw = document.getElementById('artCodigo').value;
+        const codigo = parseInt(codigoRaw, 10);
+        const nombre = (document.getElementById('artNombre')?.value || '').trim();
+
+        if (!codigo || isNaN(codigo) || codigo <= 0) {
+            Swal.fire('Atención', 'Por favor ingresa un código de producto válido.', 'warning');
+            return;
+        }
+        if (!nombre) {
+            Swal.fire('Atención', 'Por favor ingresa la descripción o nombre del producto.', 'warning');
+            return;
+        }
+
+        const parseNum = (id, def = 0) => {
+            const el = document.getElementById(id);
+            if (!el || el.value === undefined || el.value === null) return def;
+            const s = String(el.value).trim().replace(',', '.');
+            const n = parseFloat(s);
+            return isNaN(n) ? def : n;
+        };
 
         const esEmpaque = document.getElementById('artEsEmpaque')?.checked || false;
         const nomEmpaque = (document.getElementById('artNombreEmpaque')?.value || 'PAQUETE').trim().toUpperCase() || 'PAQUETE';
-        const uXPaq = parseFloat(document.getElementById('artUnidadesPorPaquete')?.value) || 1;
-        const pUnidad = parseFloat(document.getElementById('artPrecioUnidad')?.value) || 0;
+        let uXPaq = parseNum('artUnidadesPorPaquete', 10);
+        let pUnidad = parseNum('artPrecioUnidad', 0);
+
+        if (esEmpaque && uXPaq < 2) {
+            Swal.fire('Atención', 'Si activa la venta por empaque, las unidades por empaque deben ser al menos 2.', 'warning');
+            return;
+        }
+
+        if (!esEmpaque) {
+            uXPaq = 1.0;
+            pUnidad = 0.0;
+        }
 
         const payload = {
             codigo: codigo,
-            nombre: document.getElementById('artNombre').value.trim(),
-            categoria: document.getElementById('artCategoria').value.trim(),
-            marca: document.getElementById('artMarca').value.trim(),
-            proveedor: document.getElementById('artProveedor').value.trim(),
-            costo: parseFloat(document.getElementById('artCosto').value) || 0,
-            flete: parseFloat(document.getElementById('artFlete').value) || 0,
-            mas: parseFloat(document.getElementById('artMas').value) || 0,
-            rentabilidad: parseFloat(document.getElementById('artRent').value) || 0,
-            precio: parseFloat(document.getElementById('artPrecio').value) || 0,
-            stock: parseFloat(document.getElementById('artStock').value) || 0,
-            stock_alerta: parseFloat(document.getElementById('artStockAlerta').value) || 0,
+            nombre: nombre,
+            categoria: (document.getElementById('artCategoria')?.value || 'GENERAL').trim(),
+            marca: (document.getElementById('artMarca')?.value || '').trim(),
+            proveedor: (document.getElementById('artProveedor')?.value || '').trim(),
+            costo: parseNum('artCosto', 0),
+            flete: parseNum('artFlete', 0),
+            mas: parseNum('artMas', 0),
+            rentabilidad: parseNum('artRent', 20),
+            precio: parseNum('artPrecio', 0),
+            stock: parseNum('artStock', 0),
+            stock_alerta: parseNum('artStockAlerta', 5),
             es_empaque: esEmpaque,
             nombre_empaque: nomEmpaque,
             unidades_por_paquete: uXPaq,
             precio_unidad: pUnidad
         };
+
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Guardando...';
+        }
 
         try {
             const url = esEdicion ? `/api/articulos/${codigo}` : '/api/articulos';
@@ -1229,14 +1269,26 @@
 
             if (res.ok) {
                 cerrarModalArticulo();
-                Swal.fire({ icon: 'success', title: 'Artículo guardado exitosamente', timer: 1200, showConfirmButton: false });
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Artículo guardado exitosamente!',
+                    text: `Producto #${codigo} actualizado correctamente.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
                 cargarArticulos();
             } else {
                 const err = await res.json();
                 Swal.fire('Error', err.detail || 'No se pudo guardar el artículo', 'error');
             }
         } catch (e) {
-            Swal.fire('Error', 'Fallo de conexión', 'error');
+            console.error("Error al guardar articulo:", e);
+            Swal.fire('Error', 'Fallo de conexión al guardar el artículo: ' + (e.message || ''), 'error');
+        } finally {
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = textoOriginalBtn;
+            }
         }
     }
 
