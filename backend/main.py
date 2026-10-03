@@ -19,7 +19,7 @@ import re
 
 from .database import get_db, engine, Base, BASE_DIR, TARGET_DB
 from .models import (
-    Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito, Caja,
+    Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito, Caja, MovimientoInventario,
     ahora_venezuela, TZ_VENEZUELA
 )
 from .schemas import (
@@ -87,6 +87,62 @@ ejecutar_ddl_seguro("ALTER TABLE compras ADD COLUMN tipo_unidad VARCHAR(20) DEFA
 ejecutar_ddl_seguro("ALTER TABLE compras ADD COLUMN factor_empaque FLOAT DEFAULT 1.0")
 ejecutar_ddl_seguro("ALTER TABLE detalles_factura ADD COLUMN tipo_unidad VARCHAR(20) DEFAULT 'unidad'")
 ejecutar_ddl_seguro("ALTER TABLE detalles_factura ADD COLUMN factor_empaque FLOAT DEFAULT 1.0")
+
+# Creación e inicialización de tabla movimientos_inventario
+try:
+    with engine.begin() as conn:
+        Base.metadata.create_all(bind=conn)
+        m_count = conn.execute(text("SELECT COUNT(*) FROM movimientos_inventario")).scalar()
+        if not m_count or m_count == 0:
+            # Población inicial de compras históricas
+            conn.execute(text("""
+                INSERT INTO movimientos_inventario (
+                    fecha, tipo, impacto, articulo_codigo, articulo_nombre, cantidad,
+                    tipo_unidad, factor_empaque, stock_anterior, stock_nuevo,
+                    usuario_id, usuario_nombre, referencia_tipo, referencia_id, descripcion
+                )
+                SELECT
+                    c.fecha, 'COMPRA', 'ENTRADA', c.codigo_articulo, c.nombre_articulo, c.cantidad,
+                    COALESCE(c.tipo_unidad, 'unidad'), COALESCE(c.factor_empaque, 1.0), 0.0, c.cantidad,
+                    1, 'Administrador', 'compra', CAST(c.id AS VARCHAR), 'Ingreso histórico por compra registrada'
+                FROM compras c
+            """))
+            # Población inicial de ventas históricas
+            if engine.url.drivername.startswith("postgresql"):
+                conn.execute(text("""
+                    INSERT INTO movimientos_inventario (
+                        fecha, tipo, impacto, articulo_codigo, articulo_nombre, cantidad,
+                        tipo_unidad, factor_empaque, stock_anterior, stock_nuevo,
+                        usuario_id, usuario_nombre, referencia_tipo, referencia_id, descripcion
+                    )
+                    SELECT
+                        f.fecha, 'VENTA', 'SALIDA',
+                        CASE WHEN d.codigo_articulo ~ '^[0-9]+$' THEN CAST(d.codigo_articulo AS INTEGER) ELSE 0 END,
+                        d.nombre_articulo, d.cantidad,
+                        COALESCE(d.tipo_unidad, 'unidad'), COALESCE(d.factor_empaque, 1.0), d.cantidad, 0.0,
+                        f.usuario_id, COALESCE(f.usuario_nombre, 'Cajero'), 'factura', f.numero, 'Venta histórica registrada'
+                    FROM detalles_factura d
+                    JOIN facturas f ON d.factura_id = f.id
+                """))
+            else:
+                conn.execute(text("""
+                    INSERT INTO movimientos_inventario (
+                        fecha, tipo, impacto, articulo_codigo, articulo_nombre, cantidad,
+                        tipo_unidad, factor_empaque, stock_anterior, stock_nuevo,
+                        usuario_id, usuario_nombre, referencia_tipo, referencia_id, descripcion
+                    )
+                    SELECT
+                        f.fecha, 'VENTA', 'SALIDA',
+                        CAST(d.codigo_articulo AS INTEGER),
+                        d.nombre_articulo, d.cantidad,
+                        COALESCE(d.tipo_unidad, 'unidad'), COALESCE(d.factor_empaque, 1.0), d.cantidad, 0.0,
+                        f.usuario_id, COALESCE(f.usuario_nombre, 'Cajero'), 'factura', f.numero, 'Venta histórica registrada'
+                    FROM detalles_factura d
+                    JOIN facturas f ON d.factura_id = f.id
+                """))
+except Exception as e:
+    logger.warning(f"Aviso en inicialización de movimientos_inventario: {e}")
+
 
 # Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) (solo si SQLite)
 try:
@@ -431,6 +487,28 @@ def create_articulo(payload: ArticuloCreate, db: Session = Depends(get_db), user
     db.add(item)
     db.commit()
     db.refresh(item)
+
+    if payload.stock and payload.stock > 0:
+        mov_init = MovimientoInventario(
+            fecha=ahora_venezuela(),
+            tipo="AJUSTE_INVENTARIO",
+            impacto="ENTRADA",
+            articulo_codigo=item.codigo,
+            articulo_nombre=item.nombre,
+            cantidad=payload.stock,
+            tipo_unidad="unidad",
+            factor_empaque=1.0,
+            stock_anterior=0.0,
+            stock_nuevo=payload.stock,
+            usuario_id=user.id,
+            usuario_nombre=(user.nombre or user.username or "Administrador").strip(),
+            referencia_tipo="inventario",
+            referencia_id=f"ART-{item.codigo}",
+            descripcion=f"Creación de producto nuevo con stock inicial de {payload.stock} unidades"
+        )
+        db.add(mov_init)
+        db.commit()
+
     return item
 
 @app.put("/api/articulos/{codigo}")
@@ -446,6 +524,10 @@ def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(
     rent = payload.rentabilidad or 20.0
     sugerido = round(costo_final + (costo_final * rent / 100.0) + (payload.mas or 0.0), 2)
 
+    stock_anterior = item.stock or 0.0
+    stock_nuevo = payload.stock or 0.0
+    diff = round(stock_nuevo - stock_anterior, 2)
+
     item.nombre = payload.nombre.strip().upper()
     item.categoria = normalizar_categoria(payload.categoria)
     item.marca = (payload.marca or "").strip().upper()
@@ -457,7 +539,7 @@ def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(
     item.rentabilidad = rent
     item.sugerido = sugerido
     item.precio = payload.precio or sugerido
-    item.stock = payload.stock
+    item.stock = stock_nuevo
     if payload.stock_alerta is not None:
         item.stock_alerta = payload.stock_alerta
     item.es_empaque = bool(payload.es_empaque)
@@ -467,6 +549,29 @@ def update_articulo(codigo: int, payload: ArticuloCreate, db: Session = Depends(
     
     db.commit()
     db.refresh(item)
+
+    if abs(diff) > 0.0001:
+        impacto = "ENTRADA" if diff > 0 else "SALIDA"
+        mov = MovimientoInventario(
+            fecha=ahora_venezuela(),
+            tipo="AJUSTE_INVENTARIO",
+            impacto=impacto,
+            articulo_codigo=item.codigo,
+            articulo_nombre=item.nombre,
+            cantidad=abs(diff),
+            tipo_unidad="unidad",
+            factor_empaque=1.0,
+            stock_anterior=stock_anterior,
+            stock_nuevo=stock_nuevo,
+            usuario_id=user.id,
+            usuario_nombre=(user.nombre or user.username or "Administrador").strip(),
+            referencia_tipo="inventario",
+            referencia_id=f"ART-{item.codigo}",
+            descripcion=f"Ajuste manual de stock de {stock_anterior} a {stock_nuevo} unidades ({'+' if diff > 0 else ''}{diff})"
+        )
+        db.add(mov)
+        db.commit()
+
     return item
 
 @app.delete("/api/articulos/{codigo}")
@@ -609,6 +714,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
 
     total_factura = 0.0
     detalles = []
+    movimientos_a_registrar = []
 
     # Validar productos y calcular
     for it in payload.items:
@@ -641,8 +747,20 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         subtotal = round(it.cantidad * precio_con_dcto, 2)
         total_factura += subtotal
 
+        stock_anterior = articulo.stock or 0.0
         # Disminuir stock
-        articulo.stock = round(articulo.stock - cant_unidades, 2)
+        articulo.stock = round(stock_anterior - cant_unidades, 2)
+
+        movimientos_a_registrar.append({
+            "articulo_codigo": articulo.codigo,
+            "articulo_nombre": articulo.nombre,
+            "cantidad": it.cantidad,
+            "cant_unidades": cant_unidades,
+            "tipo_unidad": getattr(it, "tipo_unidad", "unidad"),
+            "factor_empaque": factor,
+            "stock_anterior": stock_anterior,
+            "stock_nuevo": articulo.stock
+        })
 
         nombre_item = articulo.nombre
         if getattr(it, "tipo_unidad", "unidad") == "paquete" and articulo.es_empaque:
@@ -743,6 +861,28 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
     db.add(factura)
     db.commit()
     db.refresh(factura)
+
+    # Registrar movimientos de salida por venta
+    for m in movimientos_a_registrar:
+        mov = MovimientoInventario(
+            fecha=factura.fecha or ahora_venezuela(),
+            tipo="VENTA",
+            impacto="SALIDA",
+            articulo_codigo=m["articulo_codigo"],
+            articulo_nombre=m["articulo_nombre"],
+            cantidad=m["cantidad"],
+            tipo_unidad=m["tipo_unidad"],
+            factor_empaque=m["factor_empaque"],
+            stock_anterior=m["stock_anterior"],
+            stock_nuevo=m["stock_nuevo"],
+            usuario_id=user.id,
+            usuario_nombre=(user.nombre or user.username or "Cajero").strip(),
+            referencia_tipo="factura",
+            referencia_id=str(factura.numero),
+            descripcion=f"Venta en caja registradora - Factura #{factura.numero}"
+        )
+        db.add(mov)
+    db.commit()
 
     caja_obj = db.query(Caja).filter(Caja.id == factura.caja_id).first() if factura.caja_id else None
     caja_nombre = caja_obj.nombre_caja if caja_obj else ""
@@ -1120,7 +1260,27 @@ def delete_factura(
             art = db.query(Articulo).filter(Articulo.codigo == cod_num).first()
             if art:
                 fact = getattr(it, "factor_empaque", 1.0) or 1.0
-                art.stock = round((art.stock or 0.0) + ((it.cantidad or 0.0) * fact), 2)
+                cant_restaurar = round((it.cantidad or 0.0) * fact, 2)
+                stock_ant = art.stock or 0.0
+                art.stock = round(stock_ant + cant_restaurar, 2)
+                mov_rev = MovimientoInventario(
+                    fecha=ahora_venezuela(),
+                    tipo="ANULACION_VENTA",
+                    impacto="ENTRADA",
+                    articulo_codigo=art.codigo,
+                    articulo_nombre=art.nombre,
+                    cantidad=cant_restaurar,
+                    tipo_unidad=getattr(it, "tipo_unidad", "unidad"),
+                    factor_empaque=fact,
+                    stock_anterior=stock_ant,
+                    stock_nuevo=art.stock,
+                    usuario_id=user.id,
+                    usuario_nombre=(user.nombre or user.username or "Administrador").strip(),
+                    referencia_tipo="factura",
+                    referencia_id=str(numero_factura),
+                    descripcion=f"Reingreso de mercancía por anulación de Factura #{numero_factura}"
+                )
+                db.add(mov_rev)
 
         # 2. Eliminar factura (los abonos y detalles se eliminan por cascade)
         db.delete(factura)
@@ -1487,8 +1647,9 @@ def create_compra(payload: CompraCreate, db: Session = Depends(get_db), user: Us
     if getattr(payload, "tipo_unidad", "unidad") == "paquete" and articulo.es_empaque:
         factor = float(payload.factor_empaque or articulo.unidades_por_paquete or 1.0)
     
+    stock_ant = articulo.stock or 0.0
     cant_stock = round(payload.cantidad * factor, 2)
-    articulo.stock = round(articulo.stock + cant_stock, 2)
+    articulo.stock = round(stock_ant + cant_stock, 2)
 
     # Registrar en compras
     compra = Compra(
@@ -1507,6 +1668,27 @@ def create_compra(payload: CompraCreate, db: Session = Depends(get_db), user: Us
     db.add(compra)
     db.commit()
     db.refresh(compra)
+
+    # Registrar movimiento de entrada de inventario
+    mov_compra = MovimientoInventario(
+        fecha=compra.fecha or ahora_venezuela(),
+        tipo="COMPRA",
+        impacto="ENTRADA",
+        articulo_codigo=articulo.codigo,
+        articulo_nombre=articulo.nombre,
+        cantidad=cant_stock,
+        tipo_unidad=getattr(payload, "tipo_unidad", "unidad"),
+        factor_empaque=factor,
+        stock_anterior=stock_ant,
+        stock_nuevo=articulo.stock,
+        usuario_id=user.id,
+        usuario_nombre=(user.nombre or user.username or "Administrador").strip(),
+        referencia_tipo="compra",
+        referencia_id=str(compra.id),
+        descripcion=f"Ingreso de mercancía por Compra #{compra.id} ({payload.cantidad} {getattr(payload, 'tipo_unidad', 'unidad')})"
+    )
+    db.add(mov_compra)
+    db.commit()
 
     return {
         "status": "ok",
@@ -1727,7 +1909,26 @@ def delete_compra(
     factor = getattr(compra, "factor_empaque", 1.0) or 1.0
     cant_revertida = round(compra.cantidad * factor, 2)
     if articulo:
-        articulo.stock = max(0.0, round(articulo.stock - cant_revertida, 2))
+        stock_ant = articulo.stock or 0.0
+        articulo.stock = max(0.0, round(stock_ant - cant_revertida, 2))
+        mov_del = MovimientoInventario(
+            fecha=ahora_venezuela(),
+            tipo="ANULACION_COMPRA",
+            impacto="SALIDA",
+            articulo_codigo=articulo.codigo,
+            articulo_nombre=articulo.nombre,
+            cantidad=cant_revertida,
+            tipo_unidad=getattr(compra, "tipo_unidad", "unidad"),
+            factor_empaque=factor,
+            stock_anterior=stock_ant,
+            stock_nuevo=articulo.stock,
+            usuario_id=user.id,
+            usuario_nombre=(user.nombre or user.username or "Administrador").strip(),
+            referencia_tipo="compra",
+            referencia_id=str(id),
+            descripcion=f"Reversión de stock por anulación de Compra #{id}"
+        )
+        db.add(mov_del)
 
     nom_art = compra.nombre_articulo
     db.delete(compra)
@@ -1736,6 +1937,119 @@ def delete_compra(
     return {
         "status": "ok",
         "message": f"Compra #{id} de '{nom_art}' anulada con éxito. Se restaron {cant_revertida} unidades del inventario."
+    }
+
+# ==========================================
+# MOVIMIENTOS Y AUDITORÍA DE INVENTARIO
+# ==========================================
+@app.get("/api/movimientos")
+def list_movimientos(
+    limit: int = 50,
+    offset: int = 0,
+    search: Optional[str] = None,
+    tipo: Optional[str] = None,
+    impacto: Optional[str] = None,
+    usuario: Optional[str] = None,
+    codigo_articulo: Optional[int] = None,
+    fecha_inicio: Optional[str] = None,
+    fecha_fin: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(require_user)
+):
+    query = db.query(MovimientoInventario)
+
+    if codigo_articulo:
+        query = query.filter(MovimientoInventario.articulo_codigo == codigo_articulo)
+
+    if tipo and tipo != "TODOS":
+        query = query.filter(MovimientoInventario.tipo == tipo.strip().upper())
+
+    if impacto and impacto != "TODOS":
+        query = query.filter(MovimientoInventario.impacto == impacto.strip().upper())
+
+    if usuario and usuario != "TODOS":
+        u_str = f"%{usuario.strip().lower()}%"
+        query = query.filter(func.lower(MovimientoInventario.usuario_nombre).like(u_str))
+
+    if search:
+        s = f"%{search.strip().lower()}%"
+        try:
+            cod_num = int(search.strip())
+            query = query.filter(
+                or_(
+                    MovimientoInventario.articulo_codigo == cod_num,
+                    func.lower(MovimientoInventario.articulo_nombre).like(s),
+                    func.lower(MovimientoInventario.referencia_id).like(s),
+                    func.lower(MovimientoInventario.usuario_nombre).like(s),
+                    func.lower(MovimientoInventario.descripcion).like(s)
+                )
+            )
+        except ValueError:
+            query = query.filter(
+                or_(
+                    func.lower(MovimientoInventario.articulo_nombre).like(s),
+                    func.lower(MovimientoInventario.referencia_id).like(s),
+                    func.lower(MovimientoInventario.usuario_nombre).like(s),
+                    func.lower(MovimientoInventario.descripcion).like(s)
+                )
+            )
+
+    if fecha_inicio:
+        try:
+            dt_ini = datetime.strptime(fecha_inicio, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+            query = query.filter(MovimientoInventario.fecha >= dt_ini)
+        except Exception:
+            pass
+
+    if fecha_fin:
+        try:
+            dt_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(MovimientoInventario.fecha <= dt_fin)
+        except Exception:
+            pass
+
+    # Totales y KPIs
+    todos_filtrados = query.all()
+    total_movs = len(todos_filtrados)
+    total_entradas = sum((m.cantidad or 0.0) for m in todos_filtrados if m.impacto == "ENTRADA")
+    total_salidas = sum((m.cantidad or 0.0) for m in todos_filtrados if m.impacto == "SALIDA")
+    total_ajustes = sum(1 for m in todos_filtrados if m.tipo == "AJUSTE_INVENTARIO")
+
+    # Paginación
+    movs_pag = query.order_by(MovimientoInventario.fecha.desc(), MovimientoInventario.id.desc()).offset(offset).limit(limit).all()
+
+    items = []
+    for m in movs_pag:
+        items.append({
+            "id": m.id,
+            "fecha": m.fecha.strftime("%d/%m/%Y %I:%M %p") if m.fecha else "",
+            "fecha_iso": m.fecha.isoformat() if m.fecha else "",
+            "tipo": m.tipo or "MOVIMIENTO",
+            "impacto": m.impacto or "SALIDA",
+            "articulo_codigo": m.articulo_codigo,
+            "articulo_nombre": m.articulo_nombre or "",
+            "cantidad": round(m.cantidad or 0.0, 2),
+            "tipo_unidad": m.tipo_unidad or "unidad",
+            "factor_empaque": m.factor_empaque or 1.0,
+            "stock_anterior": round(m.stock_anterior or 0.0, 2),
+            "stock_nuevo": round(m.stock_nuevo or 0.0, 2),
+            "usuario_id": m.usuario_id,
+            "usuario_nombre": m.usuario_nombre or "Sistema",
+            "referencia_tipo": m.referencia_tipo or "",
+            "referencia_id": m.referencia_id or "",
+            "descripcion": m.descripcion or ""
+        })
+
+    return {
+        "status": "ok",
+        "total": total_movs,
+        "totales": {
+            "total_movimientos": total_movs,
+            "total_entradas": round(total_entradas, 2),
+            "total_salidas": round(total_salidas, 2),
+            "total_ajustes": total_ajustes
+        },
+        "items": items
     }
 
 # ==========================================
@@ -2861,6 +3175,7 @@ def get_user_first_allowed_url(user: Usuario) -> str:
         ("reportes", "/reportes"),
         ("creditos", "/creditos"),
         ("historial", "/historial"),
+        ("movimientos", "/movimientos"),
         ("precios", "/precios"),
         ("despachos", "/despachos"),
         ("clientes", "/clientes"),
@@ -2939,6 +3254,14 @@ def page_historial(request: Request, user: Usuario = Depends(get_current_user)):
     if not user.tiene_permiso("historial"):
         return RedirectResponse(url=get_user_first_allowed_url(user))
     return templates.TemplateResponse(request=request, name="historial.html", context={"user": user})
+
+@app.get("/movimientos", response_class=HTMLResponse)
+def page_movimientos(request: Request, user: Usuario = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
+    if not (user.rol == "admin" or user.tiene_permiso("movimientos") or user.tiene_permiso("inventario") or user.tiene_permiso("historial")):
+        return RedirectResponse(url=get_user_first_allowed_url(user))
+    return templates.TemplateResponse(request=request, name="movimientos.html", context={"user": user})
 
 @app.get("/clientes", response_class=HTMLResponse)
 def page_clientes(request: Request, user: Usuario = Depends(get_current_user)):

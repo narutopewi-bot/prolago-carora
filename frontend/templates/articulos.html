@@ -121,6 +121,10 @@
         </div>
 
         <div class="flex items-center space-x-2">
+            <a href="/movimientos" class="px-3.5 py-2.5 bg-violet-700 hover:bg-violet-800 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center space-x-2" title="Auditoría y Trazabilidad de Movimientos">
+                <i class="fa-solid fa-dolly text-violet-200 text-sm"></i>
+                <span class="hidden sm:inline">Kárdex / Movimientos</span>
+            </a>
             <button type="button" onclick="abrirModalEtiquetas()" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center space-x-2">
                 <i class="fa-solid fa-barcode text-amber-400 text-sm"></i>
                 <span>Imprimir Etiquetas</span>
@@ -943,6 +947,9 @@
                 ${celdaPrecio}
                 <td class="px-4 py-3 text-right font-mono text-slate-600">Bs. ${Number(precioBs).toLocaleString('es-VE', {minimumFractionDigits: 2})}</td>
                 <td class="px-3 py-3 text-center whitespace-nowrap space-x-1">
+                    <a href="/movimientos?codigo=${encodeURIComponent(item.codigo)}" class="text-violet-600 hover:text-violet-800 hover:bg-violet-50 p-1.5 rounded-lg transition inline-block align-middle" title="Ver Movimientos y Kárdex del Artículo">
+                        <i class="fa-solid fa-dolly text-sm"></i>
+                    </a>
                     <button onclick="imprimirEtiquetaIndividual(${item.codigo})" class="text-slate-600 hover:text-[#8B1E24] hover:bg-rose-50 p-1.5 rounded-lg transition" title="Imprimir Etiqueta con Código de Barras">
                         <i class="fa-solid fa-barcode text-sm"></i>
                     </button>

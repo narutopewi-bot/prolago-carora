@@ -271,3 +271,24 @@ class Configuracion(Base):
 
     clave = Column(String(50), primary_key=True)
     valor = Column(String(255), nullable=False)
+
+class MovimientoInventario(Base):
+    __tablename__ = "movimientos_inventario"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fecha = Column(DateTime, default=ahora_venezuela, index=True)
+    tipo = Column(String(30), index=True)  # 'VENTA', 'COMPRA', 'AJUSTE_INVENTARIO', 'ANULACION_VENTA', 'ANULACION_COMPRA'
+    impacto = Column(String(10), default="SALIDA")  # 'ENTRADA', 'SALIDA', 'AJUSTE'
+    articulo_codigo = Column(Integer, index=True, nullable=False)
+    articulo_nombre = Column(String(255), default="")
+    cantidad = Column(Float, default=0.0)  # Unidades físicas involucradas
+    tipo_unidad = Column(String(20), default="unidad")  # 'unidad' o 'paquete'
+    factor_empaque = Column(Float, default=1.0)
+    stock_anterior = Column(Float, default=0.0)
+    stock_nuevo = Column(Float, default=0.0)
+    usuario_id = Column(Integer, nullable=True)
+    usuario_nombre = Column(String(100), default="Sistema")
+    referencia_tipo = Column(String(50), default="")  # 'factura', 'compra', 'inventario'
+    referencia_id = Column(String(50), default="")  # Número de documento / ID
+    descripcion = Column(String(255), default="")
+

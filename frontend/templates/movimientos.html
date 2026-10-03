@@ -1,0 +1,651 @@
+{% extends "base.html" %}
+
+{% block title %}Movimientos y Auditoría de Inventario - Prolago Carora 2026{% endblock %}
+{% block nav_movimientos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
+{% block container_class %}max-w-[99%] xl:max-w-[98%] 2xl:max-w-[1920px] p-2 sm:p-4 lg:p-6{% endblock %}
+
+{% block extra_head %}
+<style>
+    #contenedorTablaMovimientos::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    #contenedorTablaMovimientos::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 8px;
+    }
+    #contenedorTablaMovimientos::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 8px;
+    }
+    #contenedorTablaMovimientos::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- ENCABEZADO PRINCIPAL -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center text-white text-lg shadow-md shadow-indigo-600/20">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-800">Movimientos y Auditoría de Inventario</h1>
+                    <p class="text-xs text-slate-500">Trazabilidad completa de salidas por venta, ingresos por compra y ajustes manuales con responsable</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+            <a href="/inventario" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs border border-slate-200">
+                <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
+                <span>Ir al Inventario</span>
+            </a>
+            <a href="/compras" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs border border-slate-200">
+                <i class="fa-solid fa-truck-ramp-box text-amber-600"></i>
+                <span>Recepción de Compras</span>
+            </a>
+            <button onclick="cargarMovimientos()" class="px-3.5 py-2 bg-[#8B1E24] hover:bg-[#72181D] text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Actualizar</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TARJETAS INDICADORAS (KPIS) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Movimientos</span>
+                <span id="kpiTotalMovs" class="text-2xl font-black text-slate-800 font-mono mt-0.5 block">0</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 text-lg">
+                <i class="fa-solid fa-list-check"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-emerald-100 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">Unidades Ingresadas</span>
+                <span id="kpiTotalEntradas" class="text-2xl font-black text-emerald-700 font-mono mt-0.5 block">+0</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 text-lg">
+                <i class="fa-solid fa-arrow-down"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-rose-100 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">Unidades Vendidas</span>
+                <span id="kpiTotalSalidas" class="text-2xl font-black text-rose-700 font-mono mt-0.5 block">-0</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 text-lg">
+                <i class="fa-solid fa-arrow-up"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-amber-100 shadow-xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">Ajustes Manuales</span>
+                <span id="kpiTotalAjustes" class="text-2xl font-black text-amber-800 font-mono mt-0.5 block">0</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center text-amber-700 text-lg">
+                <i class="fa-solid fa-sliders"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL DE FILTROS -->
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
+        <!-- Fila 1: Pestañas de Tipo / Operación -->
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
+            <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold overflow-x-auto max-w-full">
+                <button type="button" onclick="setFiltroTipo('TODOS')" id="btnTipo_TODOS"
+                    class="btn-filtro-tipo px-3 py-1.5 rounded-lg transition bg-white text-slate-800 shadow-2xs">
+                    Todos
+                </button>
+                <button type="button" onclick="setFiltroTipo('VENTA')" id="btnTipo_VENTA"
+                    class="btn-filtro-tipo px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-receipt text-rose-500 mr-1"></i> Ventas (Salidas)
+                </button>
+                <button type="button" onclick="setFiltroTipo('COMPRA')" id="btnTipo_COMPRA"
+                    class="btn-filtro-tipo px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-truck-ramp-box text-emerald-500 mr-1"></i> Compras (Ingresos)
+                </button>
+                <button type="button" onclick="setFiltroTipo('AJUSTE_INVENTARIO')" id="btnTipo_AJUSTE_INVENTARIO"
+                    class="btn-filtro-tipo px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-sliders text-amber-500 mr-1"></i> Ajustes de Inventario
+                </button>
+                <button type="button" onclick="setFiltroTipo('ANULACION')" id="btnTipo_ANULACION"
+                    class="btn-filtro-tipo px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-rotate-left text-purple-500 mr-1"></i> Anulaciones
+                </button>
+            </div>
+
+            <!-- Buscador en tiempo real -->
+            <div class="relative flex-1 min-w-[240px] max-w-md">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="filtroBuscar" oninput="debounceBuscar()"
+                    placeholder="Buscar por código, artículo, documento (#factura/compra) o responsable..."
+                    class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+            </div>
+        </div>
+
+        <!-- Fila 2: Rango de Fechas, Trabajador y Accesos Rápidos -->
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs">
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                <span class="font-bold text-slate-700 flex items-center">
+                    <i class="fa-solid fa-calendar-days text-indigo-600 mr-1.5"></i>
+                    Filtrar Fecha:
+                </span>
+                <div class="flex items-center space-x-1.5">
+                    <span class="text-slate-500 font-semibold">Desde:</span>
+                    <input type="date" id="filtroFechaDesde" onchange="aplicarFiltrosLocal()"
+                        class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <span class="text-slate-500 font-semibold">Hasta:</span>
+                    <input type="date" id="filtroFechaHasta" onchange="aplicarFiltrosLocal()"
+                        class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Selector de Trabajador -->
+                <div class="flex items-center space-x-1.5">
+                    <span class="text-slate-500 font-semibold">Responsable:</span>
+                    <select id="filtroUsuario" onchange="aplicarFiltrosLocal()"
+                        class="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="TODOS">👤 Todos los Responsables</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Accesos rápidos de calendario -->
+            <div class="flex items-center space-x-1 text-[11px] self-end xl:self-auto">
+                <button type="button" onclick="setRangoFecha('hoy')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Hoy</button>
+                <button type="button" onclick="setRangoFecha('semana')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Últimos 7 días</button>
+                <button type="button" onclick="setRangoFecha('mes')" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700 transition shadow-2xs">Este Mes</button>
+                <button type="button" onclick="setRangoFecha('limpiar')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg font-bold text-rose-700 transition" title="Ver todos">Limpiar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA DE MOVIMIENTOS -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div id="contenedorTablaMovimientos" class="overflow-x-auto overflow-y-auto max-h-[66vh] min-h-[350px]">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead class="bg-slate-50 text-slate-600 font-extrabold sticky top-0 z-10 border-b border-slate-200 shadow-2xs select-none">
+                    <tr>
+                        <th class="px-3.5 py-3 whitespace-nowrap">Fecha y Hora</th>
+                        <th class="px-3 py-3 text-center whitespace-nowrap">Tipo Operación</th>
+                        <th class="px-3 py-3 whitespace-nowrap">Código</th>
+                        <th class="px-3.5 py-3 whitespace-nowrap">Artículo / Descripción</th>
+                        <th class="px-3 py-3 text-center whitespace-nowrap">Impacto</th>
+                        <th class="px-3.5 py-3 text-center whitespace-nowrap">Trazabilidad Stock</th>
+                        <th class="px-3 py-3 whitespace-nowrap">Documento / Ref.</th>
+                        <th class="px-3 py-3 whitespace-nowrap">Responsable</th>
+                        <th class="px-3.5 py-3 whitespace-nowrap">Detalle / Motivo</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaMovimientosBody" class="divide-y divide-slate-100 font-sans">
+                    <tr>
+                        <td colspan="9" class="py-12 text-center text-slate-400">
+                            <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-600"></i>
+                            <p class="font-medium text-xs">Cargando movimientos de inventario...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- BARRA DE PAGINACIÓN -->
+        <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-3 text-slate-600">
+                <span>
+                    Mostrando <strong id="cantMovsRango" class="text-slate-900 font-mono font-bold">0 - 0</strong> de 
+                    <strong id="cantMovsMostrados" class="text-slate-900 font-mono font-bold">0</strong> registros 
+                    &bull; Pág. <strong id="numPaginaActual" class="text-slate-900 font-mono font-bold">1</strong> de 
+                    <strong id="numPaginasTotal" class="text-slate-900 font-mono font-bold">1</strong>
+                </span>
+
+                <div class="flex items-center space-x-1.5 pl-2 border-l border-slate-200">
+                    <span class="text-slate-500 font-semibold text-[11px]">Por pág:</span>
+                    <select id="selectTamanoPagina" onchange="cambiarTamanoPagina(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none shadow-2xs">
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botones de Navegación -->
+            <div class="flex items-center space-x-1" id="paginacionBtnsContainer">
+                <button type="button" id="btnPagPrimera" onclick="cambiarPagina(1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:pointer-events-none text-xs font-bold transition shadow-2xs">
+                    <i class="fa-solid fa-angles-left"></i>
+                </button>
+                <button type="button" id="btnPagAnterior" onclick="cambiarPagina(paginaActual - 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:pointer-events-none text-xs font-bold transition shadow-2xs">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div id="paginacionBtnsNumeros" class="flex items-center space-x-1">
+                    <span class="px-3 py-1 bg-indigo-600 text-white rounded-lg font-black text-xs">1</span>
+                </div>
+                <button type="button" id="btnPagSiguiente" onclick="cambiarPagina(paginaActual + 1)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:pointer-events-none text-xs font-bold transition shadow-2xs">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button type="button" id="btnPagUltima" onclick="cambiarPagina(totalPaginasCalculado)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:pointer-events-none text-xs font-bold transition shadow-2xs">
+                    <i class="fa-solid fa-angles-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let todosLosMovimientos = [];
+    let movimientosFiltradosActuales = [];
+    let tipoFiltroActivo = 'TODOS';
+    let paginaActual = 1;
+    let registrosPorPagina = 20;
+    let totalPaginasCalculado = 1;
+    let debounceTimer = null;
+
+    async function cargarMovimientos() {
+        const tbody = document.getElementById('tablaMovimientosBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-600"></i>
+                        <p class="font-medium text-xs">Cargando movimientos de inventario...</p>
+                    </td>
+                </tr>
+            `;
+        }
+
+        try {
+            const res = await fetch('/api/movimientos?limit=1000');
+            if (res.ok) {
+                const data = await res.json();
+                todosLosMovimientos = data.items || [];
+                actualizarKPIs(data.totales || {});
+                cargarUsuariosFiltro();
+                aplicarFiltrosLocal();
+            } else {
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="py-8 text-center text-rose-500 font-bold text-xs">
+                                <i class="fa-solid fa-triangle-exclamation text-base mb-1"></i>
+                                <p>Error al consultar los movimientos del servidor.</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar movimientos:", e);
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-rose-500 font-bold text-xs">
+                            <i class="fa-solid fa-wifi text-base mb-1"></i>
+                            <p>Fallo de conexión al cargar movimientos.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    }
+
+    function actualizarKPIs(tot) {
+        document.getElementById('kpiTotalMovs').textContent = (tot.total_movimientos || 0).toLocaleString('es-VE');
+        document.getElementById('kpiTotalEntradas').textContent = `+${(tot.total_entradas || 0).toLocaleString('es-VE')}`;
+        document.getElementById('kpiTotalSalidas').textContent = `-${(tot.total_salidas || 0).toLocaleString('es-VE')}`;
+        document.getElementById('kpiTotalAjustes').textContent = (tot.total_ajustes || 0).toLocaleString('es-VE');
+    }
+
+    function cargarUsuariosFiltro() {
+        const select = document.getElementById('filtroUsuario');
+        if (!select) return;
+        const prev = select.value;
+        const setUsers = new Set();
+        select.innerHTML = '<option value="TODOS">👤 Todos los Responsables</option>';
+
+        todosLosMovimientos.forEach(m => {
+            const u = (m.usuario_nombre || '').trim();
+            if (u && !setUsers.has(u.toLowerCase())) {
+                setUsers.add(u.toLowerCase());
+                const opt = document.createElement('option');
+                opt.value = u;
+                opt.textContent = u;
+                select.appendChild(opt);
+            }
+        });
+
+        if (prev && Array.from(select.options).some(o => o.value === prev)) {
+            select.value = prev;
+        }
+    }
+
+    function setFiltroTipo(tipo) {
+        tipoFiltroActivo = tipo;
+        document.querySelectorAll('.btn-filtro-tipo').forEach(btn => {
+            btn.className = "btn-filtro-tipo px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900";
+        });
+        const activoBtn = document.getElementById(`btnTipo_${tipo}`);
+        if (activoBtn) {
+            activoBtn.className = "btn-filtro-tipo px-3 py-1.5 rounded-lg transition bg-white text-slate-900 font-bold shadow-2xs";
+        }
+        aplicarFiltrosLocal();
+    }
+
+    function debounceBuscar() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            aplicarFiltrosLocal();
+        }, 250);
+    }
+
+    function setRangoFecha(tipo) {
+        const inpDesde = document.getElementById('filtroFechaDesde');
+        const inpHasta = document.getElementById('filtroFechaHasta');
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        const hoyStr = `${yyyy}-${mm}-${dd}`;
+
+        if (tipo === 'hoy') {
+            inpDesde.value = hoyStr;
+            inpHasta.value = hoyStr;
+        } else if (tipo === 'semana') {
+            const hace7 = new Date();
+            hace7.setDate(hoy.getDate() - 7);
+            const y7 = hace7.getFullYear();
+            const m7 = String(hace7.getMonth() + 1).padStart(2, '0');
+            const d7 = String(hace7.getDate()).padStart(2, '0');
+            inpDesde.value = `${y7}-${m7}-${d7}`;
+            inpHasta.value = hoyStr;
+        } else if (tipo === 'mes') {
+            inpDesde.value = `${yyyy}-${mm}-01`;
+            inpHasta.value = hoyStr;
+        } else if (tipo === 'limpiar') {
+            inpDesde.value = '';
+            inpHasta.value = '';
+        }
+        aplicarFiltrosLocal();
+    }
+
+    function aplicarFiltrosLocal() {
+        if (!todosLosMovimientos) return;
+
+        const q = (document.getElementById('filtroBuscar')?.value || '').trim().toLowerCase();
+        const fDesde = document.getElementById('filtroFechaDesde')?.value || '';
+        const fHasta = document.getElementById('filtroFechaHasta')?.value || '';
+        const uResp = document.getElementById('filtroUsuario')?.value || 'TODOS';
+
+        const filtradas = todosLosMovimientos.filter(m => {
+            // Filtro por tipo
+            if (tipoFiltroActivo !== 'TODOS') {
+                if (tipoFiltroActivo === 'ANULACION') {
+                    if (!m.tipo.includes('ANULACION')) return false;
+                } else if (m.tipo !== tipoFiltroActivo) {
+                    return false;
+                }
+            }
+
+            // Filtro por responsable
+            if (uResp !== 'TODOS') {
+                if ((m.usuario_nombre || '').toLowerCase() !== uResp.toLowerCase()) return false;
+            }
+
+            // Filtro por texto
+            if (q) {
+                const nom = (m.articulo_nombre || '').toLowerCase();
+                const cod = String(m.articulo_codigo || '');
+                const ref = (m.referencia_id || '').toLowerCase();
+                const usr = (m.usuario_nombre || '').toLowerCase();
+                const des = (m.descripcion || '').toLowerCase();
+                if (!nom.includes(q) && !cod.includes(q) && !ref.includes(q) && !usr.includes(q) && !des.includes(q)) {
+                    return false;
+                }
+            }
+
+            // Filtro por fecha (YYYY-MM-DD sin hora)
+            const fFechaSolo = m.fecha_iso ? m.fecha_iso.split('T')[0] : '';
+            if (fFechaSolo) {
+                if (fDesde && fFechaSolo < fDesde) return false;
+                if (fHasta && fFechaSolo > fHasta) return false;
+            }
+
+            return true;
+        });
+
+        // Actualizar KPIs de la vista filtrada si se aplican filtros
+        let totEnt = 0;
+        let totSal = 0;
+        let totAj = 0;
+        filtradas.forEach(m => {
+            if (m.impacto === 'ENTRADA') totEnt += (m.cantidad || 0);
+            if (m.impacto === 'SALIDA') totSal += (m.cantidad || 0);
+            if (m.tipo === 'AJUSTE_INVENTARIO') totAj++;
+        });
+        document.getElementById('kpiTotalMovs').textContent = filtradas.length.toLocaleString('es-VE');
+        document.getElementById('kpiTotalEntradas').textContent = `+${totEnt.toLocaleString('es-VE')}`;
+        document.getElementById('kpiTotalSalidas').textContent = `-${totSal.toLocaleString('es-VE')}`;
+        document.getElementById('kpiTotalAjustes').textContent = totAj.toLocaleString('es-VE');
+
+        paginaActual = 1;
+        movimientosFiltradosActuales = filtradas;
+        renderizarTabla();
+    }
+
+    function cambiarPagina(nuevaPag) {
+        if (nuevaPag < 1 || nuevaPag > totalPaginasCalculado || nuevaPag === paginaActual) return;
+        paginaActual = nuevaPag;
+        renderizarTabla();
+        const el = document.getElementById('contenedorTablaMovimientos');
+        if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cambiarTamanoPagina(val) {
+        registrosPorPagina = parseInt(val, 10);
+        paginaActual = 1;
+        renderizarTabla();
+    }
+
+    function renderizarTabla() {
+        const totalItems = movimientosFiltradosActuales.length;
+        totalPaginasCalculado = registrosPorPagina > 0 ? Math.ceil(totalItems / registrosPorPagina) : 1;
+        if (totalPaginasCalculado < 1) totalPaginasCalculado = 1;
+        if (paginaActual > totalPaginasCalculado) paginaActual = totalPaginasCalculado;
+
+        const inicio = (paginaActual - 1) * registrosPorPagina;
+        const fin = Math.min(inicio + registrosPorPagina, totalItems);
+        const itemsPagina = movimientosFiltradosActuales.slice(inicio, fin);
+
+        const elRango = document.getElementById('cantMovsRango');
+        if (elRango) elRango.textContent = totalItems === 0 ? '0 - 0' : `${(inicio + 1).toLocaleString('es-VE')} - ${fin.toLocaleString('es-VE')}`;
+        const elMostradas = document.getElementById('cantMovsMostrados');
+        if (elMostradas) elMostradas.textContent = totalItems.toLocaleString('es-VE');
+        const elPagAct = document.getElementById('numPaginaActual');
+        if (elPagAct) elPagAct.textContent = paginaActual.toLocaleString('es-VE');
+        const elPagTot = document.getElementById('numPaginasTotal');
+        if (elPagTot) elPagTot.textContent = totalPaginasCalculado.toLocaleString('es-VE');
+
+        const tbody = document.getElementById('tablaMovimientosBody');
+        if (!tbody) return;
+
+        if (totalItems === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-box-open text-3xl mb-2 text-slate-300"></i>
+                        <p class="font-bold text-xs">No se encontraron movimientos con los filtros aplicados.</p>
+                    </td>
+                </tr>
+            `;
+            renderizarPaginador(0, 1);
+            return;
+        }
+
+        tbody.innerHTML = itemsPagina.map(m => {
+            // Badge Tipo
+            let badgeTipo = '';
+            if (m.tipo === 'VENTA') {
+                badgeTipo = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-receipt mr-1"></i> Venta</span>`;
+            } else if (m.tipo === 'COMPRA') {
+                badgeTipo = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-truck-ramp-box mr-1"></i> Compra</span>`;
+            } else if (m.tipo === 'AJUSTE_INVENTARIO') {
+                badgeTipo = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200"><i class="fa-solid fa-sliders mr-1"></i> Ajuste</span>`;
+            } else if (m.tipo.includes('ANULACION')) {
+                badgeTipo = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200"><i class="fa-solid fa-rotate-left mr-1"></i> Anulación</span>`;
+            } else {
+                badgeTipo = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">${m.tipo}</span>`;
+            }
+
+            // Badge Impacto Cantidad
+            let badgeCant = '';
+            if (m.impacto === 'ENTRADA') {
+                badgeCant = `<span class="font-bold font-mono text-emerald-600 text-xs">+${(m.cantidad || 0).toLocaleString('es-VE')}</span>`;
+            } else if (m.impacto === 'SALIDA') {
+                badgeCant = `<span class="font-bold font-mono text-rose-600 text-xs">-${(m.cantidad || 0).toLocaleString('es-VE')}</span>`;
+            } else {
+                badgeCant = `<span class="font-bold font-mono text-slate-600 text-xs">${(m.cantidad || 0).toLocaleString('es-VE')}</span>`;
+            }
+
+            const nombreEscaped = (m.articulo_nombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const descEscaped = (m.descripcion || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+            return `
+                <tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
+                    <td class="px-3.5 py-3 whitespace-nowrap">
+                        <div class="font-bold text-slate-800 text-xs font-mono">${m.fecha || ''}</div>
+                        <div class="text-[10px] text-slate-400 font-mono">ID #${m.id}</div>
+                    </td>
+                    <td class="px-3 py-3 text-center whitespace-nowrap">
+                        ${badgeTipo}
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <span class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded font-mono font-bold text-slate-700 text-xs">
+                            ${m.articulo_codigo}
+                        </span>
+                    </td>
+                    <td class="px-3.5 py-3 font-semibold text-slate-800 max-w-xs truncate" title="${nombreEscaped}">
+                        ${m.articulo_nombre || 'Artículo sin nombre'}
+                    </td>
+                    <td class="px-3 py-3 text-center whitespace-nowrap">
+                        ${badgeCant}
+                        <span class="text-[10px] text-slate-400 block">${m.tipo_unidad === 'paquete' ? 'Paquetes' : 'Unidades'}</span>
+                    </td>
+                    <td class="px-3.5 py-3 text-center whitespace-nowrap font-mono">
+                        <div class="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                            <span class="text-slate-500 font-medium">${m.stock_anterior}</span>
+                            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                            <span class="font-bold text-slate-900">${m.stock_nuevo}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap font-mono text-slate-700 font-semibold">
+                        ${m.referencia_id ? `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100">${m.referencia_id}</span>` : '-'}
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <div class="flex items-center space-x-1.5">
+                            <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-black">
+                                ${m.usuario_nombre.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="font-bold text-slate-800 text-xs">${m.usuario_nombre}</span>
+                        </div>
+                    </td>
+                    <td class="px-3.5 py-3 text-slate-600 text-xs max-w-sm truncate" title="${descEscaped}">
+                        ${m.descripcion || '-'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        renderizarPaginador(totalItems, totalPaginasCalculado);
+    }
+
+    function renderizarPaginador(totalItems, totalPags) {
+        const btnPrimera = document.getElementById('btnPagPrimera');
+        const btnAnterior = document.getElementById('btnPagAnterior');
+        const btnSiguiente = document.getElementById('btnPagSiguiente');
+        const btnUltima = document.getElementById('btnPagUltima');
+        const contNumeros = document.getElementById('paginacionBtnsNumeros');
+
+        if (!contNumeros) return;
+
+        if (totalItems === 0 || totalPags <= 1) {
+            if (btnPrimera) btnPrimera.disabled = true;
+            if (btnAnterior) btnAnterior.disabled = true;
+            if (btnSiguiente) btnSiguiente.disabled = true;
+            if (btnUltima) btnUltima.disabled = true;
+            contNumeros.innerHTML = '<span class="px-3 py-1 bg-indigo-600 text-white rounded-lg font-black text-xs">1</span>';
+            return;
+        }
+
+        if (btnPrimera) btnPrimera.disabled = (paginaActual <= 1);
+        if (btnAnterior) btnAnterior.disabled = (paginaActual <= 1);
+        if (btnSiguiente) btnSiguiente.disabled = (paginaActual >= totalPags);
+        if (btnUltima) btnUltima.disabled = (paginaActual >= totalPags);
+
+        contNumeros.innerHTML = '';
+        let pagsAMostrar = [];
+        if (totalPags <= 7) {
+            for (let i = 1; i <= totalPags; i++) pagsAMostrar.push(i);
+        } else {
+            pagsAMostrar.push(1);
+            if (paginaActual > 3) pagsAMostrar.push('...');
+            const start = Math.max(2, paginaActual - 1);
+            const end = Math.min(totalPags - 1, paginaActual + 1);
+            for (let i = start; i <= end; i++) pagsAMostrar.push(i);
+            if (paginaActual < totalPags - 2) pagsAMostrar.push('...');
+            pagsAMostrar.push(totalPags);
+        }
+
+        pagsAMostrar.forEach(p => {
+            if (p === '...') {
+                const span = document.createElement('span');
+                span.className = "px-2 py-1 text-slate-400 font-bold text-xs select-none";
+                span.textContent = '...';
+                contNumeros.appendChild(span);
+            } else {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = (p === paginaActual)
+                    ? "px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-black text-xs shadow-xs"
+                    : "px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition shadow-2xs";
+                btn.textContent = p;
+                btn.onclick = () => cambiarPagina(p);
+                contNumeros.appendChild(btn);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const codParam = urlParams.get('codigo');
+        const tipoParam = urlParams.get('tipo');
+
+        if (codParam) {
+            const inp = document.getElementById('filtroBuscar');
+            if (inp) inp.value = codParam;
+        }
+        if (tipoParam) {
+            setFiltroTipo(tipoParam.toUpperCase());
+        }
+
+        cargarMovimientos();
+    });
+</script>
+{% endblock %}
