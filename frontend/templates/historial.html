@@ -1268,9 +1268,7 @@
             if (titulo) titulo.textContent = "Historial de Compras";
             if (subtitulo) subtitulo.textContent = "Registro cronológico de compras, entradas de inventario, costos, precios y márgenes";
 
-            if (!todasLasCompras || todasLasCompras.length === 0) {
-                cargarHistorialCompras();
-            }
+            cargarHistorialCompras();
         }
     }
 
@@ -3266,10 +3264,11 @@
                 }
             }
 
-            // Filtro por fecha ISO
-            if (c.fecha_iso) {
-                if (fDesde && c.fecha_iso < fDesde) return false;
-                if (fHasta && c.fecha_iso > fHasta) return false;
+            // Filtro por fecha (extraer YYYY-MM-DD para comparación exacta de días)
+            const fFechaSolo = c.fecha_iso ? c.fecha_iso.split('T')[0] : '';
+            if (fFechaSolo) {
+                if (fDesde && fFechaSolo < fDesde) return false;
+                if (fHasta && fFechaSolo > fHasta) return false;
             }
 
             return true;
