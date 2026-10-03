@@ -16,8 +16,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, desc, text
 import json
 import re
+import logging
 
-from .database import get_db, engine, Base, BASE_DIR, TARGET_DB
+logger = logging.getLogger("prolago")
+
+from .database import get_db, engine, Base, BASE_DIR, TARGET_DB, SessionLocal
 from .models import (
     Articulo, Cliente, Factura, DetalleFactura, Despacho, DetalleDespacho, Compra, Usuario, Configuracion, AbonoCredito, Caja, MovimientoInventario,
     ahora_venezuela, TZ_VENEZUELA
@@ -89,59 +92,69 @@ ejecutar_ddl_seguro("ALTER TABLE detalles_factura ADD COLUMN tipo_unidad VARCHAR
 ejecutar_ddl_seguro("ALTER TABLE detalles_factura ADD COLUMN factor_empaque FLOAT DEFAULT 1.0")
 
 # Creación e inicialización de tabla movimientos_inventario
-try:
-    with engine.begin() as conn:
-        Base.metadata.create_all(bind=conn)
-        m_count = conn.execute(text("SELECT COUNT(*) FROM movimientos_inventario")).scalar()
-        if not m_count or m_count == 0:
-            # Población inicial de compras históricas
-            conn.execute(text("""
-                INSERT INTO movimientos_inventario (
-                    fecha, tipo, impacto, articulo_codigo, articulo_nombre, cantidad,
-                    tipo_unidad, factor_empaque, stock_anterior, stock_nuevo,
-                    usuario_id, usuario_nombre, referencia_tipo, referencia_id, descripcion
-                )
-                SELECT
-                    c.fecha, 'COMPRA', 'ENTRADA', c.codigo_articulo, c.nombre_articulo, c.cantidad,
-                    COALESCE(c.tipo_unidad, 'unidad'), COALESCE(c.factor_empaque, 1.0), 0.0, c.cantidad,
-                    1, 'Administrador', 'compra', CAST(c.id AS VARCHAR), 'Ingreso histórico por compra registrada'
-                FROM compras c
-            """))
-            # Población inicial de ventas históricas
-            if engine.url.drivername.startswith("postgresql"):
-                conn.execute(text("""
-                    INSERT INTO movimientos_inventario (
-                        fecha, tipo, impacto, articulo_codigo, articulo_nombre, cantidad,
-                        tipo_unidad, factor_empaque, stock_anterior, stock_nuevo,
-                        usuario_id, usuario_nombre, referencia_tipo, referencia_id, descripcion
+def inicializar_movimientos_historicos():
+    try:
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            m_count = db.query(MovimientoInventario).count()
+            if m_count == 0:
+                print("[MOVIMIENTOS] Poblando movimientos históricos iniciales desde compras...")
+                compras = db.query(Compra).all()
+                for c in compras:
+                    mov = MovimientoInventario(
+                        fecha=c.fecha or ahora_venezuela(),
+                        tipo="COMPRA",
+                        impacto="ENTRADA",
+                        articulo_codigo=c.codigo_articulo,
+                        articulo_nombre=c.nombre_articulo or "",
+                        cantidad=c.cantidad or 0.0,
+                        tipo_unidad=getattr(c, "tipo_unidad", "unidad") or "unidad",
+                        factor_empaque=getattr(c, "factor_empaque", 1.0) or 1.0,
+                        stock_anterior=0.0,
+                        stock_nuevo=c.cantidad or 0.0,
+                        usuario_id=1,
+                        usuario_nombre="Administrador",
+                        referencia_tipo="compra",
+                        referencia_id=str(c.id),
+                        descripcion="Ingreso histórico por compra registrada"
                     )
-                    SELECT
-                        f.fecha, 'VENTA', 'SALIDA',
-                        CASE WHEN d.codigo_articulo ~ '^[0-9]+$' THEN CAST(d.codigo_articulo AS INTEGER) ELSE 0 END,
-                        d.nombre_articulo, d.cantidad,
-                        COALESCE(d.tipo_unidad, 'unidad'), COALESCE(d.factor_empaque, 1.0), d.cantidad, 0.0,
-                        f.usuario_id, COALESCE(f.usuario_nombre, 'Cajero'), 'factura', f.numero, 'Venta histórica registrada'
-                    FROM detalles_factura d
-                    JOIN facturas f ON d.factura_id = f.id
-                """))
-            else:
-                conn.execute(text("""
-                    INSERT INTO movimientos_inventario (
-                        fecha, tipo, impacto, articulo_codigo, articulo_nombre, cantidad,
-                        tipo_unidad, factor_empaque, stock_anterior, stock_nuevo,
-                        usuario_id, usuario_nombre, referencia_tipo, referencia_id, descripcion
+                    db.add(mov)
+
+                print("[MOVIMIENTOS] Poblando movimientos históricos iniciales desde ventas...")
+                detalles = db.query(DetalleFactura, Factura).join(Factura, DetalleFactura.factura_id == Factura.id).all()
+                for d, f in detalles:
+                    try:
+                        cod_int = int(d.codigo_articulo)
+                    except Exception:
+                        cod_int = 0
+                    mov = MovimientoInventario(
+                        fecha=f.fecha or ahora_venezuela(),
+                        tipo="VENTA",
+                        impacto="SALIDA",
+                        articulo_codigo=cod_int,
+                        articulo_nombre=d.nombre_articulo or "",
+                        cantidad=d.cantidad or 0.0,
+                        tipo_unidad=getattr(d, "tipo_unidad", "unidad") or "unidad",
+                        factor_empaque=getattr(d, "factor_empaque", 1.0) or 1.0,
+                        stock_anterior=d.cantidad or 0.0,
+                        stock_nuevo=0.0,
+                        usuario_id=f.usuario_id or 1,
+                        usuario_nombre=f.usuario_nombre or "Cajero",
+                        referencia_tipo="factura",
+                        referencia_id=str(f.numero),
+                        descripcion="Venta histórica registrada"
                     )
-                    SELECT
-                        f.fecha, 'VENTA', 'SALIDA',
-                        CAST(d.codigo_articulo AS INTEGER),
-                        d.nombre_articulo, d.cantidad,
-                        COALESCE(d.tipo_unidad, 'unidad'), COALESCE(d.factor_empaque, 1.0), d.cantidad, 0.0,
-                        f.usuario_id, COALESCE(f.usuario_nombre, 'Cajero'), 'factura', f.numero, 'Venta histórica registrada'
-                    FROM detalles_factura d
-                    JOIN facturas f ON d.factura_id = f.id
-                """))
-except Exception as e:
-    logger.warning(f"Aviso en inicialización de movimientos_inventario: {e}")
+                    db.add(mov)
+
+                db.commit()
+                print("[MOVIMIENTOS] Población histórica completada con éxito.")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[MOVIMIENTOS] Aviso en inicialización: {e}")
+
+inicializar_movimientos_historicos()
 
 
 # Migración de fechas UTC a hora local de Venezuela (VET, UTC-4) (solo si SQLite)
