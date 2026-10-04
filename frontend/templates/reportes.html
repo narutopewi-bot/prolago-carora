@@ -1546,7 +1546,13 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         initFechas();
-        cargarReporteActivo();
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        if (tabParam && document.getElementById(`panel_${tabParam}`)) {
+            cambiarTab(tabParam);
+        } else {
+            cargarReporteActivo();
+        }
         actualizarBadgeStockAlerta();
     });
 </script>

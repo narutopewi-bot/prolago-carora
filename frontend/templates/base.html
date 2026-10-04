@@ -84,27 +84,290 @@
                     </button>
                 </div>
 
+                {% set active_pos %}{% block nav_pos %}{% endblock %}{% endset %}
+                {% set active_compras %}{% block nav_compras %}{% endblock %}{% endset %}
+                {% set active_cajas %}{% block nav_cajas %}{% endblock %}{% endset %}
+                {% set active_inventario %}{% block nav_inventario %}{% endblock %}{% endset %}
+
                 <!-- Links Centrales (Desktop) -->
                 <nav class="hidden lg:flex items-center space-x-0.5 xl:space-x-1 text-xs xl:text-sm font-medium shrink-0">
+                    <!-- Menú Atajos: Ventas y Caja (Imagen 1) -->
                     {% if not user or user.tiene_permiso('pos') %}
-                    <a href="/" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_pos %}{% endblock %}">
-                        <i class="fa-solid fa-cash-register mr-1.5 text-emerald-300 shrink-0 w-4 text-center"></i><span>Ventas</span>
-                    </a>
+                        {% if user and user.rol == 'admin' %}
+                        <div class="relative group" id="dropdownVentasContainer">
+                            <div class="flex items-center rounded-lg transition hover:bg-white/15 {{ active_pos }}">
+                                <a href="/" class="pl-2 xl:pl-2.5 pr-1 py-1.5 whitespace-nowrap shrink-0 flex items-center text-white" title="Punto de Venta / Facturar">
+                                    <i class="fa-solid fa-cash-register mr-1.5 text-emerald-300 shrink-0 w-4 text-center"></i><span>Ventas</span>
+                                </a>
+                                <button type="button" onclick="toggleMenuAtajo('Ventas', event)" class="px-1.5 py-1.5 text-red-200 hover:text-white transition" title="Atajos de Caja / Ventas">
+                                    <i class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200" id="iconoChevronVentas"></i>
+                                </button>
+                            </div>
+                            <div id="dropdownVentasMenu" class="hidden group-hover:lg:block absolute left-0 top-full mt-1.5 w-64 bg-gradient-to-b from-[#470506] via-[#350304] to-[#200102] border border-white/20 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl text-xs divide-y divide-white/10">
+                                <div class="px-3 py-1 text-[10px] uppercase font-black tracking-wider text-emerald-300 flex items-center justify-between">
+                                    <span>Atajos Caja y Ventas</span>
+                                    <i class="fa-solid fa-bolt text-amber-400"></i>
+                                </div>
+                                <div class="py-1">
+                                    <a href="/" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-cart-shopping text-emerald-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Venta (Salidas)</p>
+                                            <span class="text-[10px] text-slate-300">Punto de Venta / Facturar</span>
+                                        </div>
+                                    </a>
+                                    {% if not user or user.tiene_permiso('movimientos') %}
+                                    <a href="/movimientos?tipo=VENTA" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-arrow-trend-up text-emerald-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Movimiento ventas</p>
+                                            <span class="text-[10px] text-slate-300">Kárdex y auditoría de salidas</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    {% if not user or user.tiene_permiso('reportes') %}
+                                    <a href="/reportes?tab=ventas" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-file-invoice-dollar text-emerald-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Reporte ventas</p>
+                                            <span class="text-[10px] text-slate-300">Totales, facturación y turnos</span>
+                                        </div>
+                                    </a>
+                                    <a href="/reportes?tab=articulos_vendidos" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-trophy text-amber-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Artículos más vendidos</p>
+                                            <span class="text-[10px] text-slate-300">Ranking de mayor rotación</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    {% if not user or user.tiene_permiso('historial') %}
+                                    <a href="/historial?tab=ventas" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-clock-rotate-left text-cyan-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Historial ventas</p>
+                                            <span class="text-[10px] text-slate-300">Facturas, tickets y anulación</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    {% if not user or user.tiene_permiso('cajas') %}
+                                    <a href="/cajas" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-vault text-purple-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Reporte cajas</p>
+                                            <span class="text-[10px] text-slate-300">Turnos, aperturas y arqueos</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <a href="/" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {{ active_pos }}">
+                            <i class="fa-solid fa-cash-register mr-1.5 text-emerald-300 shrink-0 w-4 text-center"></i><span>Ventas</span>
+                        </a>
+                        {% endif %}
                     {% endif %}
+
+                    <!-- Menú Atajos: Compras (Imagen 2) -->
                     {% if not user or user.tiene_permiso('compras') %}
-                    <a href="/compras" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_compras %}{% endblock %}">
-                        <i class="fa-solid fa-truck-ramp-box mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Compras</span>
-                    </a>
+                        {% if user and user.rol == 'admin' %}
+                        <div class="relative group" id="dropdownComprasContainer">
+                            <div class="flex items-center rounded-lg transition hover:bg-white/15 {{ active_compras }}">
+                                <a href="/compras" class="pl-2 xl:pl-2.5 pr-1 py-1.5 whitespace-nowrap shrink-0 flex items-center text-white" title="Recepción de Compras">
+                                    <i class="fa-solid fa-truck-ramp-box mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Compras</span>
+                                </a>
+                                <button type="button" onclick="toggleMenuAtajo('Compras', event)" class="px-1.5 py-1.5 text-red-200 hover:text-white transition" title="Atajos de Compras">
+                                    <i class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200" id="iconoChevronCompras"></i>
+                                </button>
+                            </div>
+                            <div id="dropdownComprasMenu" class="hidden group-hover:lg:block absolute left-0 top-full mt-1.5 w-64 bg-gradient-to-b from-[#470506] via-[#350304] to-[#200102] border border-white/20 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl text-xs divide-y divide-white/10">
+                                <div class="px-3 py-1 text-[10px] uppercase font-black tracking-wider text-amber-300 flex items-center justify-between">
+                                    <span>Atajos Compras</span>
+                                    <i class="fa-solid fa-truck text-amber-400"></i>
+                                </div>
+                                <div class="py-1">
+                                    <a href="/compras" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-box-open text-blue-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Compras ingresos</p>
+                                            <span class="text-[10px] text-slate-300">Cargar factura de entrada</span>
+                                        </div>
+                                    </a>
+                                    <a href="/compras?accion=nuevo" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-square-plus text-amber-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Opción comprar artículo nuevo</p>
+                                            <span class="text-[10px] text-slate-300">Crear y recibir en compra</span>
+                                        </div>
+                                    </a>
+                                    {% if not user or user.tiene_permiso('historial') %}
+                                    <a href="/historial?tab=compras" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-receipt text-cyan-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Ver historial compras</p>
+                                            <span class="text-[10px] text-slate-300">Entradas registradas a proveedores</span>
+                                        </div>
+                                    </a>
+                                    <a href="/historial?tab=compras" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-ban text-rose-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Anulación compras</p>
+                                            <span class="text-[10px] text-slate-300">Revertir compra y descontar stock</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    {% if not user or user.tiene_permiso('reportes') %}
+                                    <a href="/reportes?tab=compras" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-chart-line text-emerald-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Reporte de compras</p>
+                                            <span class="text-[10px] text-slate-300">Gastos y totales por período</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    {% if not user or user.tiene_permiso('movimientos') %}
+                                    <a href="/movimientos?tipo=COMPRA" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-dolly text-violet-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Movimientos compras</p>
+                                            <span class="text-[10px] text-slate-300">Kárdex filtrado de compras</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <a href="/compras" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {{ active_compras }}">
+                            <i class="fa-solid fa-truck-ramp-box mr-1.5 text-amber-300 shrink-0 w-4 text-center"></i><span>Compras</span>
+                        </a>
+                        {% endif %}
                     {% endif %}
+
+                    <!-- Menú Atajos: Cajas -->
                     {% if not user or user.tiene_permiso('cajas') %}
-                    <a href="/cajas" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_cajas %}{% endblock %}">
-                        <i class="fa-solid fa-vault mr-1.5 text-emerald-400 shrink-0 w-4 text-center"></i><span>Cajas</span>
-                    </a>
+                        {% if user and user.rol == 'admin' %}
+                        <div class="relative group" id="dropdownCajasContainer">
+                            <div class="flex items-center rounded-lg transition hover:bg-white/15 {{ active_cajas }}">
+                                <a href="/cajas" class="pl-2 xl:pl-2.5 pr-1 py-1.5 whitespace-nowrap shrink-0 flex items-center text-white" title="Control de Cajas y Turnos">
+                                    <i class="fa-solid fa-vault mr-1.5 text-emerald-400 shrink-0 w-4 text-center"></i><span>Cajas</span>
+                                </a>
+                                <button type="button" onclick="toggleMenuAtajo('Cajas', event)" class="px-1.5 py-1.5 text-red-200 hover:text-white transition" title="Atajos de Cajas">
+                                    <i class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200" id="iconoChevronCajas"></i>
+                                </button>
+                            </div>
+                            <div id="dropdownCajasMenu" class="hidden group-hover:lg:block absolute left-0 top-full mt-1.5 w-60 bg-gradient-to-b from-[#470506] via-[#350304] to-[#200102] border border-white/20 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl text-xs divide-y divide-white/10">
+                                <div class="px-3 py-1 text-[10px] uppercase font-black tracking-wider text-emerald-300 flex items-center justify-between">
+                                    <span>Control de Cajas</span>
+                                    <i class="fa-solid fa-cash-register text-emerald-400"></i>
+                                </div>
+                                <div class="py-1">
+                                    <a href="/cajas" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-vault text-emerald-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                             <p class="font-bold leading-tight">Control de Turnos</p>
+                                             <span class="text-[10px] text-slate-300">Apertura y Cierre diario</span>
+                                        </div>
+                                    </a>
+                                    {% if not user or user.tiene_permiso('reportes') %}
+                                    <a href="/reportes?tab=cajas" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-file-invoice-dollar text-cyan-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Reporte de Cajas</p>
+                                            <span class="text-[10px] text-slate-300">Arqueos y diferencias</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    <a href="/" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-cart-shopping text-emerald-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Venta (Salidas en Caja)</p>
+                                            <span class="text-[10px] text-slate-300">Ir a cobrar en POS</span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <a href="/cajas" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {{ active_cajas }}">
+                            <i class="fa-solid fa-vault mr-1.5 text-emerald-400 shrink-0 w-4 text-center"></i><span>Cajas</span>
+                        </a>
+                        {% endif %}
                     {% endif %}
+
+                    <!-- Menú Atajos: Inventario (Imagen 3) -->
                     {% if not user or user.tiene_permiso('inventario') %}
-                    <a href="/inventario" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_inventario %}{% endblock %}">
-                        <i class="fa-solid fa-boxes-stacked mr-1.5 text-blue-300 shrink-0 w-4 text-center"></i><span>Inventario</span>
-                    </a>
+                        {% if user and user.rol == 'admin' %}
+                        <div class="relative group" id="dropdownInventarioContainer">
+                            <div class="flex items-center rounded-lg transition hover:bg-white/15 {{ active_inventario }}">
+                                <a href="/inventario" class="pl-2 xl:pl-2.5 pr-1 py-1.5 whitespace-nowrap shrink-0 flex items-center text-white" title="Inventario y Artículos">
+                                    <i class="fa-solid fa-boxes-stacked mr-1.5 text-blue-300 shrink-0 w-4 text-center"></i><span>Inventario</span>
+                                </a>
+                                <button type="button" onclick="toggleMenuAtajo('Inventario', event)" class="px-1.5 py-1.5 text-red-200 hover:text-white transition" title="Atajos de Inventario">
+                                    <i class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200" id="iconoChevronInventario"></i>
+                                </button>
+                            </div>
+                            <div id="dropdownInventarioMenu" class="hidden group-hover:lg:block absolute left-0 top-full mt-1.5 w-64 bg-gradient-to-b from-[#470506] via-[#350304] to-[#200102] border border-white/20 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl text-xs divide-y divide-white/10">
+                                <div class="px-3 py-1 text-[10px] uppercase font-black tracking-wider text-blue-300 flex items-center justify-between">
+                                    <span>Atajos Inventario</span>
+                                    <i class="fa-solid fa-cubes text-blue-400"></i>
+                                </div>
+                                <div class="py-1">
+                                    <a href="/inventario?filtro=POR_AGOTARSE" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-triangle-exclamation text-rose-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Stock por acabar</p>
+                                            <span class="text-[10px] text-slate-300">Alertas de artículos por agotarse</span>
+                                        </div>
+                                    </a>
+                                    {% if not user or user.tiene_permiso('reportes') %}
+                                    <a href="/reportes?tab=inventario" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-clipboard-check text-emerald-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Reporte de Inventario</p>
+                                            <span class="text-[10px] text-slate-300">Existencias y valorización total</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    {% if not user or user.tiene_permiso('movimientos') %}
+                                    <a href="/movimientos?tipo=ANULACION" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-rotate-left text-amber-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Anulaciones</p>
+                                            <span class="text-[10px] text-slate-300">Auditoría de movimientos anulados</span>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                    <a href="/inventario" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-boxes-stacked text-blue-400 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Catálogo General</p>
+                                            <span class="text-[10px] text-slate-300">Búsqueda y edición completa</span>
+                                        </div>
+                                    </a>
+                                    <a href="/inventario?accion=nuevo" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-plus-circle text-teal-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Registrar Nuevo Producto</p>
+                                            <span class="text-[10px] text-slate-300">Crear en catálogo general</span>
+                                        </div>
+                                    </a>
+                                    <a href="/inventario?accion=etiquetas" class="px-3 py-1.5 rounded-xl transition hover:bg-white/15 text-white flex items-center space-x-2.5">
+                                        <i class="fa-solid fa-barcode text-purple-300 w-5 text-center text-sm"></i>
+                                        <div>
+                                            <p class="font-bold leading-tight">Imprimir Etiquetas</p>
+                                            <span class="text-[10px] text-slate-300">Códigos de barra térmicos</span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <a href="/inventario" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {{ active_inventario }}">
+                            <i class="fa-solid fa-boxes-stacked mr-1.5 text-blue-300 shrink-0 w-4 text-center"></i><span>Inventario</span>
+                        </a>
+                        {% endif %}
                     {% endif %}
                     {% if not user or user.tiene_permiso('movimientos') %}
                     <a href="/movimientos" class="px-2 xl:px-2.5 py-1.5 rounded-lg transition hover:bg-white/15 hover:text-white whitespace-nowrap shrink-0 flex items-center {% block nav_movimientos %}{% endblock %}">
@@ -233,25 +496,160 @@
                 </div>
             </div>
 
+            <!-- Ventas Móvil -->
             {% if not user or user.tiene_permiso('pos') %}
-            <a href="/" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-cash-register mr-2.5 text-emerald-300 w-5 text-center"></i><span>Punto de Venta (Ventas)</span>
-            </a>
+                {% if user and user.rol == 'admin' %}
+                <div class="rounded-xl overflow-hidden bg-white/5 border border-white/10">
+                    <button type="button" onclick="document.getElementById('subMobVentas').classList.toggle('hidden'); document.getElementById('chevMobVentas').classList.toggle('rotate-180')" class="w-full px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/10 flex items-center justify-between">
+                        <span class="flex items-center"><i class="fa-solid fa-cash-register mr-2.5 text-emerald-300 w-5 text-center"></i><span>Ventas y Caja</span></span>
+                        <i class="fa-solid fa-chevron-down text-xs text-red-200 transition-transform" id="chevMobVentas"></i>
+                    </button>
+                    <div id="subMobVentas" class="hidden px-3 py-1 space-y-1 bg-black/20 text-xs border-t border-white/5">
+                        <a href="/" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-cart-shopping text-emerald-400 w-4 text-center"></i>
+                            <span>Venta (Salidas / POS)</span>
+                        </a>
+                        <a href="/movimientos?tipo=VENTA" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-arrow-trend-up text-emerald-300 w-4 text-center"></i>
+                            <span>Movimiento ventas</span>
+                        </a>
+                        <a href="/reportes?tab=ventas" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-file-invoice-dollar text-emerald-400 w-4 text-center"></i>
+                            <span>Reporte ventas</span>
+                        </a>
+                        <a href="/reportes?tab=articulos_vendidos" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-trophy text-amber-400 w-4 text-center"></i>
+                            <span>Artículos más vendidos</span>
+                        </a>
+                        <a href="/historial?tab=ventas" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-clock-rotate-left text-cyan-300 w-4 text-center"></i>
+                            <span>Historial ventas</span>
+                        </a>
+                        <a href="/cajas" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-vault text-purple-300 w-4 text-center"></i>
+                            <span>Reporte cajas</span>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="/" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                    <i class="fa-solid fa-cash-register mr-2.5 text-emerald-300 w-5 text-center"></i><span>Punto de Venta (Ventas)</span>
+                </a>
+                {% endif %}
             {% endif %}
+
+            <!-- Compras Móvil -->
             {% if not user or user.tiene_permiso('compras') %}
-            <a href="/compras" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Recepción de Compras</span>
-            </a>
+                {% if user and user.rol == 'admin' %}
+                <div class="rounded-xl overflow-hidden bg-white/5 border border-white/10">
+                    <button type="button" onclick="document.getElementById('subMobCompras').classList.toggle('hidden'); document.getElementById('chevMobCompras').classList.toggle('rotate-180')" class="w-full px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/10 flex items-center justify-between">
+                        <span class="flex items-center"><i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Compras</span></span>
+                        <i class="fa-solid fa-chevron-down text-xs text-red-200 transition-transform" id="chevMobCompras"></i>
+                    </button>
+                    <div id="subMobCompras" class="hidden px-3 py-1 space-y-1 bg-black/20 text-xs border-t border-white/5">
+                        <a href="/compras" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-box-open text-blue-400 w-5 text-center"></i>
+                            <span>Compras ingresos</span>
+                        </a>
+                        <a href="/compras?accion=nuevo" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-square-plus text-amber-400 w-4 text-center"></i>
+                            <span>Opción comprar artículo nuevo</span>
+                        </a>
+                        <a href="/historial?tab=compras" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-receipt text-cyan-300 w-4 text-center"></i>
+                            <span>Ver historial compras</span>
+                        </a>
+                        <a href="/historial?tab=compras" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-ban text-rose-400 w-4 text-center"></i>
+                            <span>Anulación compras</span>
+                        </a>
+                        <a href="/reportes?tab=compras" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-chart-line text-emerald-400 w-4 text-center"></i>
+                            <span>Reporte de compras</span>
+                        </a>
+                        <a href="/movimientos?tipo=COMPRA" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-dolly text-violet-300 w-4 text-center"></i>
+                            <span>Movimientos compras</span>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="/compras" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                    <i class="fa-solid fa-truck-ramp-box mr-2.5 text-amber-300 w-5 text-center"></i><span>Recepción de Compras</span>
+                </a>
+                {% endif %}
             {% endif %}
+
+            <!-- Cajas Móvil -->
             {% if not user or user.tiene_permiso('cajas') %}
-            <a href="/cajas" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-vault mr-2.5 text-emerald-400 w-5 text-center"></i><span>Control de Cajas y Turnos</span>
-            </a>
+                {% if user and user.rol == 'admin' %}
+                <div class="rounded-xl overflow-hidden bg-white/5 border border-white/10">
+                    <button type="button" onclick="document.getElementById('subMobCajas').classList.toggle('hidden'); document.getElementById('chevMobCajas').classList.toggle('rotate-180')" class="w-full px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/10 flex items-center justify-between">
+                        <span class="flex items-center"><i class="fa-solid fa-vault mr-2.5 text-emerald-400 w-5 text-center"></i><span>Control de Cajas</span></span>
+                        <i class="fa-solid fa-chevron-down text-xs text-red-200 transition-transform" id="chevMobCajas"></i>
+                    </button>
+                    <div id="subMobCajas" class="hidden px-3 py-1 space-y-1 bg-black/20 text-xs border-t border-white/5">
+                        <a href="/cajas" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-vault text-emerald-400 w-4 text-center"></i>
+                            <span>Control de Turnos</span>
+                        </a>
+                        <a href="/reportes?tab=cajas" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-file-invoice-dollar text-cyan-300 w-4 text-center"></i>
+                            <span>Reporte de Cajas</span>
+                        </a>
+                        <a href="/" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-cart-shopping text-emerald-300 w-4 text-center"></i>
+                            <span>Venta (Salidas en Caja)</span>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="/cajas" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                    <i class="fa-solid fa-vault mr-2.5 text-emerald-400 w-5 text-center"></i><span>Control de Cajas y Turnos</span>
+                </a>
+                {% endif %}
             {% endif %}
+
+            <!-- Inventario Móvil -->
             {% if not user or user.tiene_permiso('inventario') %}
-            <a href="/inventario" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
-                <i class="fa-solid fa-boxes-stacked mr-2.5 text-blue-300 w-5 text-center"></i><span>Inventario y Precios</span>
-            </a>
+                {% if user and user.rol == 'admin' %}
+                <div class="rounded-xl overflow-hidden bg-white/5 border border-white/10">
+                    <button type="button" onclick="document.getElementById('subMobInventario').classList.toggle('hidden'); document.getElementById('chevMobInventario').classList.toggle('rotate-180')" class="w-full px-3 py-2.5 text-sm font-semibold text-white hover:bg-white/10 flex items-center justify-between">
+                        <span class="flex items-center"><i class="fa-solid fa-boxes-stacked mr-2.5 text-blue-300 w-5 text-center"></i><span>Inventario</span></span>
+                        <i class="fa-solid fa-chevron-down text-xs text-red-200 transition-transform" id="chevMobInventario"></i>
+                    </button>
+                    <div id="subMobInventario" class="hidden px-3 py-1 space-y-1 bg-black/20 text-xs border-t border-white/5">
+                        <a href="/inventario?filtro=POR_AGOTARSE" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-400 w-4 text-center"></i>
+                            <span>Stock por acabar</span>
+                        </a>
+                        <a href="/reportes?tab=inventario" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-clipboard-check text-emerald-400 w-4 text-center"></i>
+                            <span>Reporte de Inventario</span>
+                        </a>
+                        <a href="/movimientos?tipo=ANULACION" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-rotate-left text-amber-400 w-4 text-center"></i>
+                            <span>Anulaciones</span>
+                        </a>
+                        <a href="/inventario" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-boxes-stacked text-blue-400 w-4 text-center"></i>
+                            <span>Catálogo General</span>
+                        </a>
+                        <a href="/inventario?accion=nuevo" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-plus-circle text-teal-300 w-4 text-center"></i>
+                            <span>Registrar Nuevo Producto</span>
+                        </a>
+                        <a href="/inventario?accion=etiquetas" class="py-1.5 px-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 flex items-center space-x-2">
+                            <i class="fa-solid fa-barcode text-purple-300 w-4 text-center"></i>
+                            <span>Imprimir Etiquetas</span>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="/inventario" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
+                    <i class="fa-solid fa-boxes-stacked mr-2.5 text-blue-300 w-5 text-center"></i><span>Inventario y Precios</span>
+                </a>
+                {% endif %}
             {% endif %}
             {% if not user or user.tiene_permiso('movimientos') %}
             <a href="/movimientos" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 flex items-center">
@@ -481,8 +879,47 @@
 
     <!-- SCRIPTS GLOBALES -->
     <script>
+        function toggleMenuAtajo(modulo, e) {
+            if (e) e.stopPropagation();
+            const idMenu = `dropdown${modulo}Menu`;
+            const idChevron = `iconoChevron${modulo}`;
+            const m = document.getElementById(idMenu);
+            const c = document.getElementById(idChevron);
+
+            // Cerrar otros menús abiertos
+            ['Ventas', 'Compras', 'Cajas', 'Inventario'].forEach(mod => {
+                if (mod !== modulo) {
+                    const otherM = document.getElementById(`dropdown${mod}Menu`);
+                    const otherC = document.getElementById(`iconoChevron${mod}`);
+                    if (otherM) otherM.classList.add('hidden');
+                    if (otherC) otherC.classList.remove('rotate-180');
+                }
+            });
+            const menuMas = document.getElementById('dropdownMasMenu');
+            const chevMas = document.getElementById('iconoChevronMas');
+            if (menuMas) menuMas.classList.add('hidden');
+            if (chevMas) chevMas.classList.remove('rotate-180');
+
+            if (m) {
+                const estaOculto = m.classList.contains('hidden');
+                if (estaOculto) {
+                    m.classList.remove('hidden');
+                    if (c) c.classList.add('rotate-180');
+                } else {
+                    m.classList.add('hidden');
+                    if (c) c.classList.remove('rotate-180');
+                }
+            }
+        }
+
         function toggleMenuMas(e) {
             if (e) e.stopPropagation();
+            ['Ventas', 'Compras', 'Cajas', 'Inventario'].forEach(mod => {
+                const otherM = document.getElementById(`dropdown${mod}Menu`);
+                const otherC = document.getElementById(`iconoChevron${mod}`);
+                if (otherM) otherM.classList.add('hidden');
+                if (otherC) otherC.classList.remove('rotate-180');
+            });
             const m = document.getElementById('dropdownMasMenu');
             const c = document.getElementById('iconoChevronMas');
             if (m) {
@@ -490,13 +927,38 @@
                 if (c) c.classList.toggle('rotate-180');
             }
         }
+
         document.addEventListener('click', (e) => {
-            const cont = document.getElementById('dropdownMasContainer');
-            const m = document.getElementById('dropdownMasMenu');
-            const c = document.getElementById('iconoChevronMas');
-            if (cont && m && !cont.contains(e.target)) {
-                m.classList.add('hidden');
-                if (c) c.classList.remove('rotate-180');
+            ['Ventas', 'Compras', 'Cajas', 'Inventario'].forEach(mod => {
+                const cont = document.getElementById(`dropdown${mod}Container`);
+                const m = document.getElementById(`dropdown${mod}Menu`);
+                const c = document.getElementById(`iconoChevron${mod}`);
+                if (cont && m && !cont.contains(e.target)) {
+                    m.classList.add('hidden');
+                    if (c) c.classList.remove('rotate-180');
+                }
+            });
+            const contMas = document.getElementById('dropdownMasContainer');
+            const mMas = document.getElementById('dropdownMasMenu');
+            const cMas = document.getElementById('iconoChevronMas');
+            if (contMas && mMas && !contMas.contains(e.target)) {
+                mMas.classList.add('hidden');
+                if (cMas) cMas.classList.remove('rotate-180');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                ['Ventas', 'Compras', 'Cajas', 'Inventario'].forEach(mod => {
+                    const m = document.getElementById(`dropdown${mod}Menu`);
+                    const c = document.getElementById(`iconoChevron${mod}`);
+                    if (m) m.classList.add('hidden');
+                    if (c) c.classList.remove('rotate-180');
+                });
+                const mMas = document.getElementById('dropdownMasMenu');
+                const cMas = document.getElementById('iconoChevronMas');
+                if (mMas) mMas.classList.add('hidden');
+                if (cMas) cMas.classList.remove('rotate-180');
             }
         });
 

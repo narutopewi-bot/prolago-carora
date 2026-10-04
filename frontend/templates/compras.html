@@ -674,6 +674,12 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', configurarBuscadorCompra);
+    document.addEventListener('DOMContentLoaded', () => {
+        configurarBuscadorCompra();
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('accion') === 'nuevo') {
+            setTimeout(abrirModalNuevoArticuloCompra, 350);
+        }
+    });
 </script>
 {% endblock %}

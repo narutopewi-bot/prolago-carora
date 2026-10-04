@@ -738,7 +738,27 @@
                 });
 
                 actualizarContadoresStock();
-                filtrarArticulos(true);
+
+                // Procesar parámetros de URL (Atajos contextuales)
+                const urlParams = new URLSearchParams(window.location.search);
+                const filtroParam = urlParams.get('filtro');
+                const accionParam = urlParams.get('accion');
+
+                if (filtroParam) {
+                    if (filtroParam === 'stock_bajo' || filtroParam === 'POR_AGOTARSE') {
+                        setFiltroStockRapido('POR_AGOTARSE');
+                    } else {
+                        setFiltroStockRapido(filtroParam);
+                    }
+                } else {
+                    filtrarArticulos(true);
+                }
+
+                if (accionParam === 'nuevo') {
+                    setTimeout(abrirModalNuevoArticulo, 300);
+                } else if (accionParam === 'etiquetas') {
+                    setTimeout(abrirModalEtiquetas, 300);
+                }
             }
         } catch (e) {
             console.error("Error al cargar artículos:", e);
