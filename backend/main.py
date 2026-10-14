@@ -272,6 +272,25 @@ except Exception:
 
 app = FastAPI(title="Prolago Carora Web", version="1.0.0")
 
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    ct = response.headers.get("content-type", "")
+    if "text/html" in ct:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+@app.get("/api/version")
+def api_version():
+    return {
+        "status": "ok",
+        "app": "Prolago Carora Web",
+        "filtro_proveedor": True,
+        "ts": "2026-10-14 16:55"
+    }
+
 # Directorios de frontend
 import sys
 if getattr(sys, "frozen", False):
