@@ -387,6 +387,7 @@ def verificar_admin(payload: VerificarAdminRequest, db: Session = Depends(get_db
 def list_articulos(
     search: Optional[str] = None,
     categoria: Optional[str] = None,
+    proveedor: Optional[str] = None,
     solo_stock: Optional[bool] = False,
     estado_stock: Optional[str] = None,
     limit: int = 100,
@@ -397,12 +398,21 @@ def list_articulos(
     query = db.query(Articulo).filter(Articulo.activo == True)
     if search:
         s = f"%{search.strip()}%"
-        # Permitir buscar por código o nombre
+        # Permitir buscar por código, nombre, proveedor o marca
         try:
             codigo_num = int(search.strip())
-            query = query.filter(or_(Articulo.codigo == codigo_num, Articulo.nombre.ilike(s)))
+            query = query.filter(or_(
+                Articulo.codigo == codigo_num,
+                Articulo.nombre.ilike(s),
+                Articulo.proveedor.ilike(s),
+                Articulo.marca.ilike(s)
+            ))
         except ValueError:
-            query = query.filter(Articulo.nombre.ilike(s))
+            query = query.filter(or_(
+                Articulo.nombre.ilike(s),
+                Articulo.proveedor.ilike(s),
+                Articulo.marca.ilike(s)
+            ))
             
     if categoria and categoria != "TODAS":
         c_str = categoria.strip()
@@ -410,6 +420,10 @@ def list_articulos(
             query = query.filter(Articulo.categoria.ilike("%ferr%"))
         else:
             query = query.filter(or_(Articulo.categoria == c_str, Articulo.categoria.ilike(c_str)))
+
+    if proveedor and proveedor.strip() and proveedor.strip().upper() != "TODOS":
+        p_str = f"%{proveedor.strip().upper()}%"
+        query = query.filter(Articulo.proveedor.ilike(p_str))
         
     if solo_stock:
         query = query.filter(Articulo.stock > 0)
@@ -431,6 +445,16 @@ def list_articulos(
     else:
         items = query.order_by(Articulo.nombre.asc()).all()
     return {"total": total, "items": items}
+
+@app.get("/api/articulos/proveedores")
+def list_proveedores(db: Session = Depends(get_db), user: Usuario = Depends(require_user)):
+    provs = db.query(Articulo.proveedor).filter(
+        Articulo.activo == True,
+        Articulo.proveedor.isnot(None),
+        Articulo.proveedor != ""
+    ).distinct().all()
+    lista = sorted(list(set(p[0].strip().upper() for p in provs if p[0] and p[0].strip())))
+    return lista
 
 @app.get("/api/precios/consultar")
 def consultar_precio(q: str = "", db: Session = Depends(get_db), user: Optional[Usuario] = Depends(get_current_user)):
@@ -981,7 +1005,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
 
 @app.get("/api/facturas")
 def list_facturas(
-    limit: int = 150,
+    limit: int = 5000,
     offset: int = 0,
     search: Optional[str] = None,
     fecha_inicio: Optional[str] = None,
@@ -1002,14 +1026,14 @@ def list_facturas(
         ))
     if fecha_inicio and fecha_inicio.strip():
         try:
-            dt_inicio = datetime.strptime(fecha_inicio.strip(), "%Y-%m-%d")
+            dt_inicio = datetime.strptime(fecha_inicio.strip(), "%Y-%m-%d").replace(hour=0, minute=0, second=0)
             query = query.filter(Factura.fecha >= dt_inicio)
         except Exception:
             pass
     if fecha_fin and fecha_fin.strip():
         try:
-            dt_fin = datetime.strptime(fecha_fin.strip(), "%Y-%m-%d") + timedelta(days=1)
-            query = query.filter(Factura.fecha < dt_fin)
+            dt_fin = datetime.strptime(fecha_fin.strip(), "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Factura.fecha <= dt_fin)
         except Exception:
             pass
     if condicion and condicion.strip():
@@ -1027,7 +1051,10 @@ def list_facturas(
         ))
 
     total = query.count()
-    facturas = query.order_by(Factura.fecha.desc()).offset(offset).limit(limit).all()
+    if limit > 0:
+        facturas = query.order_by(Factura.fecha.desc()).offset(offset).limit(limit).all()
+    else:
+        facturas = query.order_by(Factura.fecha.desc()).offset(offset).all()
     
     items = []
     for f in facturas:
@@ -1762,7 +1789,7 @@ def create_compra(payload: CompraCreate, db: Session = Depends(get_db), user: Us
 
 @app.get("/api/compras")
 def list_compras(
-    limit: int = 150,
+    limit: int = 5000,
     offset: int = 0,
     search: Optional[str] = None,
     fecha_inicio: Optional[str] = None,
@@ -1782,14 +1809,14 @@ def list_compras(
 
     if fecha_inicio:
         try:
-            dt_ini = datetime.strptime(fecha_inicio, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+            dt_ini = datetime.strptime(fecha_inicio.strip(), "%Y-%m-%d").replace(hour=0, minute=0, second=0)
             query = query.filter(Compra.fecha >= dt_ini)
         except Exception:
             pass
 
     if fecha_fin:
         try:
-            dt_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            dt_fin = datetime.strptime(fecha_fin.strip(), "%Y-%m-%d").replace(hour=23, minute=59, second=59)
             query = query.filter(Compra.fecha <= dt_fin)
         except Exception:
             pass
@@ -1804,7 +1831,10 @@ def list_compras(
     total_invertido_bs = round(total_invertido_usd * tasa_bcv, 2)
 
     # Orden cronológico descendente y paginación
-    compras_pag = query.order_by(Compra.fecha.desc()).offset(offset).limit(limit).all()
+    if limit > 0:
+        compras_pag = query.order_by(Compra.fecha.desc()).offset(offset).limit(limit).all()
+    else:
+        compras_pag = query.order_by(Compra.fecha.desc()).offset(offset).all()
 
     items = []
     for c in compras_pag:
@@ -2006,7 +2036,7 @@ def delete_compra(
 # ==========================================
 @app.get("/api/movimientos")
 def list_movimientos(
-    limit: int = 50,
+    limit: int = 5000,
     offset: int = 0,
     search: Optional[str] = None,
     tipo: Optional[str] = None,
@@ -2058,14 +2088,14 @@ def list_movimientos(
 
     if fecha_inicio:
         try:
-            dt_ini = datetime.strptime(fecha_inicio, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+            dt_ini = datetime.strptime(fecha_inicio.strip(), "%Y-%m-%d").replace(hour=0, minute=0, second=0)
             query = query.filter(MovimientoInventario.fecha >= dt_ini)
         except Exception:
             pass
 
     if fecha_fin:
         try:
-            dt_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            dt_fin = datetime.strptime(fecha_fin.strip(), "%Y-%m-%d").replace(hour=23, minute=59, second=59)
             query = query.filter(MovimientoInventario.fecha <= dt_fin)
         except Exception:
             pass
@@ -2078,7 +2108,10 @@ def list_movimientos(
     total_ajustes = sum(1 for m in todos_filtrados if m.tipo == "AJUSTE_INVENTARIO")
 
     # Paginación
-    movs_pag = query.order_by(MovimientoInventario.fecha.desc(), MovimientoInventario.id.desc()).offset(offset).limit(limit).all()
+    if limit > 0:
+        movs_pag = query.order_by(MovimientoInventario.fecha.desc(), MovimientoInventario.id.desc()).offset(offset).limit(limit).all()
+    else:
+        movs_pag = query.order_by(MovimientoInventario.fecha.desc(), MovimientoInventario.id.desc()).offset(offset).all()
 
     items = []
     for m in movs_pag:
@@ -2494,7 +2527,7 @@ def cerrar_caja(payload: CajaCierre, db: Session = Depends(get_db), user: Usuari
 @app.get("/api/cajas")
 def listar_cajas(
     nombre_caja: Optional[str] = None,
-    limit: int = 50,
+    limit: int = 500,
     offset: int = 0,
     db: Session = Depends(get_db),
     user: Usuario = Depends(require_user)
@@ -2505,7 +2538,10 @@ def listar_cajas(
         query = query.filter(Caja.usuario_apertura_id == user.id)
     if nombre_caja and nombre_caja.strip() != "" and nombre_caja.upper() != "TODAS":
         query = query.filter(Caja.nombre_caja == nombre_caja.strip())
-    cajas = query.order_by(Caja.id.desc()).offset(offset).limit(limit).all()
+    if limit > 0:
+        cajas = query.order_by(Caja.id.desc()).offset(offset).limit(limit).all()
+    else:
+        cajas = query.order_by(Caja.id.desc()).offset(offset).all()
     return [serializar_caja(c, db) for c in cajas]
 
 @app.get("/api/cajas/{caja_id}")

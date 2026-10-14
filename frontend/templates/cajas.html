@@ -743,7 +743,7 @@
 
     async function cargarHistorialCajas() {
         try {
-            const res = await fetch('/api/cajas?limit=100');
+            const res = await fetch('/api/cajas?limit=500');
             if (res.ok) {
                 cajasHistorialCache = await res.json();
                 actualizarSelectorFiltroHistorial();

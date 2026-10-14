@@ -184,22 +184,28 @@
     </div>
 
     <!-- CONTROLES DE BÚSQUEDA Y FILTRADO -->
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-        <div class="sm:col-span-5 relative">
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+        <div class="sm:col-span-2 lg:col-span-4 relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
             </span>
-            <input type="text" id="filtroTexto" oninput="filtrarArticulos(true)" placeholder="Buscar por código, nombre o marca..."
+            <input type="text" id="filtroTexto" oninput="filtrarArticulos(true)" placeholder="Buscar por código, nombre, proveedor o marca..."
                 class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
 
-        <div class="sm:col-span-3">
+        <div class="sm:col-span-1 lg:col-span-3">
+            <select id="filtroProveedor" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <option value="TODOS">🏭 Todos los Proveedores</option>
+            </select>
+        </div>
+
+        <div class="sm:col-span-1 lg:col-span-2">
             <select id="filtroCategoria" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 <option value="TODAS">Todas las Categorías</option>
             </select>
         </div>
 
-        <div class="sm:col-span-4">
+        <div class="sm:col-span-2 lg:col-span-3">
             <select id="filtroStock" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 <option value="TODOS">📦 Todos los niveles de stock</option>
                 <option value="POR_AGOTARSE">⚠️ Por agotarse / Stock bajo (&le; Alerta)</option>
@@ -737,12 +743,40 @@
                     }
                 });
 
+                // Extraer proveedores únicos dinámicos
+                const proveedoresUnicos = new Set();
+                todosLosArticulos.forEach(a => {
+                    if (a.proveedor && a.proveedor.trim()) {
+                        proveedoresUnicos.add(a.proveedor.trim().toUpperCase());
+                    }
+                });
+
+                const selProv = document.getElementById('filtroProveedor');
+                if (selProv) {
+                    const provPrevio = selProv.value;
+                    selProv.innerHTML = '<option value="TODOS">🏭 Todos los Proveedores</option>';
+                    Array.from(proveedoresUnicos).sort().forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p;
+                        opt.textContent = `🏭 ${p}`;
+                        selProv.appendChild(opt);
+                    });
+                    if (provPrevio && Array.from(selProv.options).some(o => o.value === provPrevio)) {
+                        selProv.value = provPrevio;
+                    }
+                }
+
                 actualizarContadoresStock();
 
                 // Procesar parámetros de URL (Atajos contextuales)
                 const urlParams = new URLSearchParams(window.location.search);
                 const filtroParam = urlParams.get('filtro');
                 const accionParam = urlParams.get('accion');
+                const provParam = urlParams.get('proveedor');
+
+                if (provParam && selProv) {
+                    selProv.value = provParam.toUpperCase();
+                }
 
                 if (filtroParam) {
                     if (filtroParam === 'stock_bajo' || filtroParam === 'POR_AGOTARSE') {
@@ -829,13 +863,22 @@
         }
 
         const txt = (document.getElementById('filtroTexto')?.value || '').trim().toLowerCase();
+        const prov = document.getElementById('filtroProveedor')?.value || 'TODOS';
         const cat = document.getElementById('filtroCategoria')?.value || 'TODAS';
         const estStock = document.getElementById('filtroStock')?.value || 'TODOS';
 
         actualizarEstiloCardsStock(estStock);
 
         const filtrados = todosLosArticulos.filter(a => {
-            const matchTxt = !txt || a.nombre.toLowerCase().includes(txt) || String(a.codigo).includes(txt) || (a.marca && a.marca.toLowerCase().includes(txt));
+            const aProv = (a.proveedor || '').trim().toUpperCase();
+            const provBuscado = prov.toUpperCase();
+            const matchProv = prov === 'TODOS' || aProv === provBuscado;
+
+            const matchTxt = !txt || 
+                a.nombre.toLowerCase().includes(txt) || 
+                String(a.codigo).includes(txt) || 
+                (a.marca && a.marca.toLowerCase().includes(txt)) ||
+                (a.proveedor && a.proveedor.toLowerCase().includes(txt));
             
             const aCat = (a.categoria || '').trim().toLowerCase();
             const catBuscada = (cat || '').trim().toLowerCase();
@@ -858,7 +901,7 @@
                 matchStock = stock > umbral;
             }
 
-            return matchTxt && matchCat && matchStock;
+            return matchTxt && matchProv && matchCat && matchStock;
         });
 
         articulosFiltradosActuales = filtrados;
@@ -947,11 +990,14 @@
                 `;
             }
 
+            const badgeProveedor = item.proveedor ? `<span class="block text-[10px] text-slate-400 font-semibold tracking-wide mt-0.5"><i class="fa-solid fa-truck text-[9px] mr-1 text-slate-400"></i>Prov: ${item.proveedor}</span>` : '';
+
             tr.innerHTML = `
                 <td class="px-4 py-3 font-mono font-bold text-slate-500">${item.codigo}</td>
                 <td class="px-4 py-3 font-bold text-slate-800">
                     <span>${item.nombre}</span>
                     ${badgeEmpaque}
+                    ${badgeProveedor}
                 </td>
                 <td class="px-3 py-3 text-slate-500 font-semibold">${item.categoria || 'GENERAL'}</td>
                 <td class="px-3 py-3 text-center">
