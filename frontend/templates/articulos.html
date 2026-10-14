@@ -184,35 +184,71 @@
     </div>
 
     <!-- CONTROLES DE BÚSQUEDA Y FILTRADO -->
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
-        <div class="sm:col-span-2 lg:col-span-4 relative">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
-                <i class="fa-solid fa-magnifying-glass text-xs"></i>
-            </span>
-            <input type="text" id="filtroTexto" oninput="filtrarArticulos(true)" placeholder="Buscar por código, nombre, proveedor o marca..."
-                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+            <!-- 1. Búsqueda rápida de texto -->
+            <div class="sm:col-span-2 lg:col-span-4">
+                <label for="filtroTexto" class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span><i class="fa-solid fa-magnifying-glass text-slate-400 mr-1"></i> Búsqueda por Texto</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                        <i class="fa-solid fa-search text-xs"></i>
+                    </span>
+                    <input type="text" id="filtroTexto" oninput="filtrarArticulos(true)" placeholder="Buscar código, nombre, marca..."
+                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+                </div>
+            </div>
+
+            <!-- 2. Filtro de Proveedor (DESTACADO EN AZUL) -->
+            <div class="sm:col-span-1 lg:col-span-3">
+                <label for="filtroProveedor" class="block text-[11px] font-extrabold text-blue-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span class="flex items-center"><i class="fa-solid fa-truck-field text-blue-600 mr-1.5"></i> <span>Filtrar por Proveedor</span></span>
+                    <span id="badgeCantProveedores" class="text-[10px] font-mono bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold"></span>
+                </label>
+                <div class="relative">
+                    <select id="filtroProveedor" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-blue-50/50 border-2 border-blue-400 hover:border-blue-500 text-blue-950 rounded-xl text-xs font-black focus:ring-2 focus:ring-blue-600 focus:outline-none cursor-pointer">
+                        <option value="TODOS">🏭 Todos los Proveedores</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 3. Filtro de Categoría -->
+            <div class="sm:col-span-1 lg:col-span-2">
+                <label for="filtroCategoria" class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span><i class="fa-solid fa-layer-group text-slate-400 mr-1"></i> Categoría</span>
+                </label>
+                <select id="filtroCategoria" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
+                    <option value="TODAS">Todas las Categorías</option>
+                </select>
+            </div>
+
+            <!-- 4. Filtro de Nivel de Stock (EN AMBAR) -->
+            <div class="sm:col-span-2 lg:col-span-3">
+                <label for="filtroStock" class="block text-[11px] font-extrabold text-amber-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span><i class="fa-solid fa-boxes-stacked text-amber-600 mr-1"></i> Estado de Stock</span>
+                    <button type="button" onclick="limpiarTodosFiltros()" class="text-[10px] text-slate-400 hover:text-rose-600 font-semibold underline lowercase">Limpiar</button>
+                </label>
+                <select id="filtroStock" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-amber-50/30 border border-amber-300 rounded-xl text-xs font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer">
+                    <option value="TODOS">📦 Todos los niveles de stock</option>
+                    <option value="POR_AGOTARSE">⚠️ Por agotarse / Stock bajo (&le; Alerta)</option>
+                    <option value="SIN_STOCK">❌ Sin stock / Agotados (0.00)</option>
+                    <option value="CON_STOCK">✅ Con stock disponible (> 0)</option>
+                    <option value="SOBRESTOCK">🟢 Stock suficiente (> Alerta)</option>
+                </select>
+            </div>
         </div>
 
-        <div class="sm:col-span-1 lg:col-span-3">
-            <select id="filtroProveedor" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <option value="TODOS">🏭 Todos los Proveedores</option>
-            </select>
-        </div>
-
-        <div class="sm:col-span-1 lg:col-span-2">
-            <select id="filtroCategoria" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                <option value="TODAS">Todas las Categorías</option>
-            </select>
-        </div>
-
-        <div class="sm:col-span-2 lg:col-span-3">
-            <select id="filtroStock" onchange="filtrarArticulos(true)" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-black text-slate-800 focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                <option value="TODOS">📦 Todos los niveles de stock</option>
-                <option value="POR_AGOTARSE">⚠️ Por agotarse / Stock bajo (&le; Alerta)</option>
-                <option value="SIN_STOCK">❌ Sin stock / Agotados (0.00)</option>
-                <option value="CON_STOCK">✅ Con stock disponible (> 0)</option>
-                <option value="SOBRESTOCK">🟢 Stock suficiente (> Alerta)</option>
-            </select>
+        <!-- Barra de resumen de filtros activos -->
+        <div id="barraFiltroActivo" class="hidden mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2 text-slate-600">
+                <span class="font-bold text-slate-400 uppercase text-[10px]">Filtro activo:</span>
+                <span id="textoFiltroActivo" class="bg-blue-100 text-blue-800 font-bold px-2.5 py-0.5 rounded-lg text-xs"></span>
+            </div>
+            <button type="button" onclick="limpiarTodosFiltros()" class="text-rose-600 hover:text-rose-800 font-bold flex items-center space-x-1 transition text-xs">
+                <i class="fa-solid fa-xmark"></i>
+                <span>Quitar todos los filtros</span>
+            </button>
         </div>
     </div>
 
@@ -708,6 +744,46 @@
     let articulosPorPagina = 20;
     let totalPaginasCalculado = 1;
 
+    async function cargarListaProveedores() {
+        try {
+            const res = await fetch('/api/articulos/proveedores');
+            if (res.ok) {
+                const provs = await res.json();
+                const selProv = document.getElementById('filtroProveedor');
+                const badge = document.getElementById('badgeCantProveedores');
+                if (badge && provs) badge.textContent = `${provs.length} prov.`;
+                if (selProv && Array.isArray(provs) && provs.length > 0) {
+                    const provPrevio = selProv.value;
+                    selProv.innerHTML = '<option value="TODOS">🏭 Todos los Proveedores (' + provs.length + ')</option>';
+                    provs.forEach(p => {
+                        const pUpper = p.trim().toUpperCase();
+                        const opt = document.createElement('option');
+                        opt.value = pUpper;
+                        opt.textContent = `🏭 ${pUpper}`;
+                        selProv.appendChild(opt);
+                    });
+                    if (provPrevio && Array.from(selProv.options).some(o => o.value === provPrevio)) {
+                        selProv.value = provPrevio;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("No se pudo pre-cargar lista de proveedores:", err);
+        }
+    }
+
+    function limpiarTodosFiltros() {
+        const elTxt = document.getElementById('filtroTexto');
+        if (elTxt) elTxt.value = '';
+        const elProv = document.getElementById('filtroProveedor');
+        if (elProv) elProv.value = 'TODOS';
+        const elCat = document.getElementById('filtroCategoria');
+        if (elCat) elCat.value = 'TODAS';
+        const elStock = document.getElementById('filtroStock');
+        if (elStock) elStock.value = 'TODOS';
+        filtrarArticulos(true);
+    }
+
     async function cargarArticulos() {
         try {
             // Traer todos los artículos sin truncar en 1200
@@ -743,7 +819,7 @@
                     }
                 });
 
-                // Extraer proveedores únicos dinámicos
+                // Extraer proveedores únicos dinámicos de los artículos
                 const proveedoresUnicos = new Set();
                 todosLosArticulos.forEach(a => {
                     if (a.proveedor && a.proveedor.trim()) {
@@ -752,9 +828,11 @@
                 });
 
                 const selProv = document.getElementById('filtroProveedor');
-                if (selProv) {
+                const badge = document.getElementById('badgeCantProveedores');
+                if (badge && proveedoresUnicos.size > 0) badge.textContent = `${proveedoresUnicos.size} prov.`;
+                if (selProv && proveedoresUnicos.size > 0) {
                     const provPrevio = selProv.value;
-                    selProv.innerHTML = '<option value="TODOS">🏭 Todos los Proveedores</option>';
+                    selProv.innerHTML = '<option value="TODOS">🏭 Todos los Proveedores (' + proveedoresUnicos.size + ')</option>';
                     Array.from(proveedoresUnicos).sort().forEach(p => {
                         const opt = document.createElement('option');
                         opt.value = p;
@@ -907,6 +985,32 @@
         articulosFiltradosActuales = filtrados;
         const badgeLote = document.getElementById('lblLoteCantFiltrados');
         if (badgeLote) badgeLote.textContent = filtrados.length;
+
+        // Actualizar barra de resumen de filtros activos
+        const barraFiltro = document.getElementById('barraFiltroActivo');
+        const txtFiltro = document.getElementById('textoFiltroActivo');
+        if (barraFiltro && txtFiltro) {
+            const activos = [];
+            if (prov !== 'TODOS') activos.push(`🏭 Proveedor: ${prov}`);
+            if (cat !== 'TODAS') activos.push(`📁 Categoría: ${cat}`);
+            if (estStock !== 'TODOS') {
+                const nombresStock = {
+                    'POR_AGOTARSE': '⚠️ Por agotarse',
+                    'SIN_STOCK': '❌ Agotados (0)',
+                    'CON_STOCK': '✅ Con stock disponible',
+                    'SOBRESTOCK': '🟢 Stock suficiente'
+                };
+                activos.push(nombresStock[estStock] || `Stock: ${estStock}`);
+            }
+            if (txt) activos.push(`🔍 Texto: "${txt}"`);
+
+            if (activos.length > 0) {
+                barraFiltro.classList.remove('hidden');
+                txtFiltro.textContent = activos.join(' • ');
+            } else {
+                barraFiltro.classList.add('hidden');
+            }
+        }
 
         renderizarTabla(filtrados);
     }
@@ -1834,6 +1938,9 @@
         }, 200);
     }
 
-    document.addEventListener('DOMContentLoaded', cargarArticulos);
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarListaProveedores();
+        cargarArticulos();
+    });
 </script>
 {% endblock %}
