@@ -284,6 +284,75 @@ async def add_no_cache_headers(request: Request, call_next):
         response.headers["Expires"] = "0"
     return response
 
+@app.middleware("http")
+async def block_old_render_access_middleware(request: Request, call_next):
+    host = request.headers.get("host", "").lower()
+    is_render_env = os.getenv("RENDER") == "true" or "onrender.com" in host
+
+    if is_render_env and "onrender.com" in host:
+        # Permitir exclusivamente endpoints de respaldo/migración protegidos
+        if request.url.path.startswith("/api/migration/"):
+            return await call_next(request)
+
+        # Bloquear operaciones y llamadas a la API
+        if request.method in ["POST", "PUT", "DELETE", "PATCH"] or request.url.path.startswith("/api/"):
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": "SERVIDOR_DESHABILITADO",
+                    "mensaje": "Este servidor ha sido migrado definitivamente a https://prolago.lat. No se permiten operaciones en este enlace para evitar inconsistencias.",
+                    "url_oficial": "https://prolago.lat"
+                }
+            )
+
+        # Pantalla informativa de bloqueo y redirección automática para el navegador
+        html_block = """<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="4;url=https://prolago.lat">
+    <title>Sistema Trasladado - Prolago Carora</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-800 border border-amber-500/30 rounded-3xl p-8 shadow-2xl text-center">
+        <div class="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-3xl mx-auto flex items-center justify-center text-4xl mb-6 shadow-inner">
+            <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
+        </div>
+        <h1 class="text-2xl font-black text-white mb-2">Servidor Antiguo Deshabilitado</h1>
+        <p class="text-slate-300 text-sm mb-6 leading-relaxed">
+            El sistema <strong>Prolago Carora</strong> se ha trasladado de forma definitiva al nuevo servidor y dominio oficial:
+        </p>
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 mb-6">
+            <div class="text-xs text-slate-400 mb-1 font-semibold">NUEVO ENLACE OFICIAL</div>
+            <a href="https://prolago.lat" class="text-emerald-400 font-extrabold text-lg hover:underline break-all">https://prolago.lat</a>
+        </div>
+        <p class="text-xs text-amber-300/80 mb-6 font-medium">
+            <i class="fa-solid fa-lock mr-1"></i> Este enlace viejo ha sido bloqueado para evitar duplicidad de facturación o errores de inventario.
+        </p>
+        <a href="https://prolago.lat" class="inline-flex items-center justify-center space-x-2 w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-sm transition shadow-lg shadow-emerald-900/40">
+            <span>Ir a prolago.lat Ahora</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+        </a>
+        <div class="mt-4 text-[11px] text-slate-500">
+            Redirigiendo automáticamente en <span id="segundos">4</span> segundos...
+        </div>
+    </div>
+    <script>
+        let s = 4;
+        setInterval(() => {
+            s--;
+            if (s >= 0) document.getElementById('segundos').innerText = s;
+        }, 1000);
+    </script>
+</body>
+</html>"""
+        return HTMLResponse(content=html_block, status_code=200)
+
+    return await call_next(request)
+
 @app.get("/api/version")
 def api_version():
     return {
