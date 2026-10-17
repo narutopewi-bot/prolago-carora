@@ -271,6 +271,8 @@ except Exception:
     pass
 
 app = FastAPI(title="Prolago Carora Web", version="1.0.0")
+from .full_migration import router as migration_router
+app.include_router(migration_router)
 
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
