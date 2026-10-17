@@ -170,3 +170,36 @@ def sync_from_render(secret: str = Query(...)):
 
     print(f"[SYNC] Datos recibidos de Render. Iniciando importación directa a la base de datos actual...")
     return import_full_data(payload=data, secret=MIGRATION_SECRET)
+
+@router.get("/health-check")
+def health_check(secret: str = Query(...)):
+    if secret != MIGRATION_SECRET:
+        raise HTTPException(status_code=403, detail="Acceso denegado: Token de migración inválido")
+
+    is_pg = DATABASE_URL.startswith("postgresql")
+    sequences_status = {}
+
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            t_name = table.name
+            cols = [c.name for c in table.columns]
+            if "id" in cols:
+                max_id = conn.execute(text(f'SELECT COALESCE(MAX(id), 0) FROM "{t_name}"')).scalar()
+                if is_pg:
+                    try:
+                        seq_name = conn.execute(text(f"SELECT pg_get_serial_sequence('{t_name}', 'id')")).scalar()
+                        if seq_name:
+                            conn.execute(text(f"SELECT setval('{seq_name}', {max_id + 1}, false)"))
+                            sequences_status[t_name] = {"max_id": max_id, "sequence": seq_name, "next_id": max_id + 1, "calibrated": True}
+                        else:
+                            sequences_status[t_name] = {"max_id": max_id, "sequence": None, "calibrated": False}
+                    except Exception as e:
+                        sequences_status[t_name] = {"max_id": max_id, "error": str(e)}
+                else:
+                    sequences_status[t_name] = {"max_id": max_id, "status": "sqlite"}
+
+    return {
+        "status": "healthy",
+        "database_type": "postgresql" if is_pg else "sqlite",
+        "sequences": sequences_status
+    }
