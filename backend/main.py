@@ -976,7 +976,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         credito = max(0.0, round(total_factura - inicial_abonada, 2))
         saldo_pendiente = credito
         estado_credito = "pendiente" if saldo_pendiente > 0.009 else "saldado"
-        fecha_venc = (ahora_venezuela() + timedelta(days=payload.dias_credito or 15)) if saldo_pendiente > 0 else None
+        fecha_venc = (ahora_venezuela() + timedelta(days=payload.dias_credito or 10)) if saldo_pendiente > 0 else None
     else:
         credito = 0.0
         saldo_pendiente = 0.0
@@ -1081,7 +1081,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         "inicial_abonada": inicial_abonada,
         "saldo_pendiente": factura.saldo_pendiente,
         "fecha_vencimiento": factura.fecha_vencimiento.strftime("%d/%m/%Y") if factura.fecha_vencimiento else "",
-        "dias_credito": payload.dias_credito or 15,
+        "dias_credito": payload.dias_credito or 10,
         "cliente_nombre": factura.cliente_nombre,
         "cliente_cedula": cli.cedula_rif if cli else "",
         "cliente_telefono": cli.telefono if cli else "",

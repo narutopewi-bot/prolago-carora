@@ -78,7 +78,7 @@ class FacturaCreate(BaseModel):
     punto: Optional[float] = 0.0
     credito: Optional[float] = 0.0
     referencia_transferencia: Optional[str] = ""
-    dias_credito: Optional[int] = 15
+    dias_credito: Optional[int] = 10
     caja_id: Optional[int] = None
     items: List[ItemFacturaCreate]
 

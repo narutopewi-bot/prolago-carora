@@ -697,10 +697,7 @@
                     Plazo de Vencimiento:
                 </span>
                 <select id="modalDiasCredito" class="px-3 py-1 bg-white border border-rose-300 rounded-lg text-xs font-bold text-rose-900 focus:outline-none">
-                    <option value="7">7 días</option>
-                    <option value="15" selected>15 días</option>
-                    <option value="30">30 días</option>
-                    <option value="45">45 días</option>
+                    <option value="10" selected>10 días</option>
                 </select>
             </div>
             <div class="flex space-x-2">
@@ -2832,7 +2829,7 @@
             punto: puUSD,
             credito: crUSD,
             referencia_transferencia: refTransferencia,
-            dias_credito: parseInt(document.getElementById('modalDiasCredito').value) || 15,
+            dias_credito: parseInt(document.getElementById('modalDiasCredito').value) || 10,
             caja_id: (cajaActivaDataPOS && cajaActivaDataPOS.id) ? cajaActivaDataPOS.id : null,
             items: carrito.map(it => ({
                 codigo_articulo: it.codigo,
@@ -3080,7 +3077,7 @@
         }
 
         const clausulaTexto = esCred
-            ? '"El cliente declara haber recibido la mercancía a entera satisfacción y se compromete formalmente a cancelar a favor de PROLAGO C.A. el saldo pendiente a más tardar en la fecha de vencimiento acordada."'
+            ? '"El cliente declara haber recibido la mercancía a entera satisfacción y se compromete formalmente a cancelar a favor de PROLAGO C.A. el saldo pendiente en un plazo máximo de 10 días de crédito a partir de la fecha de emisión."'
             : '"El cliente declara haber recibido la mercancía a entera satisfacción y cancelada en su totalidad."';
 
         const claseContenedor = esHojaCompleta
