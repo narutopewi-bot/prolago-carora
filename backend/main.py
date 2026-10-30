@@ -1507,17 +1507,19 @@ def list_creditos(
 
     items = []
     for f in facturas_credito:
-        # Buscar teléfono del cliente si está registrado
+        # Buscar teléfono y cédula del cliente si está registrado
         telefono = ""
         direccion = ""
+        cedula_rif = ""
         cli = None
         if f.cliente_id:
             cli = db.query(Cliente).filter(Cliente.id == f.cliente_id).first()
         if not cli and f.cliente_nombre:
             cli = db.query(Cliente).filter(Cliente.nombre == f.cliente_nombre).first()
         if cli:
-            telefono = cli.telefono
-            direccion = cli.direccion
+            telefono = cli.telefono or ""
+            direccion = cli.direccion or ""
+            cedula_rif = cli.cedula_rif or ""
 
         items.append({
             "factura_id": f.id,
@@ -1527,6 +1529,7 @@ def list_creditos(
             "cliente_nombre": f.cliente_nombre,
             "telefono": telefono,
             "direccion": direccion,
+            "cedula_rif": cedula_rif,
             "total_factura": f.total,
             "monto_credito": f.credito,
             "saldo_pendiente": round(f.saldo_pendiente, 2),

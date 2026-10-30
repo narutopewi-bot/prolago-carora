@@ -261,7 +261,7 @@
                 </div>
             </div>
             <div class="text-lg sm:text-2xl font-black text-rose-600 font-mono" id="kpiTotalUSD">$0.00</div>
-            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Saldos pendientes</p>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5" id="subKpiTotalUSD">Saldos pendientes</p>
         </div>
 
         <!-- Total por Cobrar en Bolívares -->
@@ -273,7 +273,7 @@
                 </div>
             </div>
             <div class="text-base sm:text-2xl font-black text-slate-900 font-mono" id="kpiTotalBS">Bs. 0,00</div>
-            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Tasa oficial BCV</p>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5" id="subKpiTotalBS">Tasa oficial BCV</p>
         </div>
 
         <!-- Clientes Deudores -->
@@ -285,7 +285,7 @@
                 </div>
             </div>
             <div class="text-lg sm:text-2xl font-black text-slate-800" id="kpiClientesCount">0</div>
-            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Clientes activos</p>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5" id="subKpiClientesCount">Clientes activos</p>
         </div>
 
         <!-- Facturas Pendientes -->
@@ -297,7 +297,7 @@
                 </div>
             </div>
             <div class="text-lg sm:text-2xl font-black text-slate-800" id="kpiFacturasCount">0</div>
-            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">Sin saldar</p>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5" id="subKpiFacturasCount">Sin saldar</p>
         </div>
     </div>
 
@@ -308,7 +308,10 @@
                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
             </span>
             <input type="text" id="filtroTextoCredito" oninput="filtrarCreditos()" placeholder="Buscar cliente o N° de factura..."
-                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                class="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-rose-500 focus:outline-none">
+            <button id="btnLimpiarFiltroCredito" onclick="limpiarFiltroCredito()" type="button" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition" title="Limpiar búsqueda">
+                <i class="fa-solid fa-circle-xmark text-sm"></i>
+            </button>
         </div>
 
         <div class="flex items-center space-x-3 text-xs">
@@ -498,6 +501,7 @@
 {% block extra_scripts %}
 <script>
     let todosLosCreditos = [];
+    let resumenGlobal = null;
     let creditoSeleccionado = null;
 
     async function cargarCreditos() {
@@ -506,14 +510,9 @@
             const res = await fetch(`/api/creditos?solo_pendientes=${soloPend}`);
             if (res.ok) {
                 const data = await res.json();
-                todosLosCreditos = data.items;
+                todosLosCreditos = data.items || [];
+                resumenGlobal = data.resumen;
                 
-                // Actualizar KPIs
-                document.getElementById('kpiTotalUSD').textContent = `$${data.resumen.total_por_cobrar_usd.toFixed(2)}`;
-                document.getElementById('kpiTotalBS').textContent = `Bs. ${Number(data.resumen.total_por_cobrar_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
-                document.getElementById('kpiClientesCount').textContent = data.resumen.total_deudores;
-                document.getElementById('kpiFacturasCount').textContent = data.resumen.facturas_activas;
-
                 filtrarCreditos();
             }
         } catch (e) {
@@ -521,11 +520,108 @@
         }
     }
 
-    function filtrarCreditos() {
-        const txt = document.getElementById('filtroTextoCredito').value.trim().toLowerCase();
-        const filtrados = todosLosCreditos.filter(c => {
-            return !txt || c.cliente_nombre.toLowerCase().includes(txt) || c.numero.toLowerCase().includes(txt) || (c.telefono && c.telefono.includes(txt));
+    function limpiarFiltroCredito() {
+        const inp = document.getElementById('filtroTextoCredito');
+        if (inp) {
+            inp.value = '';
+            filtrarCreditos();
+            inp.focus();
+        }
+    }
+
+    function actualizarKPIs(filtrados, esFiltrado) {
+        const elUSD = document.getElementById('kpiTotalUSD');
+        const elBS = document.getElementById('kpiTotalBS');
+        const elCli = document.getElementById('kpiClientesCount');
+        const elFact = document.getElementById('kpiFacturasCount');
+
+        const subUSD = document.getElementById('subKpiTotalUSD');
+        const subBS = document.getElementById('subKpiTotalBS');
+        const subCli = document.getElementById('subKpiClientesCount');
+        const subFact = document.getElementById('subKpiFacturasCount');
+
+        // Si no está filtrado por texto de búsqueda, mostrar resumen global del backend
+        if (!esFiltrado && resumenGlobal) {
+            if (elUSD) elUSD.textContent = `$${resumenGlobal.total_por_cobrar_usd.toFixed(2)}`;
+            if (elBS) elBS.textContent = `Bs. ${Number(resumenGlobal.total_por_cobrar_bs.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (elCli) elCli.textContent = resumenGlobal.total_deudores;
+            if (elFact) elFact.textContent = resumenGlobal.facturas_activas;
+
+            if (subUSD) subUSD.textContent = 'Saldos pendientes';
+            if (subBS) subBS.textContent = 'Tasa oficial BCV';
+            if (subCli) subCli.textContent = 'Clientes activos';
+            if (subFact) subFact.textContent = 'Sin saldar';
+            return;
+        }
+
+        // Si está filtrado, calcular totales dinámicos exactamente para las facturas filtradas
+        let totalUSD = 0;
+        let totalBS = 0;
+        const deudoresPendientesSet = new Set();
+        const deudoresTotalesSet = new Set();
+        let facturasPendientesCount = 0;
+
+        filtrados.forEach(c => {
+            const saldoUSD = parseFloat(c.saldo_pendiente) || 0;
+            totalUSD += saldoUSD;
+
+            const saldoBS = (c.saldo_pendiente_bs !== undefined && c.saldo_pendiente_bs !== null)
+                ? parseFloat(c.saldo_pendiente_bs)
+                : (saldoUSD * (c.tasa_bcv || (typeof TASA_BCV !== 'undefined' ? TASA_BCV : 1)));
+            totalBS += saldoBS;
+
+            const nom = (c.cliente_nombre || '').trim().toUpperCase();
+            if (nom) {
+                deudoresTotalesSet.add(nom);
+                if (saldoUSD > 0.009) {
+                    deudoresPendientesSet.add(nom);
+                }
+            }
+
+            if (saldoUSD > 0.009) {
+                facturasPendientesCount++;
+            }
         });
+
+        const cantDeudores = deudoresPendientesSet.size > 0 ? deudoresPendientesSet.size : deudoresTotalesSet.size;
+        const cantFacturas = facturasPendientesCount > 0 ? facturasPendientesCount : filtrados.length;
+
+        if (elUSD) elUSD.textContent = `$${totalUSD.toFixed(2)}`;
+        if (elBS) elBS.textContent = `Bs. ${Number(totalBS.toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if (elCli) elCli.textContent = cantDeudores;
+        if (elFact) elFact.textContent = cantFacturas;
+
+        if (subUSD) subUSD.textContent = filtrados.length === 1 ? '1 factura filtrada' : `${filtrados.length} facturas filtradas`;
+        if (subBS) subBS.textContent = 'Tasa oficial BCV';
+        if (subCli) subCli.textContent = cantDeudores === 1 ? '1 deudor' : `${cantDeudores} deudores`;
+        if (subFact) subFact.textContent = facturasPendientesCount > 0 ? `${facturasPendientesCount} por cobrar` : `${filtrados.length} saldadas`;
+    }
+
+    function filtrarCreditos() {
+        const inp = document.getElementById('filtroTextoCredito');
+        const txt = (inp ? inp.value : '').trim().toLowerCase();
+        
+        // Controlar visibilidad del botón de limpiar búsqueda
+        const btnLimpiar = document.getElementById('btnLimpiarFiltroCredito');
+        if (btnLimpiar) {
+            if (txt) {
+                btnLimpiar.classList.remove('hidden');
+            } else {
+                btnLimpiar.classList.add('hidden');
+            }
+        }
+
+        const filtrados = todosLosCreditos.filter(c => {
+            if (!txt) return true;
+            const nom = (c.cliente_nombre || '').toLowerCase();
+            const num = (c.numero || '').toLowerCase();
+            const telf = (c.telefono || '').toLowerCase();
+            const ced = (c.cedula_rif || '').toLowerCase();
+            return nom.includes(txt) || num.includes(txt) || telf.includes(txt) || ced.includes(txt);
+        });
+
+        // Actualizar KPIs de forma reactiva con el resultado de la búsqueda
+        actualizarKPIs(filtrados, txt !== '');
 
         const tbody = document.getElementById('tablaCreditosBody');
         tbody.innerHTML = '';
