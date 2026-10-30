@@ -1059,19 +1059,60 @@
                     tbody.innerHTML = d.articulos.map(a => {
                         const esCritico = a.stock <= (a.stock_alerta || 5.0) && a.stock > 0;
                         const esAgotado = a.stock <= 0;
+                        const esEmp = a.es_empaque && a.unidades_por_paquete > 1;
+
+                        let subStock = '';
+                        let colCosto = `<td class="py-2 px-3 text-right font-mono text-slate-700">$${(a.costo_final || 0).toFixed(2)}</td>`;
+                        let colPrecio = `<td class="py-2 px-3 text-right font-mono font-bold text-slate-900">$${(a.precio || 0).toFixed(2)}</td>`;
+
+                        if (esEmp) {
+                            const nomPaq = a.nombre_empaque || 'PAQUETE';
+                            const uXPaq = a.unidades_por_paquete;
+                            const paqs = Math.floor(a.stock / uXPaq);
+                            const sueltas = Math.round(a.stock % uXPaq);
+                            let desglose = (paqs > 0 && sueltas > 0)
+                                ? `${paqs} ${nomPaq.substring(0,4)}. + ${sueltas}u`
+                                : (paqs > 0 ? `${paqs} ${nomPaq}` : `${sueltas} unid.`);
+                            subStock = `<span class="block text-[9px] text-indigo-700 font-bold bg-indigo-50 px-1 py-0.5 rounded mt-0.5 border border-indigo-100">${desglose}</span>`;
+
+                            const cUnit = a.costo_unitario || ((a.costo_final || 0) / uXPaq);
+                            colCosto = `
+                                <td class="py-2 px-3 text-right font-mono whitespace-nowrap">
+                                    <div class="font-bold text-slate-700">$${(a.costo_final || 0).toFixed(2)} <span class="text-[9px] text-slate-400">/${nomPaq.substring(0,4)}.</span></div>
+                                    <div class="text-[10px] text-indigo-600 font-bold">($${cUnit.toFixed(2)} /unid.)</div>
+                                </td>
+                            `;
+
+                            const pUnit = (a.precio_unidad && a.precio_unidad > 0) ? a.precio_unidad : ((a.precio || 0) / uXPaq);
+                            colPrecio = `
+                                <td class="py-2 px-3 text-right font-mono whitespace-nowrap">
+                                    <div class="font-bold text-slate-900">$${(a.precio || 0).toFixed(2)} <span class="text-[9px] text-slate-400">/${nomPaq.substring(0,4)}.</span></div>
+                                    <div class="text-[10px] text-emerald-600 font-bold">($${pUnit.toFixed(2)} /unid.)</div>
+                                </td>
+                            `;
+                        }
+
                         const stockBadge = esAgotado 
                             ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">Agotado (0)</span>`
                             : (esCritico ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">${a.stock} (Bajo)</span>` : `<span class="font-bold text-slate-800">${a.stock}</span>`);
 
+                        const badgeEmpaque = esEmp ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-100 text-indigo-700 border border-indigo-200 ml-1">📦 ${a.nombre_empaque || 'PAQ'} (${a.unidades_por_paquete}u)</span>` : '';
+
                         return `
                             <tr class="hover:bg-slate-50">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-500">${a.codigo}</td>
-                                <td class="py-2 px-3 font-semibold text-slate-800">${a.nombre}</td>
+                                <td class="py-2 px-3 font-semibold text-slate-800">
+                                    <span>${a.nombre}</span>
+                                    ${badgeEmpaque}
+                                </td>
                                 <td class="py-2 px-3 text-slate-500">${a.categoria}</td>
-                                <td class="py-2 px-3 text-center">${stockBadge}</td>
+                                <td class="py-2 px-3 text-center">
+                                    <div>${stockBadge}</div>
+                                    ${subStock}
+                                </td>
                                 <td class="py-2 px-3 text-center font-mono text-slate-400 text-[11px]">&le; ${a.stock_alerta || 5.0}</td>
-                                <td class="py-2 px-3 text-right font-mono text-slate-700">$${(a.costo_final || 0).toFixed(2)}</td>
-                                <td class="py-2 px-3 text-right font-mono font-bold text-slate-900">$${(a.precio || 0).toFixed(2)}</td>
+                                ${colCosto}
+                                ${colPrecio}
                                 <td class="py-2 px-3 text-right font-mono font-black text-blue-700">$${a.valoracion_costo.toFixed(2)}</td>
                             </tr>
                         `;
@@ -1169,6 +1210,18 @@
                 ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-rose-600 text-white uppercase tracking-wider">Agotado</span>`
                 : `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500 text-white uppercase tracking-wider">Por Acabarse</span>`;
 
+            let colCostoRep = `<td class="py-2.5 px-3 text-right font-mono text-slate-600">$${(a.costo_final || 0).toFixed(2)}</td>`;
+            if (a.es_empaque && a.unidades_por_paquete > 1) {
+                const nomPaq = a.nombre_empaque || 'PAQ';
+                const cU = a.costo_unitario || ((a.costo_final || 0) / a.unidades_por_paquete);
+                colCostoRep = `
+                    <td class="py-2.5 px-3 text-right font-mono whitespace-nowrap">
+                        <div class="font-bold text-slate-700">$${(a.costo_final || 0).toFixed(2)} <span class="text-[9px] text-slate-400">/${nomPaq.substring(0,4)}.</span></div>
+                        <div class="text-[10px] text-indigo-600 font-bold">($${cU.toFixed(2)} /u)</div>
+                    </td>
+                `;
+            }
+
             return `
                 <tr class="hover:bg-amber-50/40 transition">
                     <td class="py-2.5 px-3 font-mono font-bold text-slate-700">${a.codigo}</td>
@@ -1180,7 +1233,7 @@
                     <td class="py-2.5 px-3 text-center">${badgeStock}</td>
                     <td class="py-2.5 px-3 text-center font-mono font-bold text-slate-700 text-xs">&le; ${a.stock_alerta}</td>
                     <td class="py-2.5 px-3 text-center font-mono font-bold text-rose-700 text-xs">-${a.deficit}</td>
-                    <td class="py-2.5 px-3 text-right font-mono text-slate-600">$${(a.costo_final || 0).toFixed(2)}</td>
+                    ${colCostoRep}
                     <td class="py-2.5 px-3 text-right font-mono font-black text-slate-900">
                         <span>$${a.costo_reposicion_usd.toFixed(2)}</span>
                         <small class="block text-[10px] text-slate-400 font-normal">Bs. ${a.costo_reposicion_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}</small>

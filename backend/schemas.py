@@ -29,6 +29,7 @@ class ArticuloBase(BaseModel):
     nombre_empaque: Optional[str] = "PAQUETE"
     unidades_por_paquete: Optional[float] = 1.0
     precio_unidad: Optional[float] = 0.0
+    costo_unitario: Optional[float] = 0.0
 
 class ArticuloCreate(ArticuloBase):
     pass

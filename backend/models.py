@@ -148,6 +148,19 @@ class Articulo(Base):
     unidades_por_paquete = Column(Float, default=1.0)
     precio_unidad = Column(Float, default=0.0)
 
+    @property
+    def costo_unitario(self) -> float:
+        costo = self.costo_final or self.costo or 0.0
+        if self.es_empaque and (self.unidades_por_paquete or 1.0) > 1:
+            return round(costo / float(self.unidades_por_paquete), 4)
+        return round(costo, 4)
+
+    @property
+    def valoracion_costo(self) -> float:
+        if not self.stock or self.stock <= 0:
+            return 0.0
+        return round(self.stock * self.costo_unitario, 2)
+
 class Cliente(Base):
     __tablename__ = "clientes"
 

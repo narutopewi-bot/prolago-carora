@@ -471,6 +471,25 @@ def verificar_admin(payload: VerificarAdminRequest, db: Session = Depends(get_db
     return {"status": "ok", "admin_nombre": admin.nombre}
 
 # ==========================================
+# FUNCIONES AUXILIARES DE COSTO Y EMPAQUE
+# ==========================================
+def obtener_costo_unitario_articulo(art: Articulo) -> float:
+    """Retorna el costo unitario real. Si es un artículo con empaque/menudeo, divide el costo final entre las unidades por paquete."""
+    costo = art.costo_final if (art.costo_final is not None and art.costo_final > 0) else (art.costo or 0.0)
+    if art.es_empaque and (art.unidades_por_paquete or 1.0) > 1:
+        return costo / float(art.unidades_por_paquete)
+    return costo
+
+def obtener_precio_unitario_articulo(art: Articulo) -> float:
+    """Retorna el precio unitario real. Si es empaque y tiene precio_unidad lo usa, o prorratea el precio del paquete."""
+    if art.es_empaque and (art.unidades_por_paquete or 1.0) > 1:
+        if art.precio_unidad and art.precio_unidad > 0:
+            return float(art.precio_unidad)
+        precio = art.precio or 0.0
+        return precio / float(art.unidades_por_paquete)
+    return art.precio or 0.0
+
+# ==========================================
 # ARTÍCULOS E INVENTARIO
 # ==========================================
 @app.get("/api/articulos")
@@ -945,6 +964,11 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
         elif getattr(it, "tipo_unidad", "unidad") == "unidad" and articulo.es_empaque:
             nombre_item = f"{articulo.nombre} (UNIDAD)"
 
+        # Costo unitario real según sea venta por paquete o menudeo (unidad suelta)
+        costo_linea = articulo.costo_final if (articulo.costo_final is not None and articulo.costo_final > 0) else (articulo.costo or 0.0)
+        if getattr(it, "tipo_unidad", "unidad") == "unidad" and articulo.es_empaque and (articulo.unidades_por_paquete or 1.0) > 1:
+            costo_linea = round(costo_linea / float(articulo.unidades_por_paquete), 4)
+
         detalles.append(DetalleFactura(
             codigo_articulo=articulo.codigo,
             nombre_articulo=nombre_item,
@@ -952,7 +976,7 @@ def create_factura(payload: FacturaCreate, db: Session = Depends(get_db), user: 
             precio_unitario=it.precio_unitario,
             descuento_pct=dcto,
             subtotal=subtotal,
-            costo_unitario=articulo.costo_final,
+            costo_unitario=costo_linea,
             tipo_unidad=getattr(it, "tipo_unidad", "unidad"),
             factor_empaque=factor
         ))
@@ -1324,6 +1348,10 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
                 dcto = max(0.0, min(100.0, it.descuento_pct or 0.0))
                 subt = round(it.cantidad * it.precio_unitario * (1.0 - dcto / 100.0), 2)
                 total_nuevo += subt
+                costo_linea = costo_art or 0.0
+                if getattr(it, "tipo_unidad", "unidad") == "unidad" and art and art.es_empaque and (art.unidades_por_paquete or 1.0) > 1:
+                    costo_linea = round(costo_linea / float(art.unidades_por_paquete), 4)
+
                 nuevos_detalles.append(DetalleFactura(
                     codigo_articulo=cod_num,
                     nombre_articulo=nombre_item,
@@ -1331,7 +1359,7 @@ def update_factura(id: int, payload: FacturaUpdate, db: Session = Depends(get_db
                     precio_unitario=it.precio_unitario,
                     descuento_pct=dcto,
                     subtotal=subt,
-                    costo_unitario=costo_art,
+                    costo_unitario=costo_linea,
                     tipo_unidad=getattr(it, "tipo_unidad", "unidad"),
                     factor_empaque=factor
                 ))
@@ -2930,8 +2958,8 @@ def get_reporte_inventario(
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
     articulos = db.query(Articulo).filter(Articulo.activo == True).order_by(Articulo.nombre.asc()).all()
     
-    total_costo = sum(a.stock * a.costo_final for a in articulos if a.stock > 0)
-    total_pvp = sum(a.stock * a.precio for a in articulos if a.stock > 0)
+    total_costo = sum(a.stock * obtener_costo_unitario_articulo(a) for a in articulos if a.stock > 0)
+    total_pvp = sum(a.stock * obtener_precio_unitario_articulo(a) for a in articulos if a.stock > 0)
     ganancia_potencial = total_pvp - total_costo
     margen_pct = round((ganancia_potencial / total_costo * 100), 2) if total_costo > 0 else 0.0
     
@@ -2966,8 +2994,14 @@ def get_reporte_inventario(
                 "stock": a.stock,
                 "stock_alerta": a.stock_alerta,
                 "costo_final": a.costo_final,
+                "costo_unitario": round(obtener_costo_unitario_articulo(a), 4),
                 "precio": a.precio,
-                "valoracion_costo": round(a.stock * a.costo_final, 2) if a.stock > 0 else 0.0
+                "precio_unidad": a.precio_unidad or 0.0,
+                "es_empaque": bool(a.es_empaque),
+                "nombre_empaque": a.nombre_empaque or "PAQUETE",
+                "unidades_por_paquete": a.unidades_por_paquete or 1.0,
+                "valoracion_costo": round(a.stock * obtener_costo_unitario_articulo(a), 2) if a.stock > 0 else 0.0,
+                "valoracion_pvp": round(a.stock * obtener_precio_unitario_articulo(a), 2) if a.stock > 0 else 0.0
             }
             for a in items_filtrados
         ]
@@ -3001,7 +3035,7 @@ def get_reporte_stock_alerta(
                 total_por_acabarse += 1
                 
             deficit = max(0.0, limite_alerta - a.stock)
-            costo_unit = a.costo_final or a.costo or 0.0
+            costo_unit = round(obtener_costo_unitario_articulo(a), 4)
             costo_rep_usd = round(deficit * costo_unit, 2)
             inversion_reposicion_usd += costo_rep_usd
             
@@ -3016,7 +3050,11 @@ def get_reporte_stock_alerta(
                 "stock": round(a.stock, 2) if a.stock is not None else 0.0,
                 "stock_alerta": round(limite_alerta, 2),
                 "deficit": round(deficit, 2),
-                "costo_final": costo_unit,
+                "costo_final": a.costo_final or a.costo or 0.0,
+                "costo_unitario": costo_unit,
+                "es_empaque": bool(a.es_empaque),
+                "nombre_empaque": a.nombre_empaque or "PAQUETE",
+                "unidades_por_paquete": a.unidades_por_paquete or 1.0,
                 "precio": a.precio or 0.0,
                 "costo_reposicion_usd": costo_rep_usd,
                 "costo_reposicion_bs": round(costo_rep_usd * tasa_bcv, 2),
@@ -3213,7 +3251,7 @@ def get_reporte_resumen(db: Session = Depends(get_db), user: Usuario = Depends(r
     articulos = db.query(Articulo).filter(Articulo.activo == True).all()
     total_articulos = len(articulos)
     bajo_stock = sum(1 for a in articulos if a.stock <= (a.stock_alerta if a.stock_alerta is not None else 5.0))
-    patrimonio_total = sum(a.stock * a.costo_final for a in articulos if a.stock > 0)
+    patrimonio_total = sum(a.stock * obtener_costo_unitario_articulo(a) for a in articulos if a.stock > 0)
 
     return {
         "ventas_hoy": {
