@@ -12,6 +12,11 @@ def migrate_sqlite_to_pg_if_needed():
     if not DATABASE_URL.startswith("postgresql"):
         return
 
+    # Si la variable de entorno SKIP_SQLITE_MIGRATION está activada (sedes nuevas independientes)
+    if os.getenv("SKIP_SQLITE_MIGRATION", "").lower() in ("true", "1", "yes"):
+        print("[PG MIGRATOR] SKIP_SQLITE_MIGRATION activado. Se mantiene base de datos limpia y virgen.")
+        return
+
     # Verificar si PostgreSQL ya tiene datos en la tabla articulos
     try:
         with engine.connect() as conn:
