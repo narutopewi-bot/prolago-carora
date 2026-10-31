@@ -378,19 +378,6 @@ os.makedirs(TEMPLATES_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
-# Configuración global multisede por variables de entorno
-SEDE_NOMBRE = os.getenv("SEDE_NOMBRE", "PROLAGO")
-SEDE_CIUDAD = os.getenv("SEDE_CIUDAD", "Carora, Lara")
-SEDE_RIF = os.getenv("SEDE_RIF", "J-50493821-0")
-SEDE_DIRECCION = os.getenv("SEDE_DIRECCION", "Carora, Estado Lara")
-SEDE_TELEFONO = os.getenv("SEDE_TELEFONO", "0414-5037653")
-
-templates.env.globals["SEDE_NOMBRE"] = SEDE_NOMBRE
-templates.env.globals["SEDE_CIUDAD"] = SEDE_CIUDAD
-templates.env.globals["SEDE_RIF"] = SEDE_RIF
-templates.env.globals["SEDE_DIRECCION"] = SEDE_DIRECCION
-templates.env.globals["SEDE_TELEFONO"] = SEDE_TELEFONO
-
 # Helper para configuración
 def get_config_val(db: Session, clave: str, default: str = "") -> str:
     cfg = db.query(Configuracion).filter_by(clave=clave).first()
