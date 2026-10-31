@@ -71,10 +71,10 @@
                         <img src="/static/img/logo.jpg" alt="Logo Prolago C.A." class="w-10 h-10 rounded-xl object-cover border-2 border-white/30 shadow-md group-hover:scale-105 transition shrink-0">
                         <div class="leading-tight shrink-0 hidden sm:block">
                             <div class="flex items-baseline space-x-1">
-                                <span class="font-black text-lg tracking-wider text-white">PROLAGO</span>
+                                <span class="font-black text-lg tracking-wider text-white">{{ SEDE_NOMBRE }}</span>
                                 <span class="font-bold text-xs text-red-200">C.A.</span>
                             </div>
-                            <span class="text-[9px] block text-red-200/90 font-semibold tracking-wider uppercase">Carora, Lara</span>
+                            <span class="text-[9px] block text-red-200/90 font-semibold tracking-wider uppercase">{{ SEDE_CIUDAD }}</span>
                         </div>
                     </a>
 
@@ -971,6 +971,13 @@
         window.CURRENT_USER_ID = {{ user.id if user else 'null' }};
         window.CURRENT_USER_NAME = "{{ (user.nombre or user.username or 'Administrador') if user else 'Administrador' }}";
         window.CURRENT_USER_USERNAME = "{{ user.username if user else '' }}";
+        window.CONFIG_SEDE = {
+            nombre: "{{ SEDE_NOMBRE }}",
+            ciudad: "{{ SEDE_CIUDAD }}",
+            rif: "{{ SEDE_RIF }}",
+            direccion: "{{ SEDE_DIRECCION }}",
+            telefono: "{{ SEDE_TELEFONO }}"
+        };
         function tienePermiso(perm) {
             if (window.IS_ADMIN) return true;
             return window.CURRENT_USER_PERMISOS.includes('*') || window.CURRENT_USER_PERMISOS.includes(perm);

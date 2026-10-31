@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Punto de Venta - Prolago Carora 2026{% endblock %}
+{% block title %}Punto de Venta - {{ SEDE_NOMBRE }} 2026{% endblock %}
 {% block nav_pos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block extra_head %}
@@ -925,7 +925,7 @@
                 <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-12 h-12 mx-auto rounded-lg mb-1 object-cover border border-slate-200">
                 <h2 class="font-black text-sm uppercase tracking-wider">PROLAGO C.A.</h2>
                 <p class="text-[9px] font-bold text-slate-800 leading-tight">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
-                <p class="text-[10px] text-slate-600">Carora, Lara</p>
+                <p class="text-[10px] text-slate-600">{{ SEDE_CIUDAD }}</p>
                 <div class="mt-1.5 font-bold text-xs">
                     FACTURA N°: <span id="tickNumero"></span>
                 </div>
@@ -1330,7 +1330,7 @@
         <div id="seccionTicketCajaImprimirPOS" class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-3">
             <div class="text-center border-b border-dashed border-slate-400 pb-2">
                 <h4 class="font-black text-sm uppercase">PROLAGO C.A.</h4>
-                <p class="text-[11px] text-slate-600">RIF: J-50493821-0 • Carora</p>
+                <p class="text-[11px] text-slate-600">RIF: {{ SEDE_RIF }} &bull; {{ SEDE_CIUDAD }}</p>
                 <p class="font-bold mt-1 text-[11px]" id="tcTituloCortePOS">CORTE Y CIERRE DE CAJA</p>
                 <p class="text-[10px] text-slate-500" id="tcFechaCierrePOS"></p>
             </div>
@@ -3093,7 +3093,7 @@
                         <div>
                             <h2 class="font-black ${esHojaCompleta ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'} uppercase tracking-wider text-slate-900 leading-none">PROLAGO C.A.</h2>
                             <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} font-bold text-[#8B1E24] uppercase leading-tight mt-0.5">Medicina Veterinaria y Alimentos Concentrados</p>
-                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} text-slate-500">Carora, Estado Lara &bull; RIF: J-50493821-0</p>
+                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} text-slate-500">${(window.CONFIG_SEDE && window.CONFIG_SEDE.direccion) ? window.CONFIG_SEDE.direccion : 'Carora, Estado Lara'} &bull; RIF: ${(window.CONFIG_SEDE && window.CONFIG_SEDE.rif) ? window.CONFIG_SEDE.rif : 'J-50493821-0'}</p>
                         </div>
                     </div>
 
@@ -3485,7 +3485,7 @@
                     <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-12 h-12 mx-auto rounded-lg mb-1 object-cover border border-slate-300">
                     <h1 class="font-black text-base uppercase tracking-wider text-black leading-tight">PROLAGO C.A.</h1>
                     <p class="text-[9.5px] font-bold text-black uppercase leading-tight mt-0.5">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
-                    <p class="text-[10px] font-semibold text-black mt-0.5">RIF: J-50493821-0 &bull; Carora, Lara</p>
+                    <p class="text-[10px] font-semibold text-black mt-0.5">RIF: ${(window.CONFIG_SEDE && window.CONFIG_SEDE.rif) ? window.CONFIG_SEDE.rif : 'J-50493821-0'} &bull; ${(window.CONFIG_SEDE && window.CONFIG_SEDE.ciudad) ? window.CONFIG_SEDE.ciudad : 'Carora, Lara'}</p>
                     <p class="text-[9.5px] text-slate-700">Venezuela</p>
                 </div>
 
@@ -3561,7 +3561,7 @@
                 <div class="text-center border-t border-dashed border-black pt-2 text-[9.5px] text-black space-y-0.5">
                     <p class="font-black uppercase tracking-wider">¡GRACIAS POR SU COMPRA Y PREFERENCIA!</p>
                     <p class="text-[8.5px]">Conserve este comprobante para cualquier reclamo</p>
-                    <p class="text-[8px] text-slate-600 mt-0.5">Prolago C.A. &bull; Carora 2026</p>
+                    <p class="text-[8px] text-slate-600 mt-0.5">${(window.CONFIG_SEDE && window.CONFIG_SEDE.nombre) ? window.CONFIG_SEDE.nombre : 'Prolago'} C.A. &bull; ${(window.CONFIG_SEDE && window.CONFIG_SEDE.ciudad) ? window.CONFIG_SEDE.ciudad : 'Carora'} 2026</p>
                 </div>
             </div>
         `;
