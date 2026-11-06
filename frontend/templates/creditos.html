@@ -302,7 +302,7 @@
     </div>
 
     <!-- CONTROLES DE BÚSQUEDA Y FILTRADO -->
-    <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+    <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-3 md:items-center justify-between">
         <div class="flex-1 relative">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                 <i class="fa-solid fa-magnifying-glass text-xs"></i>
@@ -314,8 +314,22 @@
             </button>
         </div>
 
-        <div class="flex items-center space-x-3 text-xs">
-            <label class="flex items-center space-x-2 font-semibold text-slate-700 cursor-pointer">
+        <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs">
+            <!-- Selector de Ordenamiento Alfabético / Criterio -->
+            <div class="flex items-center space-x-1.5 bg-slate-50 hover:bg-slate-100 transition px-3 py-2 rounded-xl border border-slate-300 shadow-inner">
+                <i id="iconoOrdenSelector" class="fa-solid fa-arrow-down-a-z text-rose-600 text-xs"></i>
+                <label for="ordenCreditos" class="font-bold text-slate-600 text-[11px] uppercase tracking-wider hidden sm:inline">Ordenar:</label>
+                <select id="ordenCreditos" onchange="cambiarOrdenCreditos()" class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer text-xs">
+                    <option value="alfabetico" selected>🔤 Deudores (A - Z)</option>
+                    <option value="alfabetico_za">🔤 Deudores (Z - A)</option>
+                    <option value="fecha_desc">📅 Más recientes primero</option>
+                    <option value="fecha_asc">📅 Más antiguas primero</option>
+                    <option value="saldo_desc">💰 Mayor saldo pendiente</option>
+                    <option value="saldo_asc">💰 Menor saldo pendiente</option>
+                </select>
+            </div>
+
+            <label class="flex items-center space-x-2 font-semibold text-slate-700 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
                 <input type="checkbox" id="checkSoloPendientes" checked onchange="cargarCreditos()" class="rounded text-rose-600 focus:ring-rose-500 w-4 h-4">
                 <span>Solo facturas con saldo pendiente</span>
             </label>
@@ -326,14 +340,20 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs min-w-[700px]">
-                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200 select-none">
                     <tr>
                         <th class="px-4 py-3.5">Factura N°</th>
-                        <th class="px-4 py-3.5">Fecha</th>
-                        <th class="px-4 py-3.5">Cliente / Deudor</th>
+                        <th class="px-4 py-3.5 cursor-pointer hover:text-slate-800 hover:bg-slate-100 transition" onclick="alternarOrdenFecha()" title="Clic para alternar orden cronológico">
+                            Fecha <i id="iconoOrdenFecha" class="fa-solid fa-sort ml-1 text-slate-300"></i>
+                        </th>
+                        <th class="px-4 py-3.5 cursor-pointer hover:text-slate-800 hover:bg-slate-100 transition" onclick="alternarOrdenCliente()" title="Clic para alternar orden alfabético A-Z / Z-A">
+                            Cliente / Deudor <i id="iconoOrdenCliente" class="fa-solid fa-arrow-down-a-z ml-1 text-rose-600"></i>
+                        </th>
                         <th class="px-4 py-3.5">Teléfono</th>
                         <th class="px-3 py-3.5 text-right">Crédito Inicial ($)</th>
-                        <th class="px-4 py-3.5 text-right">Saldo Pendiente ($)</th>
+                        <th class="px-4 py-3.5 text-right cursor-pointer hover:text-slate-800 hover:bg-slate-100 transition" onclick="alternarOrdenSaldo()" title="Clic para alternar por monto de saldo pendiente">
+                            Saldo Pendiente ($) <i id="iconoOrdenSaldo" class="fa-solid fa-sort ml-1 text-slate-300"></i>
+                        </th>
                         <th class="px-4 py-3.5 text-right">Saldo en Bs.</th>
                         <th class="px-3 py-3.5 text-center">Estado</th>
                         <th class="px-4 py-3.5 text-center">Acciones</th>
@@ -506,8 +526,10 @@
 
     async function cargarCreditos() {
         const soloPend = document.getElementById('checkSoloPendientes').checked;
+        const ordenSel = document.getElementById('ordenCreditos');
+        const orden = ordenSel ? ordenSel.value : 'alfabetico';
         try {
-            const res = await fetch(`/api/creditos?solo_pendientes=${soloPend}`);
+            const res = await fetch(`/api/creditos?solo_pendientes=${soloPend}&orden=${orden}`);
             if (res.ok) {
                 const data = await res.json();
                 todosLosCreditos = data.items || [];
@@ -517,6 +539,82 @@
             }
         } catch (e) {
             console.error(e);
+        }
+    }
+
+    function cambiarOrdenCreditos() {
+        actualizarIconosOrden();
+        filtrarCreditos();
+    }
+
+    function alternarOrdenCliente() {
+        const sel = document.getElementById('ordenCreditos');
+        if (!sel) return;
+        sel.value = (sel.value === 'alfabetico') ? 'alfabetico_za' : 'alfabetico';
+        actualizarIconosOrden();
+        filtrarCreditos();
+    }
+
+    function alternarOrdenFecha() {
+        const sel = document.getElementById('ordenCreditos');
+        if (!sel) return;
+        sel.value = (sel.value === 'fecha_desc') ? 'fecha_asc' : 'fecha_desc';
+        actualizarIconosOrden();
+        filtrarCreditos();
+    }
+
+    function alternarOrdenSaldo() {
+        const sel = document.getElementById('ordenCreditos');
+        if (!sel) return;
+        sel.value = (sel.value === 'saldo_desc') ? 'saldo_asc' : 'saldo_desc';
+        actualizarIconosOrden();
+        filtrarCreditos();
+    }
+
+    function actualizarIconosOrden() {
+        const sel = document.getElementById('ordenCreditos');
+        if (!sel) return;
+        const v = sel.value;
+        const icCli = document.getElementById('iconoOrdenCliente');
+        const icFec = document.getElementById('iconoOrdenFecha');
+        const icSal = document.getElementById('iconoOrdenSaldo');
+        const icSel = document.getElementById('iconoOrdenSelector');
+
+        if (icCli) {
+            if (v === 'alfabetico') {
+                icCli.className = 'fa-solid fa-arrow-down-a-z ml-1 text-rose-600';
+            } else if (v === 'alfabetico_za') {
+                icCli.className = 'fa-solid fa-arrow-down-z-a ml-1 text-rose-600';
+            } else {
+                icCli.className = 'fa-solid fa-sort ml-1 text-slate-300';
+            }
+        }
+
+        if (icFec) {
+            if (v === 'fecha_desc') {
+                icFec.className = 'fa-solid fa-arrow-down-9-1 ml-1 text-rose-600';
+            } else if (v === 'fecha_asc') {
+                icFec.className = 'fa-solid fa-arrow-down-1-9 ml-1 text-rose-600';
+            } else {
+                icFec.className = 'fa-solid fa-sort ml-1 text-slate-300';
+            }
+        }
+
+        if (icSal) {
+            if (v === 'saldo_desc') {
+                icSal.className = 'fa-solid fa-arrow-down-wide-short ml-1 text-rose-600';
+            } else if (v === 'saldo_asc') {
+                icSal.className = 'fa-solid fa-arrow-down-short-wide ml-1 text-rose-600';
+            } else {
+                icSal.className = 'fa-solid fa-sort ml-1 text-slate-300';
+            }
+        }
+
+        if (icSel) {
+            if (v === 'alfabetico') icSel.className = 'fa-solid fa-arrow-down-a-z text-rose-600 text-xs';
+            else if (v === 'alfabetico_za') icSel.className = 'fa-solid fa-arrow-down-z-a text-rose-600 text-xs';
+            else if (v.startsWith('fecha')) icSel.className = 'fa-solid fa-calendar-days text-rose-600 text-xs';
+            else if (v.startsWith('saldo')) icSel.className = 'fa-solid fa-money-bill-wave text-rose-600 text-xs';
         }
     }
 
@@ -618,6 +716,31 @@
             const telf = (c.telefono || '').toLowerCase();
             const ced = (c.cedula_rif || '').toLowerCase();
             return nom.includes(txt) || num.includes(txt) || telf.includes(txt) || ced.includes(txt);
+        });
+
+        // Ordenamiento dinámico reactivo
+        const ordenSel = document.getElementById('ordenCreditos');
+        const ordenActual = ordenSel ? ordenSel.value : 'alfabetico';
+
+        filtrados.sort((a, b) => {
+            if (ordenActual === 'alfabetico') {
+                const comp = (a.cliente_nombre || '').localeCompare(b.cliente_nombre || '', 'es', { sensitivity: 'base' });
+                if (comp !== 0) return comp;
+                return (b.fecha || '').localeCompare(a.fecha || '');
+            } else if (ordenActual === 'alfabetico_za') {
+                const comp = (b.cliente_nombre || '').localeCompare(a.cliente_nombre || '', 'es', { sensitivity: 'base' });
+                if (comp !== 0) return comp;
+                return (b.fecha || '').localeCompare(a.fecha || '');
+            } else if (ordenActual === 'fecha_desc') {
+                return (b.fecha || '').localeCompare(a.fecha || '');
+            } else if (ordenActual === 'fecha_asc') {
+                return (a.fecha || '').localeCompare(b.fecha || '');
+            } else if (ordenActual === 'saldo_desc') {
+                return (parseFloat(b.saldo_pendiente) || 0) - (parseFloat(a.saldo_pendiente) || 0);
+            } else if (ordenActual === 'saldo_asc') {
+                return (parseFloat(a.saldo_pendiente) || 0) - (parseFloat(b.saldo_pendiente) || 0);
+            }
+            return 0;
         });
 
         // Actualizar KPIs de forma reactiva con el resultado de la búsqueda

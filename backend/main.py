@@ -1516,6 +1516,7 @@ def delete_factura(
 def list_creditos(
     search: Optional[str] = None,
     solo_pendientes: bool = True,
+    orden: Optional[str] = "alfabetico",
     db: Session = Depends(get_db),
     user: Usuario = Depends(require_user)
 ):
@@ -1526,7 +1527,19 @@ def list_creditos(
         s = f"%{search.strip()}%"
         query = query.filter(or_(Factura.numero.ilike(s), Factura.cliente_nombre.ilike(s)))
 
-    facturas_credito = query.order_by(Factura.fecha.desc()).all()
+    if orden == "fecha_desc":
+        facturas_credito = query.order_by(Factura.fecha.desc()).all()
+    elif orden == "fecha_asc":
+        facturas_credito = query.order_by(Factura.fecha.asc()).all()
+    elif orden == "saldo_desc":
+        facturas_credito = query.order_by(Factura.saldo_pendiente.desc(), Factura.fecha.desc()).all()
+    elif orden == "saldo_asc":
+        facturas_credito = query.order_by(Factura.saldo_pendiente.asc(), Factura.fecha.desc()).all()
+    elif orden == "alfabetico_za":
+        facturas_credito = query.order_by(Factura.cliente_nombre.desc(), Factura.fecha.desc()).all()
+    else:
+        # Por defecto alfabético A-Z por deudor, y para un mismo deudor sus facturas más recientes primero
+        facturas_credito = query.order_by(Factura.cliente_nombre.asc(), Factura.fecha.desc()).all()
     tasa_bcv = float(get_config_val(db, "tasa_bcv", "473.92"))
 
     total_por_cobrar_usd = sum(f.saldo_pendiente for f in facturas_credito if f.saldo_pendiente > 0)
