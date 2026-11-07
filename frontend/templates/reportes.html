@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Reportes Gerenciales - Prolago Carora 2026{% endblock %}
+{% block title %}Reportes Gerenciales - {{ SEDE_NOMBRE }} 2026{% endblock %}
 {% block nav_reportes %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block extra_head %}
@@ -48,7 +48,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="font-black text-xl text-slate-950">PROLAGO C.A. - INFORME GERENCIAL</h1>
-                <p class="text-xs text-slate-600">Medicina Veterinaria y Alimentos Concentrados &bull; RIF: J-50493821-0 &bull; Carora, Lara</p>
+                <p class="text-xs text-slate-600">{{ SEDE_SUBTITULO }} &bull; RIF: {{ SEDE_RIF }} &bull; {{ SEDE_CIUDAD }}</p>
                 <p class="text-xs font-bold text-slate-800 mt-1" id="printSubtituloReporte">Reporte de Operaciones</p>
             </div>
             <div class="text-right text-xs">

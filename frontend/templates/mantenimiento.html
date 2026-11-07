@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 
-{% block title %}Centro de Mantenimiento y Recuperación - Prolago Carora 2026{% endblock %}
+{% block title %}Centro de Mantenimiento y Recuperación - {{ SEDE_NOMBRE }} 2026{% endblock %}
 {% block nav_mantenimiento %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block content %}
@@ -261,7 +261,7 @@
         }
 
         const d = ultimoDiagnostico;
-        const texto = `=== REPORTE DE DIAGNÓSTICO TÉCNICO PROLAGO CARORA 2026 ===\n` +
+        const texto = `=== REPORTE DE DIAGNÓSTICO TÉCNICO ${(window.SEDE_INFO && window.SEDE_INFO.nombre) ? window.SEDE_INFO.nombre.toUpperCase() : 'PROLAGO'} 2026 ===\n` +
             `Fecha y Hora: ${d.fecha_servidor}\n` +
             `Estado del Sistema: ${d.estado_sistema}\n` +
             `Integridad Base de Datos: ${d.integridad_db}\n` +

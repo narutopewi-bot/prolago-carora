@@ -378,6 +378,59 @@ os.makedirs(TEMPLATES_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+# Helper para información dinámica de la sede (Carora vs Barquisimeto)
+def obtener_info_sede(request: Request = None) -> dict:
+    custom_nombre = os.getenv("SEDE_NOMBRE", "").strip()
+    railway_proj = os.getenv("RAILWAY_PROJECT_NAME", "").lower()
+    railway_dom = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").lower()
+    
+    host = ""
+    if request and hasattr(request, "headers"):
+        host = (request.headers.get("host") or "").lower()
+        
+    es_barquisimeto = (
+        "barquisimeto" in custom_nombre.lower() or
+        "barquisimeto" in railway_proj or
+        "barquisimeto" in railway_dom or
+        "barquisimeto" in host
+    )
+    
+    if es_barquisimeto:
+        return {
+            "SEDE_ID": "barquisimeto",
+            "SEDE_NOMBRE": custom_nombre or "Prolago Barquisimeto",
+            "SEDE_SUFIJO": os.getenv("SEDE_SUFIJO", "Barquisimeto"),
+            "SEDE_SUBTITULO": os.getenv("SEDE_SUBTITULO", "Agro Tienda y Mascotas"),
+            "SEDE_CIUDAD": os.getenv("SEDE_CIUDAD", "Barquisimeto, Lara"),
+            "SEDE_LOGO": os.getenv("SEDE_LOGO", "/static/img/logo_barquisimeto.jpg"),
+            "SEDE_LOGO_PNG": os.getenv("SEDE_LOGO_PNG", "/static/img/logo_barquisimeto.png"),
+            "SEDE_RIF": os.getenv("SEDE_RIF", "J-50493821-0"),
+            "SEDE_DIRECCION": os.getenv("SEDE_DIRECCION", "Barquisimeto, Edo. Lara"),
+            "IS_BARQUISIMETO": True,
+        }
+    else:
+        return {
+            "SEDE_ID": "carora",
+            "SEDE_NOMBRE": custom_nombre or "Prolago Carora",
+            "SEDE_SUFIJO": os.getenv("SEDE_SUFIJO", "C.A."),
+            "SEDE_SUBTITULO": os.getenv("SEDE_SUBTITULO", "Medicina Veterinaria y Alimentos Concentrados"),
+            "SEDE_CIUDAD": os.getenv("SEDE_CIUDAD", "Carora, Lara"),
+            "SEDE_LOGO": os.getenv("SEDE_LOGO", "/static/img/logo.jpg"),
+            "SEDE_LOGO_PNG": os.getenv("SEDE_LOGO_PNG", "/static/img/logo.jpg"),
+            "SEDE_RIF": os.getenv("SEDE_RIF", "J-50493821-0"),
+            "SEDE_DIRECCION": os.getenv("SEDE_DIRECCION", "Av. Rotaria, Carora, Edo. Lara"),
+            "IS_BARQUISIMETO": False,
+        }
+
+# Inyectar variables globales de sede en Jinja2
+sede_default = obtener_info_sede()
+templates.env.globals.update(sede_default)
+templates.env.globals["obtener_info_sede"] = obtener_info_sede
+
+@app.get("/api/sede-info")
+def get_sede_info(request: Request):
+    return obtener_info_sede(request)
+
 # Helper para configuración
 def get_config_val(db: Session, clave: str, default: str = "") -> str:
     cfg = db.query(Configuracion).filter_by(clave=clave).first()

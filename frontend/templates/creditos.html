@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Cuentas por Cobrar y Créditos - Prolago Carora 2026{% endblock %}
+{% block title %}Cuentas por Cobrar y Créditos - {{ SEDE_NOMBRE }} 2026{% endblock %}
 {% block nav_creditos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block extra_head %}
@@ -822,7 +822,7 @@
 
         const totalBs = Number((c.saldo_pendiente * TASA_BCV).toFixed(2)).toLocaleString('es-VE', {minimumFractionDigits: 2});
 
-        const mensaje = `Hola *${c.cliente_nombre}*, le saludamos de *PROLAGO CARORA*.\n\nLe escribimos para recordarle cordialmente que mantiene un saldo pendiente de *$${c.saldo_pendiente.toFixed(2)} USD* (Equivalente a *Bs. ${totalBs}* a tasa oficial BCV de ${TASA_BCV.toFixed(2)} Bs./$) correspondiente a su compra bajo la *Factura N° #${c.numero}* del ${c.fecha}.\n\nPuede realizar su pago en efectivo, Zelle o Pago Móvil.\n\n¡Muchas gracias por su preferencia!`;
+        const mensaje = `Hola *${c.cliente_nombre}*, le saludamos de *${(window.SEDE_INFO && window.SEDE_INFO.nombre) ? window.SEDE_INFO.nombre.toUpperCase() : 'PROLAGO'}*.\n\nLe escribimos para recordarle cordialmente que mantiene un saldo pendiente de *$${c.saldo_pendiente.toFixed(2)} USD* (Equivalente a *Bs. ${totalBs}* a tasa oficial BCV de ${TASA_BCV.toFixed(2)} Bs./$) correspondiente a su compra bajo la *Factura N° #${c.numero}* del ${c.fecha}.\n\nPuede realizar su pago en efectivo, Zelle o Pago Móvil.\n\n¡Muchas gracias por su preferencia!`;
 
         if (!telf) {
             Swal.fire({
@@ -1158,11 +1158,11 @@
                 <!-- ENCABEZADO -->
                 <div class="flex items-start justify-between border-b border-slate-800 pb-1.5 ${mbBloque}">
                     <div class="flex items-center space-x-2.5">
-                        <img src="/static/img/logo.jpg" alt="Logo Prolago" class="${wLogo} object-cover rounded-lg border border-slate-300">
+                        <img src="${(window.SEDE_INFO && window.SEDE_INFO.logo) ? window.SEDE_INFO.logo : '/static/img/logo.jpg'}" alt="Logo" class="${wLogo} object-contain rounded-lg border border-slate-300 p-0.5 bg-white">
                         <div>
-                            <h2 class="font-black ${esHojaCompleta ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'} uppercase tracking-wider text-slate-900 leading-none">PROLAGO C.A.</h2>
-                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} font-bold text-[#8B1E24] uppercase leading-tight mt-0.5">Medicina Veterinaria y Alimentos Concentrados</p>
-                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} text-slate-500">Carora, Estado Lara &bull; RIF: J-50493821-0</p>
+                            <h2 class="font-black ${esHojaCompleta ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'} uppercase tracking-wider text-slate-900 leading-none">${(window.SEDE_INFO && window.SEDE_INFO.nombre) ? window.SEDE_INFO.nombre.toUpperCase() : 'PROLAGO C.A.'}</h2>
+                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} font-bold text-[#8B1E24] uppercase leading-tight mt-0.5">${(window.SEDE_INFO && window.SEDE_INFO.subtitulo) ? window.SEDE_INFO.subtitulo.toUpperCase() : 'MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS'}</p>
+                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} text-slate-500">${(window.SEDE_INFO && window.SEDE_INFO.ciudad) ? window.SEDE_INFO.ciudad : 'Carora, Lara'} &bull; RIF: ${(window.SEDE_INFO && window.SEDE_INFO.rif) ? window.SEDE_INFO.rif : 'J-50493821-0'}</p>
                         </div>
                     </div>
 
@@ -1191,7 +1191,7 @@
                     </div>
                     <div>
                         <span class="text-slate-500 font-bold block ${esHojaCompleta ? 'text-[9px]' : 'text-[8px]'} uppercase">Dirección:</span>
-                        <span class="text-slate-800 truncate block">${d.cliente_direccion || d.direccion || 'Carora, Edo. Lara'}</span>
+                        <span class="text-slate-800 truncate block">${d.cliente_direccion || d.direccion || ((window.SEDE_INFO && window.SEDE_INFO.direccion) ? window.SEDE_INFO.direccion : 'Carora, Edo. Lara')}</span>
                     </div>
                 </div>
 
@@ -1365,7 +1365,7 @@
             cliente_nombre: d.cliente_nombre || 'CLIENTE GENERAL',
             cliente_cedula: d.cliente_cedula || d.cedula || 'V/J - Sin Cédula',
             cliente_telefono: d.cliente_telefono || d.telefono || 'No registrado',
-            cliente_direccion: d.cliente_direccion || d.direccion || 'Carora, Edo. Lara',
+            cliente_direccion: d.cliente_direccion || d.direccion || ((window.SEDE_INFO && window.SEDE_INFO.direccion) ? window.SEDE_INFO.direccion : 'Carora, Edo. Lara'),
             total_usd: (d.total_usd !== undefined && d.total_usd !== null) ? d.total_usd : (d.total || 0),
             total_bs: (d.total_bs !== undefined && d.total_bs !== null) ? d.total_bs : ((d.total || 0) * (d.tasa_bcv || TASA_BCV)),
             tasa_bcv: d.tasa_bcv || TASA_BCV,

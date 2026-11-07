@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - Prolago Carora 2026</title>
+    <title>Iniciar Sesión - {{ SEDE_NOMBRE }} 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -19,13 +19,19 @@
         <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-white/30">
             <!-- Encabezado con Logo Oficial -->
             <div class="text-center mb-7">
-                <img src="/static/img/logo.jpg" alt="Prolago C.A." class="w-24 h-24 rounded-2xl mx-auto mb-3 shadow-xl border-2 border-[#8B1E24]/20 object-cover">
+                {% if IS_BARQUISIMETO %}
+                <div class="bg-white rounded-2xl p-4 mb-3 shadow-xl border-2 border-[#8B1E24]/20 inline-block max-w-[280px]">
+                    <img src="{{ SEDE_LOGO }}" alt="{{ SEDE_NOMBRE }}" class="w-full h-auto object-contain max-h-24 mx-auto">
+                </div>
+                {% else %}
+                <img src="{{ SEDE_LOGO }}" alt="{{ SEDE_NOMBRE }}" class="w-24 h-24 rounded-2xl mx-auto mb-3 shadow-xl border-2 border-[#8B1E24]/20 object-cover">
+                {% endif %}
                 <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center space-x-1.5">
                     <span>PROLAGO</span>
-                    <span class="text-xs font-black px-2 py-0.5 bg-[#8B1E24] text-white rounded-md">C.A.</span>
+                    <span class="text-xs font-black px-2 py-0.5 bg-[#8B1E24] text-white rounded-md">{{ SEDE_SUFIJO }}</span>
                 </h1>
-                <p class="text-[11px] text-[#8B1E24] font-bold tracking-wider uppercase mt-1">Medicina Veterinaria y Alimentos Concentrados</p>
-                <p class="text-[11px] text-slate-400 font-semibold mt-0.5">Carora, Lara</p>
+                <p class="text-[11px] text-[#8B1E24] font-bold tracking-wider uppercase mt-1">{{ SEDE_SUBTITULO }}</p>
+                <p class="text-[11px] text-slate-400 font-semibold mt-0.5">{{ SEDE_CIUDAD }}</p>
             </div>
 
             <!-- Formulario -->
@@ -61,7 +67,7 @@
         </div>
 
         <p class="text-center text-slate-400 text-xs mt-6 font-medium">
-            &copy; 2026 Prolago Carora &bull; Acceso seguro en la nube
+            &copy; 2026 {{ SEDE_NOMBRE }} &bull; Acceso seguro en la nube
         </p>
     </div>
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Despachos y Notas de Entrega - Prolago Carora 2026{% endblock %}
+{% block title %}Despachos y Notas de Entrega - {{ SEDE_NOMBRE }} 2026{% endblock %}
 {% block nav_despachos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block content %}
@@ -902,7 +902,7 @@
             <body>
                 <div class="header">
                     <div class="title">PROLAGO C.A. - NOTA DE ENTREGA / TRASLADO</div>
-                    <div style="font-size: 11px; color: #666;">Carora, Edo. Lara | RIF: J-50478129-8</div>
+                    <div style="font-size: 11px; color: #666;">${(window.SEDE_INFO && window.SEDE_INFO.ciudad) ? window.SEDE_INFO.ciudad : "Carora, Lara"} | RIF: ${(window.SEDE_INFO && window.SEDE_INFO.rif) ? window.SEDE_INFO.rif : "J-50493821-0"}</div>
                 </div>
                 <div class="meta">
                     <div>

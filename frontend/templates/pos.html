@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Punto de Venta - Prolago Carora 2026{% endblock %}
+{% block title %}Punto de Venta - {{ SEDE_NOMBRE }} 2026{% endblock %}
 {% block nav_pos %}bg-black/30 text-white font-bold border border-white/20 shadow-inner{% endblock %}
 
 {% block extra_head %}
@@ -922,10 +922,10 @@
             
             <!-- ENCABEZADO FISCAL CON LOGO OFICIAL -->
             <div class="text-center border-b border-dashed border-slate-400 pb-2 mb-2">
-                <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-12 h-12 mx-auto rounded-lg mb-1 object-cover border border-slate-200">
-                <h2 class="font-black text-sm uppercase tracking-wider">PROLAGO C.A.</h2>
-                <p class="text-[9px] font-bold text-slate-800 leading-tight">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
-                <p class="text-[10px] text-slate-600">Carora, Lara</p>
+                <img src="{{ SEDE_LOGO }}" alt="Logo {{ SEDE_NOMBRE }}" class="max-h-12 w-auto mx-auto rounded-lg mb-1 object-contain border border-slate-200 p-0.5 bg-white">
+                <h2 class="font-black text-sm uppercase tracking-wider">{{ SEDE_NOMBRE }}</h2>
+                <p class="text-[9px] font-bold text-slate-800 leading-tight uppercase">{{ SEDE_SUBTITULO }}</p>
+                <p class="text-[10px] text-slate-600">{{ SEDE_CIUDAD }}</p>
                 <div class="mt-1.5 font-bold text-xs">
                     FACTURA N°: <span id="tickNumero"></span>
                 </div>
@@ -1329,8 +1329,8 @@
         <!-- TICKET FÍSICO DE CIERRE -->
         <div id="seccionTicketCajaImprimirPOS" class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono space-y-3">
             <div class="text-center border-b border-dashed border-slate-400 pb-2">
-                <h4 class="font-black text-sm uppercase">PROLAGO C.A.</h4>
-                <p class="text-[11px] text-slate-600">RIF: J-50493821-0 • Carora</p>
+                <h4 class="font-black text-sm uppercase">{{ SEDE_NOMBRE }}</h4>
+                <p class="text-[11px] text-slate-600">RIF: {{ SEDE_RIF }} &bull; {{ SEDE_CIUDAD }}</p>
                 <p class="font-bold mt-1 text-[11px]" id="tcTituloCortePOS">CORTE Y CIERRE DE CAJA</p>
                 <p class="text-[10px] text-slate-500" id="tcFechaCierrePOS"></p>
             </div>
@@ -3089,11 +3089,11 @@
                 <!-- ENCABEZADO -->
                 <div class="flex items-start justify-between border-b border-slate-800 pb-1.5 ${mbBloque}">
                     <div class="flex items-center space-x-2.5">
-                        <img src="/static/img/logo.jpg" alt="Logo Prolago" class="${wLogo} object-cover rounded-lg border border-slate-300">
+                        <img src="${(window.SEDE_INFO && window.SEDE_INFO.logo) ? window.SEDE_INFO.logo : '/static/img/logo.jpg'}" alt="Logo" class="${wLogo} object-contain rounded-lg border border-slate-300 p-0.5 bg-white">
                         <div>
-                            <h2 class="font-black ${esHojaCompleta ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'} uppercase tracking-wider text-slate-900 leading-none">PROLAGO C.A.</h2>
-                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} font-bold text-[#8B1E24] uppercase leading-tight mt-0.5">Medicina Veterinaria y Alimentos Concentrados</p>
-                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} text-slate-500">Carora, Estado Lara &bull; RIF: J-50493821-0</p>
+                            <h2 class="font-black ${esHojaCompleta ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'} uppercase tracking-wider text-slate-900 leading-none">${(window.SEDE_INFO && window.SEDE_INFO.nombre) ? window.SEDE_INFO.nombre.toUpperCase() : 'PROLAGO C.A.'}</h2>
+                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} font-bold text-[#8B1E24] uppercase leading-tight mt-0.5">${(window.SEDE_INFO && window.SEDE_INFO.subtitulo) ? window.SEDE_INFO.subtitulo.toUpperCase() : 'MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS'}</p>
+                            <p class="${esHojaCompleta ? 'text-[9.5px]' : 'text-[8.5px]'} text-slate-500">${(window.SEDE_INFO && window.SEDE_INFO.ciudad) ? window.SEDE_INFO.ciudad : 'Carora, Lara'} &bull; RIF: ${(window.SEDE_INFO && window.SEDE_INFO.rif) ? window.SEDE_INFO.rif : 'J-50493821-0'}</p>
                         </div>
                     </div>
 
@@ -3122,7 +3122,7 @@
                     </div>
                     <div>
                         <span class="text-slate-500 font-bold block ${esHojaCompleta ? 'text-[9px]' : 'text-[8px]'} uppercase">Dirección:</span>
-                        <span class="text-slate-800 truncate block">${d.cliente_direccion || 'Carora, Edo. Lara'}</span>
+                        <span class="text-slate-800 truncate block">${d.cliente_direccion || ((window.SEDE_INFO && window.SEDE_INFO.direccion) ? window.SEDE_INFO.direccion : 'Carora, Edo. Lara')}</span>
                     </div>
                 </div>
 
@@ -3273,7 +3273,7 @@
             cliente_nombre: cliente || factData.cliente_nombre || 'CLIENTE GENERAL',
             cliente_cedula: factData.cliente_cedula || factData.cedula || 'V/J - Sin Cédula',
             cliente_telefono: factData.cliente_telefono || factData.telefono || 'No registrado',
-            cliente_direccion: factData.cliente_direccion || factData.direccion || 'Carora, Edo. Lara',
+            cliente_direccion: factData.cliente_direccion || factData.direccion || ((window.SEDE_INFO && window.SEDE_INFO.direccion) ? window.SEDE_INFO.direccion : 'Carora, Edo. Lara'),
             total_usd: factData.total_usd,
             total_bs: factData.total_bs,
             tasa_bcv: factData.tasa_bcv,
@@ -3482,10 +3482,10 @@
 
                 <!-- ENCABEZADO FISCAL -->
                 <div class="text-center pb-2 mb-2 border-b border-dashed border-black">
-                    <img src="/static/img/logo.jpg" alt="Logo Prolago" class="w-12 h-12 mx-auto rounded-lg mb-1 object-cover border border-slate-300">
-                    <h1 class="font-black text-base uppercase tracking-wider text-black leading-tight">PROLAGO C.A.</h1>
-                    <p class="text-[9.5px] font-bold text-black uppercase leading-tight mt-0.5">MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS</p>
-                    <p class="text-[10px] font-semibold text-black mt-0.5">RIF: J-50493821-0 &bull; Carora, Lara</p>
+                    <img src="${(window.SEDE_INFO && window.SEDE_INFO.logo) ? window.SEDE_INFO.logo : '/static/img/logo.jpg'}" alt="Logo" class="max-h-12 w-auto mx-auto rounded-lg mb-1 object-contain border border-slate-300 p-0.5 bg-white">
+                    <h1 class="font-black text-base uppercase tracking-wider text-black leading-tight">${(window.SEDE_INFO && window.SEDE_INFO.nombre) ? window.SEDE_INFO.nombre.toUpperCase() : 'PROLAGO C.A.'}</h1>
+                    <p class="text-[9.5px] font-bold text-black uppercase leading-tight mt-0.5">${(window.SEDE_INFO && window.SEDE_INFO.subtitulo) ? window.SEDE_INFO.subtitulo.toUpperCase() : 'MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS'}</p>
+                    <p class="text-[10px] font-semibold text-black mt-0.5">RIF: ${(window.SEDE_INFO && window.SEDE_INFO.rif) ? window.SEDE_INFO.rif : 'J-50493821-0'} &bull; ${(window.SEDE_INFO && window.SEDE_INFO.ciudad) ? window.SEDE_INFO.ciudad : 'Carora, Lara'}</p>
                     <p class="text-[9.5px] text-slate-700">Venezuela</p>
                 </div>
 
@@ -3561,7 +3561,7 @@
                 <div class="text-center border-t border-dashed border-black pt-2 text-[9.5px] text-black space-y-0.5">
                     <p class="font-black uppercase tracking-wider">¡GRACIAS POR SU COMPRA Y PREFERENCIA!</p>
                     <p class="text-[8.5px]">Conserve este comprobante para cualquier reclamo</p>
-                    <p class="text-[8px] text-slate-600 mt-0.5">Prolago C.A. &bull; Carora 2026</p>
+                    <p class="text-[8px] text-slate-600 mt-0.5">${(window.SEDE_INFO && window.SEDE_INFO.nombre) ? window.SEDE_INFO.nombre : 'Prolago'} &bull; 2026</p>
                 </div>
             </div>
         `;

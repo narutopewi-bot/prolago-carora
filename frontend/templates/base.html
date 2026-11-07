@@ -6,10 +6,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>{% block title %}Prolago Carora 2026{% endblock %}</title>
+    <title>{% block title %}{{ SEDE_NOMBRE }} 2026{% endblock %}</title>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
-    <link rel="apple-touch-icon" href="/static/img/logo.jpg">
+    <link rel="apple-touch-icon" href="{{ SEDE_LOGO }}">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -68,13 +68,19 @@
                 <!-- Logo Oficial y Tasa BCV (Juntos en el lado izquierdo) -->
                 <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
                     <a href="/" class="flex items-center space-x-2.5 group">
-                        <img src="/static/img/logo.jpg" alt="Logo Prolago C.A." class="w-10 h-10 rounded-xl object-cover border-2 border-white/30 shadow-md group-hover:scale-105 transition shrink-0">
+                        {% if IS_BARQUISIMETO %}
+                        <div class="bg-white rounded-xl px-2.5 py-1 shadow-md border border-white/30 flex items-center h-10 group-hover:scale-105 transition shrink-0">
+                            <img src="{{ SEDE_LOGO }}" alt="Logo {{ SEDE_NOMBRE }}" class="h-7 w-auto object-contain">
+                        </div>
+                        {% else %}
+                        <img src="{{ SEDE_LOGO }}" alt="Logo {{ SEDE_NOMBRE }}" class="w-10 h-10 rounded-xl object-cover border-2 border-white/30 shadow-md group-hover:scale-105 transition shrink-0">
+                        {% endif %}
                         <div class="leading-tight shrink-0 hidden sm:block">
                             <div class="flex items-baseline space-x-1">
                                 <span class="font-black text-lg tracking-wider text-white">PROLAGO</span>
-                                <span class="font-bold text-xs text-red-200">C.A.</span>
+                                <span class="font-bold text-xs text-red-200">{{ SEDE_SUFIJO }}</span>
                             </div>
-                            <span class="text-[9px] block text-red-200/90 font-semibold tracking-wider uppercase">Carora, Lara</span>
+                            <span class="text-[9px] block text-red-200/90 font-semibold tracking-wider uppercase">{{ SEDE_CIUDAD }}</span>
                         </div>
                     </a>
 
@@ -882,6 +888,19 @@
 
     <!-- SCRIPTS GLOBALES -->
     <script>
+        window.SEDE_INFO = {
+            id: "{{ SEDE_ID }}",
+            nombre: "{{ SEDE_NOMBRE }}",
+            sufijo: "{{ SEDE_SUFIJO }}",
+            subtitulo: "{{ SEDE_SUBTITULO }}",
+            ciudad: "{{ SEDE_CIUDAD }}",
+            logo: "{{ SEDE_LOGO }}",
+            logo_png: "{{ SEDE_LOGO_PNG }}",
+            rif: "{{ SEDE_RIF }}",
+            direccion: "{{ SEDE_DIRECCION }}",
+            is_barquisimeto: {{ 'true' if IS_BARQUISIMETO else 'false' }}
+        };
+
         function toggleMenuAtajo(modulo, e) {
             if (e) e.stopPropagation();
             const idMenu = `dropdown${modulo}Menu`;
