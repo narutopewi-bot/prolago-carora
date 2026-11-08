@@ -2071,9 +2071,13 @@
                 <!-- CABECERA -->
                 <div class="text-center pb-2 mb-2 border-b border-dashed border-black">
                     <img src="${(window.SEDE_INFO && window.SEDE_INFO.logo) ? window.SEDE_INFO.logo : '/static/img/logo.jpg'}" alt="Logo" class="max-h-12 w-auto mx-auto rounded-lg mb-1 object-contain border border-slate-300 p-0.5 bg-white">
+                    ${(window.SEDE_INFO && window.SEDE_INFO.is_barquisimeto) ? `
+                    <p class="text-[10px] font-semibold text-black mt-0.5">RIF: ${(window.SEDE_INFO && window.SEDE_INFO.rif) ? window.SEDE_INFO.rif : 'J-50493821-0'} &bull; ${(window.SEDE_INFO && window.SEDE_INFO.ciudad) ? window.SEDE_INFO.ciudad : 'Barquisimeto, Lara'}</p>
+                    ` : `
                     <h1 class="font-black text-base uppercase tracking-wider text-black leading-tight">${(window.SEDE_INFO && window.SEDE_INFO.nombre) ? window.SEDE_INFO.nombre.toUpperCase() : 'PROLAGO C.A.'}</h1>
                     <p class="text-[9.5px] font-bold text-black uppercase leading-tight mt-0.5">${(window.SEDE_INFO && window.SEDE_INFO.subtitulo) ? window.SEDE_INFO.subtitulo.toUpperCase() : 'MEDICINA VETERINARIA Y ALIMENTOS CONCENTRADOS'}</p>
                     <p class="text-[10px] font-semibold text-black mt-0.5">RIF: ${(window.SEDE_INFO && window.SEDE_INFO.rif) ? window.SEDE_INFO.rif : 'J-50493821-0'} &bull; ${(window.SEDE_INFO && window.SEDE_INFO.ciudad) ? window.SEDE_INFO.ciudad : 'Carora, Lara'}</p>
+                    `}
                     <p class="text-[9.5px] text-slate-700">Venezuela</p>
                 </div>
 
